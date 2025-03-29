@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { queries as q } from "@/database/models/orders/queries";
+import { queries as q, ordersCrud } from "@/database/models/orders";
 import { withDatabase, DATABASE_ROUTE_CONFIG } from "@/database";
 import { PrismaClientKnownRequestError } from "@prisma-client/runtime/library";
 import { StockOrderFormValues } from "@/types/models";
+import { formatDates } from "@/utils/formatters/data";
 
 // Force dynamic rendering and no caching for this database-dependent route
 export const dynamic = DATABASE_ROUTE_CONFIG.dynamic;
@@ -251,9 +252,9 @@ export async function PUT(req: Request) {
     // Verify the order exists
     const order = await withDatabase(async (db) => {
       const existingOrder = await db.stock_orders.findUnique({
-        where: { order_id: Number(order_id) }
+        where: { order_id: Number(order_id) },
       });
-      
+
       if (!existingOrder) {
         return null;
       }
@@ -264,20 +265,68 @@ export async function PUT(req: Request) {
         data: {
           po_number,
           date_ordered: date_ordered ? new Date(date_ordered) : undefined,
-          ...otherData
-        }
+          ...otherData,
+        },
       });
     });
 
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Order updated successfully', order }, { status: 200 });
+    return NextResponse.json(
+      { message: "Order updated successfully", order },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("[API] Error updating order:", error);
     return NextResponse.json(
-      { error: "Failed to update order", details: error instanceof Error ? error.message : String(error) },
+      {
+        error: "Failed to update order",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    // Parse request body
+    const { id, data } = await request.json();
+
+    // Validate input
+    if (!id || typeof id !== "number") {
+      return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
+    }
+
+    if (!data || typeof data !== "object") {
+      return NextResponse.json(
+        { error: "Invalid update data" },
+        { status: 400 }
+      );
+    }
+
+    // Use our CRUD operations to update the order
+    const updatedOrder = await ordersCrud.update(id, data);
+
+    // Format dates for client display
+    const formattedOrder = formatDates(updatedOrder, [
+      "created_at",
+      "updated_at",
+      "date_ordered",
+      "eta_start",
+      "eta_end",
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      order: formattedOrder,
+    });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    return NextResponse.json(
+      { error: "Failed to update order" },
       { status: 500 }
     );
   }
@@ -290,37 +339,43 @@ export async function DELETE(req: Request) {
     const order_id = searchParams.get("order_id");
 
     if (!order_id) {
-      return NextResponse.json({ error: "Missing order_id parameter" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing order_id parameter" },
+        { status: 400 }
+      );
     }
 
     const result = await withDatabase(async (db) => {
       // Verify the order exists
       const existingOrder = await db.stock_orders.findUnique({
-        where: { order_id: Number(order_id) }
+        where: { order_id: Number(order_id) },
       });
-      
+
       if (!existingOrder) {
         return null;
       }
 
       // Delete the order
       return await db.stock_orders.delete({
-        where: { order_id: Number(order_id) }
+        where: { order_id: Number(order_id) },
       });
     });
 
     if (!result) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     return NextResponse.json(
-      { message: 'Order deleted successfully', order: result },
+      { message: "Order deleted successfully", order: result },
       { status: 200 }
     );
   } catch (error) {
     console.error("[API] Error deleting order:", error);
     return NextResponse.json(
-      { error: "Failed to delete order", details: error instanceof Error ? error.message : String(error) },
+      {
+        error: "Failed to delete order",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

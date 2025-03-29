@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -17,13 +17,15 @@ export async function GET(request: Request) {
 
   if (redirectTo) {
     // Ensure the redirect path is valid
-    const validRedirectPaths = ['/reset-password', '/inventory/dashboard'];
-    const defaultRedirect = '/inventory/dashboard';
-    
+    const validRedirectPaths = ["/reset-password", "/inventory/dashboard"];
+    const defaultRedirect = "/inventory/dashboard";
+
     // Check if the redirectTo path is in our valid paths, otherwise use default
-    const isValidPath = validRedirectPaths.some(path => redirectTo.startsWith(path));
+    const isValidPath = validRedirectPaths.some((path) =>
+      redirectTo.startsWith(path)
+    );
     const finalRedirect = isValidPath ? redirectTo : defaultRedirect;
-    
+
     return NextResponse.redirect(`${origin}${finalRedirect}`);
   }
 

@@ -1,22 +1,22 @@
 "use server";
 
 import { encodedRedirect } from "@/utils/utils";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 /**
  * Server actions for authentication flows
- * 
+ *
  * This file contains all server actions related to authentication:
  * - Sign up
  * - Sign in
  * - Password reset
  * - Sign out
- * 
+ *
  * These actions are called from form submissions and handle the communication
  * with Supabase Auth.
- * 
+ *
  * Note: The email verification callback is handled in /app/auth/callback/route.ts
  * When you click the verification link, it:
  * 1. Exchanges the code for a session
@@ -39,7 +39,7 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect(
       "error",
       "/sign-up",
-      "Email and password are required",
+      "Email and password are required"
     );
   }
 
@@ -58,7 +58,7 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect(
       "success",
       "/sign-up",
-      "Thanks for signing up! Please check your email for a verification link.",
+      "Thanks for signing up! Please check your email for a verification link."
     );
   }
 };
@@ -110,7 +110,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
     return encodedRedirect(
       "error",
       "/forgot-password",
-      "Could not reset password",
+      "Could not reset password"
     );
   }
 
@@ -121,7 +121,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
   return encodedRedirect(
     "success",
     "/forgot-password",
-    "Check your email for a link to reset your password.",
+    "Check your email for a link to reset your password."
   );
 };
 
@@ -140,7 +140,7 @@ export const resetPasswordAction = async (formData: FormData) => {
     return encodedRedirect(
       "error",
       "/reset-password",
-      "Password and confirm password are required",
+      "Password and confirm password are required"
     );
   }
 
@@ -148,7 +148,7 @@ export const resetPasswordAction = async (formData: FormData) => {
     return encodedRedirect(
       "error",
       "/reset-password",
-      "Passwords do not match",
+      "Passwords do not match"
     );
   }
 
@@ -160,7 +160,7 @@ export const resetPasswordAction = async (formData: FormData) => {
     return encodedRedirect(
       "error",
       "/reset-password",
-      "Password update failed",
+      "Password update failed"
     );
   }
 
