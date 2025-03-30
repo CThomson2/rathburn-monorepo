@@ -42,8 +42,57 @@ CREATE TABLE Drums (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE Drum_Additions (
-	
-)
+CREATE TYPE inventory.drum_status AS ENUM (
+  -- 'ordered',
+  'en_route',
+  -- 'received',
+  'in_stock',
+  'pending_allocation',
+  'allocated', -- new name for pre-production
+  'rescheduled', -- for intermediate storage between multiple processes
+  'decommissioned', -- after being emptied into still
+  'empty',
+  'lost'
+);
 
+CREATE TABLE inventory.drum_status_transitions (
+  current_status inventory.drum_status NOT NULL,
+  next_status inventory.drum_status NOT NULL,
+  requires_admin BOOLEAN DEFAULT false,
+  requires_reason BOOLEAN DEFAULT false,
+  PRIMARY KEY (current_status, next_status)
+);
 
+INSERT INTO inventory.drum_status_transitions VALUES
+  -- Drum arrival and reception
+  ('en_route', 'in_stock', false, false),
+
+  -- From in_stock, when a drum is earmarked for production
+  ('in_stock', 'pending_allocation', false, false),
+  ('in_stock', 'allocated', true, true),  -- direct allocation (admin override)
+
+  -- Pending allocation can either be confirmed or cancelled
+  ('pending_allocation', 'allocated', false, false), -- confirmed via first QR code scan
+  ('pending_allocation', 'in_stock', true, true),      -- cancellation of production
+
+  -- Once allocated, a drum may either be:
+  ('allocated', 'empty', false, false),             -- fully consumed (complete load)
+  ('allocated', 'in_stock', false, false),            -- partially used, returned to stock
+  ('allocated', 'pending_allocation', true, true),    -- reversal (erroneous allocation)
+  ('allocated', 'rescheduled', true, true),           -- deferred for a subsequent process
+
+  -- Rescheduled drums can be reallocated or returned to stock
+  ('rescheduled', 'allocated', true, true),
+  ('rescheduled', 'in_stock', true, true),
+
+  -- Once a drum is empty, it is decommissioned
+  ('empty', 'decommissioned', false, false),
+
+  -- Lost drum transitions from various statuses (manual intervention required)
+  ('in_stock', 'lost', true, false),
+  ('pending_allocation', 'lost', true, false),
+  ('allocated', 'lost', true, false),
+  ('rescheduled', 'lost', true, false)
+  -- Optionally, if a lost drum is found, you might allow:
+  ('lost', 'in_stock', true, false)
+;

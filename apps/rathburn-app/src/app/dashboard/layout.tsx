@@ -12,15 +12,17 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  
+
   // Check if user is authenticated
-  const { data: { session } } = await supabase.auth.getSession();
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (!session) {
     // Redirect to sign-in if not authenticated
-    redirect('/sign-in');
+    redirect("/sign-in");
   }
-  
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar navigation */}
@@ -31,37 +33,68 @@ export default async function DashboardLayout({
         <nav className="p-4">
           <ul className="space-y-2">
             <li>
-              <a href="/dashboard" className="block p-2 hover:bg-gray-100 rounded">
+              <a
+                href="/dashboard"
+                className="block p-2 hover:bg-gray-100 rounded"
+              >
                 Dashboard
               </a>
             </li>
             <li>
-              <a href="/inventory" className="block p-2 hover:bg-gray-100 rounded">
+              <a
+                href="/dashboard/admin"
+                className="block p-2 hover:bg-gray-100 rounded"
+              >
+                Admin
+              </a>
+            </li>
+            <li>
+              <a
+                href="/dashboard/management"
+                className="block p-2 hover:bg-gray-100 rounded"
+              >
                 Inventory
               </a>
             </li>
             <li>
-              <a href="/messages" className="block p-2 hover:bg-gray-100 rounded">
-                Messages
+              <a
+                href="/dashboard/management"
+                className="block p-2 hover:bg-gray-100 rounded"
+              >
+                Inventory
+              </a>
+            </li>
+          </ul>
+          <br />
+          <hr />
+          <br />
+          <ul>
+            <li>
+              <a
+                href="/inventory/drums"
+                className="block p-2 hover:bg-gray-100 rounded"
+              >
+                Drum Stock (temp)
               </a>
             </li>
             <li>
-              <a href="/settings" className="block p-2 hover:bg-gray-100 rounded">
-                Settings
+              <a
+                href="/inventory/orders/new"
+                className="block p-2 hover:bg-gray-100 rounded"
+              >
+                New Order (temp)
               </a>
             </li>
             {/* Add more navigation items as needed */}
           </ul>
         </nav>
       </div>
-      
+
       {/* Main content area */}
       <div className="flex-1">
         {/* Top navigation bar */}
         <header className="bg-white shadow-sm h-16 flex items-center px-6 justify-between">
-          <div>
-            {/* Breadcrumb navigation could go here */}
-          </div>
+          <div>{/* Breadcrumb navigation could go here */}</div>
           <div className="flex items-center space-x-4">
             {/* User profile dropdown */}
             <div>
@@ -72,12 +105,10 @@ export default async function DashboardLayout({
             </div>
           </div>
         </header>
-        
+
         {/* Main content */}
-        <main className="p-6">
-          {children}
-        </main>
+        <main className="p-6">{children}</main>
       </div>
     </div>
   );
-} 
+}

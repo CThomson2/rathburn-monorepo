@@ -1,11 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export const createClient = async () => {
-  const cookieStore = await cookies();
+export const createClient = () => {
+  const cookieStore = cookies();
 
-  console.log('URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-   console.log('ANON KEY:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  console.log("URL:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("ANON KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,13 +19,18 @@ export const createClient = async () => {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               // Fix the type issue with sameSite by ensuring it's a valid value
-              const sanitizedOptions = options ? {
-                ...options,
-                sameSite: options.sameSite === true ? 'lax' : 
-                          options.sameSite === false ? undefined : 
-                          options.sameSite
-              } : options;
-              
+              const sanitizedOptions = options
+                ? {
+                    ...options,
+                    sameSite:
+                      options.sameSite === true
+                        ? "lax"
+                        : options.sameSite === false
+                          ? undefined
+                          : options.sameSite,
+                  }
+                : options;
+
               cookieStore.set(name, value, sanitizedOptions);
             });
           } catch (error) {
@@ -35,6 +40,6 @@ export const createClient = async () => {
           }
         },
       },
-    },
+    }
   );
 };
