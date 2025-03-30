@@ -34,7 +34,7 @@ async function OrdersPage() {
             href="/inventory/orders/new"
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
           >
-            Create New Order
+            New Order
           </Link>
         </div>
         {/* Pass the initial data to the client component */}
