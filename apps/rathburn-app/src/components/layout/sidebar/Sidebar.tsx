@@ -54,26 +54,31 @@ export function Sidebar({ className, isAuthLayout = false }: SidebarProps) {
 
   // Define navigation links based on page.tsx files with proper nesting
   const navLinks: NavLink[] = [
-    { href: "/", label: "Home", level: 0, recentlyUpdated: true },
+    {
+      href: "/dashboard",
+      label: "Dashboards",
+      level: 0,
+      recentlyUpdated: true,
+    },
     // { href: "/overview", label: "Overview", level: 0 },
     {
-      href: "/inventory/dashboard",
-      label: "Dashboard",
-      level: 0,
+      href: "/dashboard/admin",
+      label: "Admin",
+      level: 1,
     },
-    { href: "/inventory/activity", label: "Inventory Activity", level: 1 },
+    { href: "/inventory/production", label: "Production", level: 1 },
     {
-      href: "/inventory/orders",
-      label: "Orders",
-      level: 0,
+      href: "/inventory/management",
+      label: "Manage",
+      level: 1,
     },
     {
       href: "/inventory/orders/new",
       label: "New Order",
-      level: 1,
+      level: 0,
     },
     {
-      href: "/drums",
+      href: "inventory/drums",
       label: "Drum Stock",
       level: 0,
       recentlyUpdated: true,

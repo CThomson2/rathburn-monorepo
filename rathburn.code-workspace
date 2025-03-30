@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "path": "apps/rathburn-app",
+      "name": "Rathburn App",
+    },
+    {
+      // Important config files from root
+      "path": ".",
+      "name": "Root Config",
+      // Only include specific files/folders we need
+      "files.exclude": {
+        "**/node_modules": true,
+        "**/packages/**": true,
+        "**/apps/**": true, // Hide apps since we have it separately
+        // Keep visible:
+        // package.json, turbo.json, tsconfig.json, etc.
+      },
+    },
+  ],
+  "settings": {
+    // Workspace-specific settings here
+  },
+}

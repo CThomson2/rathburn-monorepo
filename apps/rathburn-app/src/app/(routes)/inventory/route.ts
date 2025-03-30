@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 export function GET() {
   return NextResponse.redirect(
     new URL(
-      "/inventory/dashboard",
+      "/inventory/drums",
       process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     )
   );
