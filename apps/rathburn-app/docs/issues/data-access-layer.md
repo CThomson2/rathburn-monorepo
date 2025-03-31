@@ -1,5 +1,3 @@
-These database operations could be organized in several ways, but here's the recommended approach considering modern React patterns:
-
 1. **Server Actions (Recommended)**
 
 ```typescript:app/actions/inventory.ts

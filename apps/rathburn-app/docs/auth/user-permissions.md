@@ -265,7 +265,17 @@ Here's a simplified example of how it all works together:
 -- 4. The update is audited with user ID for accountability
 ```
 
+### 6. Create protected routes in `middleware.ts`
+
+Assign roles to routes
+
+```ts
+// In middleware.js
+export const config = {
+  matcher: ["/inventory/:path*", "/admin/:path*"],
+};
+```
+
 > This combination of PostgreSQL roles (anonymous/authenticated), application roles (admin/manager), permissions, and RLS policies gives you a flexible and secure system for your colleagues to interact with your inventory management application.
 
 ---
-
