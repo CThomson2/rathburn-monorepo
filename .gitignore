@@ -28,7 +28,7 @@ build
 dist
 
 # Dashboard template package
-packages/template-source/
+# packages/template-source/
 
 # Debug
 npm-debug.log*
