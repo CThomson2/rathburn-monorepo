@@ -1,3 +1,4 @@
+"use client";
 
 import { useState } from "react";
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
@@ -5,14 +6,72 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp, BarChart2, PieChart as PieChartIcon, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const InventoryCharts = ({ stockLevels, categories, trendData }) => {
+export interface MaterialStock {
+  material: string;
+  count: number;
+}
+
+export interface DailyChange {
+  day: string;
+  netChange: number;
+}
+
+export interface StockLevels {
+  totalStock: number;
+  lowStockCount: number;
+  lowStockMaterials: MaterialStock[];
+  topMaterials: MaterialStock[];
+}
+
+export interface InventoryOverview extends StockLevels {
+  weeklyStockChanges: DailyChange[];
+}
+
+export interface Material {
+  id: number;
+  name: string;
+  stock: number;
+  casNumber: string;
+}
+
+export interface MaterialGroup {
+  chemicalGroup: string;
+  totalStock: number;
+  materialCount: number;
+  percentage: string;
+  materials: Material[];
+}
+
+export interface StockItem {
+  name: string;
+  quantity: number;
+  value: number;
+}
+
+export interface CategoryItem {
+  name: string;
+  value: number;
+}
+
+export interface TrendItem {
+  date: string;
+  value: number;
+}
+
+export interface InventoryChartsProps {
+  stockLevels: StockItem[];
+  categories: CategoryItem[];
+  trendData: TrendItem[];
+}
+
+const InventoryCharts = ({ stockLevels, categories, trendData }: InventoryChartsProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
   // Colors for the charts
   const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#14b8a6", "#f97316", "#6366f1"];
   
   // Format large numbers with K suffix
-  const formatNumber = (num) => {
+  const formatNumber = (num: number) => {
     return num >= 1000 ? `${(num / 1000).toFixed(1)}k` : num;
   };
   
