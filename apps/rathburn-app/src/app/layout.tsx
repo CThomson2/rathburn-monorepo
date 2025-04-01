@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 
-import { RouteAwareControls } from "@/components/layout/route-aware-controls";
+import { RouteAwareControls } from "@/components/layouts/route-aware-controls";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/app/providers/theme-provider";
 import { cn } from "@/lib/utils";
-import Hero from "@/components/layout/auth/hero";
+import Hero from "@/components/layouts/auth/hero";
 
 import "@/styles/globals.css";
 

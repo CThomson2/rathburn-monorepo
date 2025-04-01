@@ -53,15 +53,15 @@ export default async function DashboardLayout({
                 href="/dashboard/management"
                 className="block p-2 hover:bg-gray-100 rounded"
               >
-                Inventory
+                Management
               </a>
             </li>
             <li>
               <a
-                href="/dashboard/management"
+                href="/dashboard/workflow"
                 className="block p-2 hover:bg-gray-100 rounded"
               >
-                Inventory
+                Workflow
               </a>
             </li>
           </ul>

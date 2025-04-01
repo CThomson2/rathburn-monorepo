@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { MobileNavbar } from "@/components/mobile/navbar";
 import { MobileFooter } from "@/components/mobile/footer";
 import { Providers } from "../providers"; // ThemeProvider is already part of Providers
-import { DeviceFrameWrapper } from "@/components/layout/device-frame-wrapper";
+import { DeviceFrameWrapper } from "@/components/mobile/device-frame-wrapper";
 import { headers } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });

@@ -2,8 +2,8 @@ import { Metadata } from "next";
 import path from "path";
 import fs from "fs/promises";
 import { parseCSV } from "@/utils/csv";
-import { ReproStockTable } from "@/features/inventory/repro-stock";
-import type { ReproStock } from "@/features/inventory/types";
+import { ReproStockTable } from "@/features/old-inventory/repro-stock";
+import type { ReproStock } from "@/features/old-inventory/types";
 
 export const metadata: Metadata = {
   title: "Repro Drums Stock | Dashboard",

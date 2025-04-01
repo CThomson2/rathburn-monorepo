@@ -2,12 +2,12 @@
 
 import { useState, useEffect, cloneElement } from "react";
 import { useDashboard } from "@/context";
-import { ViewToggle } from "@/features/dashboard/components/view-toggle";
-import { StockLevelsWidget } from "@/features/dashboard/components/widgets/stock-levels";
-import { MaterialGroupsWidget } from "@/features/dashboard/components/widgets/material-groups";
-import { ProductionWidget } from "@/features/dashboard/components/widgets/active-processes";
-import { RecentOrdersWidget } from "@/features/dashboard/components/widgets/recent-orders";
-import { StatsWidget } from "@/features/dashboard/components/widgets/top-stats";
+import { ViewToggle } from "@/features/old-dashboard/components/view-toggle";
+import { StockLevelsWidget } from "@/features/old-dashboard/components/widgets/stock-levels";
+import { MaterialGroupsWidget } from "@/features/old-dashboard/components/widgets/material-groups";
+import { ProductionWidget } from "@/features/old-dashboard/components/widgets/active-processes";
+import { RecentOrdersWidget } from "@/features/old-dashboard/components/widgets/recent-orders";
+import { StatsWidget } from "@/features/old-dashboard/components/widgets/top-stats";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
