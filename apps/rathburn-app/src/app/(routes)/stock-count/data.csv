@@ -1,0 +1,138 @@
+oldId, material, batchCode, supplier, status
+17202,,,,N
+17205,,,,N
+16171,,,,N
+16172,,,,N
+, THF, AD19030167, , R
+,Caustic Soda,,,R
+1721,Acetonitrile,,,W
+1720,Acetonitrile,,,W
+unkown,,,,R
+16310,Acetonitrile,IOR-24-05287,N
+16312,Acetonitrile,IOR-24-05287,N
+16968,
+16969,
+16538,Acetonitrile,PR2403A,,P
+16539,Acetonitrile,PR2403A,,P
+16540,Acetonitrile,PR2403A,,P
+17058,,,,N
+17059,,,,N
+15834,Pentane,N20240122,WGT,R
+15824,Pentane,N20240122,WGT,R
+15832,Pentane,N20240122,WGT,R
+16564,Methylcyclohexane,,,N
+
+16237,CS2,,PromoChem,N
+16238,CS2,,PromoChem,N
+16239,CS2,,PromoChem,N
+16240,CS2,,PromoChem,N
+16241,CS2,,PromoChem,N
+16242,CS2,,PromoChem,N
+16243,CS2,,PromoChem,N
+16244,CS2,,PromoChem,N
+16245,CS2,,PromoChem,N
+16246,CS2,,PromoChem,N
+16247,CS2,,PromoChem,N
+16248,CS2,,PromoChem,N
+16249,CS2,,PromoChem,N
+16250,CS2,,PromoChem,N
+16251,CS2,,PromoChem,N
+16252,CS2,,PromoChem,N
+16253,CS2,,PromoChem,N
+16254,CS2,,PromoChem,N
+16255,CS2,,PromoChem,N
+16256,CS2,,PromoChem,N
+16340,
+16338,
+
+16475,Diethyl Ether,25500394,INEOS,N
+16476,Diethyl Ether,25500394,INEOS,N
+,Diethyl Ether,25500394,INEOS,N
+,Diethyl Ether,25500394,INEOS,N
+,Diethyl Ether,25500394,INEOS,N
+,Diethyl Ether,25500394,INEOS,N
+,Diethyl Ether,25500394,INEOS,N
+
+3894,Diethyl Ether,,,R
+
+// labelled already! new ID 4738 and onwards, qty 16 in stock
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+,n-Pentane,
+
+23G06PB,THF,,,R
+3995,THF,,,R
+
+17222,THF,THF224BO1B1,Nan-Ya,N
+
+//17 drums enw
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+,,THF,THF224BO1B1,Nan-Ya,N
+
+16728,MTBE,,DOR,N
+,,MTBE,,DOR,N
+,,MTBE,,DOR,N
+,,MTBE,,DOR,N
+,,MTBE,,DOR,N
+,,MTBE,,DOR,N
+,,MTBE,,DOR,N
+,,MTBE,,DOR,N
+16732,MTBE,,DOR,N
+16733,MTBE,,DOR,N
+
+3129,MTBE,,,R
+
+3728,Cyclohexane,,,E
+21M14CA,Cyclohexane,,,R
+3379,Cyclohexane,,,R
+
+
+
+oldId: string;
+  material: string;
+  batchCode: string;
+  supplier: string;
+  status: string;
+  
+
+
+curl -X POST "http://localhost:3000/stock-count/api" \
+-H "Content-Type: application/json" \
+-d '[
+  {
+    "oldId": "17222",
+    "material": "THF",
+    "batchCode": "THF224BO1B1", 
+    "supplier": "Nan-Ya",
+    "status": "N"
+  }
+]'
