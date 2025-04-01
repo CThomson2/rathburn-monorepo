@@ -60,12 +60,23 @@ export async function updateDrumStatus(
     throw new Error("Not authorized to send notifications");
   }
 
-  // Insert notification
-  const { data, error } = await supabase.from();
+  // Call the RPC function to update drum status
+  const { data, error } = await supabase.rpc("update_drum_status", {
+    p_drum_id: drumId,
+    p_new_status: newStatus,
+    p_stock_id: stockId || null,
+    p_user_id: user.id,
+  });
 
   if (error) {
-    throw new Error(`Failed to send notification: ${error.message}`);
+    return {
+      error: `Failed to update drum status: ${error.message}`,
+      data: null,
+    };
   }
 
-  return data[0];
+  return {
+    data,
+    error: null,
+  };
 }

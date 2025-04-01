@@ -2,12 +2,12 @@
 
 import { useState, useEffect, cloneElement } from "react";
 import { useDashboard } from "@/context";
-import { ViewToggle } from "@/features/old-dashboard/components/view-toggle";
-import { StockLevelsWidget } from "@/features/old-dashboard/components/widgets/stock-levels";
-import { MaterialGroupsWidget } from "@/features/old-dashboard/components/widgets/material-groups";
-import { ProductionWidget } from "@/features/old-dashboard/components/widgets/active-processes";
-import { RecentOrdersWidget } from "@/features/old-dashboard/components/widgets/recent-orders";
-import { StatsWidget } from "@/features/old-dashboard/components/widgets/top-stats";
+import { ViewToggle } from "@/features/old-widgets/view-toggle";
+import { StockLevelsWidget } from "@/features/old-widgets/widgets/stock-levels";
+import { MaterialGroupsWidget } from "@/features/old-widgets/widgets/material-groups";
+import { ProductionWidget } from "@/features/old-widgets/widgets/active-processes";
+// import { RecentOrdersWidget } from "@/features/old-widgets/widgets/recent-orders";
+import { StatsWidget } from "@/features/old-widgets/widgets/top-stats";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -28,7 +28,7 @@ const widgetConfigurations = [
     component: <MaterialGroupsWidget id="material-groups" />,
     className: "col-span-full lg:col-span-2",
   },
-  { id: "recent-orders", component: <RecentOrdersWidget id="recent-orders" /> },
+  // { id: "recent-orders", component: <RecentOrdersWidget id="recent-orders" /> },
   { id: "production", component: <ProductionWidget id="production" /> },
 ];
 

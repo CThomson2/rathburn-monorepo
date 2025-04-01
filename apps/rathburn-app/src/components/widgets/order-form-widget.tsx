@@ -1,9 +1,12 @@
-
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Package, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const OrderFormWidget = ({ onSubmit }) => {
+const OrderFormWidget = ({
+  onSubmit,
+}: {
+  onSubmit: (formData: any) => void;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState({
@@ -11,7 +14,7 @@ const OrderFormWidget = ({ onSubmit }) => {
     quantity: "",
     supplier: "",
     urgency: "normal",
-    notes: ""
+    notes: "",
   });
 
   const suppliers = [
@@ -19,42 +22,46 @@ const OrderFormWidget = ({ onSubmit }) => {
     "TechSupply Co.",
     "ElectroParts Ltd.",
     "IndustrialMaterials Corp.",
-    "PrecisionComponents Inc."
+    "PrecisionComponents Inc.",
   ];
 
-  const handleChange = (e) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [name]: value,
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!formData.material || !formData.quantity || !formData.supplier) {
       // In a real application, we would show validation errors
       console.error("Please fill out all required fields");
       return;
     }
-    
+
     // Submit form data
     onSubmit(formData);
-    
+
     // Show success message
     setShowSuccess(true);
-    
+
     // Reset form
     setFormData({
       material: "",
       quantity: "",
       supplier: "",
       urgency: "normal",
-      notes: ""
+      notes: "",
     });
-    
+
     // Hide success message after a delay
     setTimeout(() => {
       setShowSuccess(false);
@@ -65,7 +72,7 @@ const OrderFormWidget = ({ onSubmit }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
       {/* Widget Header */}
-      <div 
+      <div
         className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50"
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -77,7 +84,7 @@ const OrderFormWidget = ({ onSubmit }) => {
           {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
-      
+
       {/* Success Message */}
       {showSuccess && (
         <div className="bg-green-50 p-4 border-t border-green-100">
@@ -93,17 +100,24 @@ const OrderFormWidget = ({ onSubmit }) => {
           </div>
         </div>
       )}
-      
+
       {/* Form Content */}
-      <div className={cn(
-        "transition-all duration-300 ease-in-out",
-        isOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-      )}>
+      <div
+        className={cn(
+          "transition-all duration-300 ease-in-out",
+          isOpen
+            ? "max-h-[600px] opacity-100"
+            : "max-h-0 opacity-0 overflow-hidden"
+        )}
+      >
         <form onSubmit={handleSubmit} className="p-4 border-t border-gray-100">
           <div className="space-y-4">
             {/* Material Type */}
             <div>
-              <label htmlFor="material" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="material"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Material Type*
               </label>
               <input
@@ -117,10 +131,13 @@ const OrderFormWidget = ({ onSubmit }) => {
                 required
               />
             </div>
-            
+
             {/* Quantity */}
             <div>
-              <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="quantity"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Quantity*
               </label>
               <input
@@ -135,10 +152,13 @@ const OrderFormWidget = ({ onSubmit }) => {
                 required
               />
             </div>
-            
+
             {/* Supplier */}
             <div>
-              <label htmlFor="supplier" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="supplier"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Supplier*
               </label>
               <select
@@ -157,10 +177,13 @@ const OrderFormWidget = ({ onSubmit }) => {
                 ))}
               </select>
             </div>
-            
+
             {/* Urgency */}
             <div>
-              <label htmlFor="urgency" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="urgency"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Urgency
               </label>
               <div className="mt-1 flex items-center space-x-4">
@@ -174,15 +197,20 @@ const OrderFormWidget = ({ onSubmit }) => {
                       onChange={handleChange}
                       className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
                     />
-                    <span className="ml-2 text-sm text-gray-700 capitalize">{level}</span>
+                    <span className="ml-2 text-sm text-gray-700 capitalize">
+                      {level}
+                    </span>
                   </label>
                 ))}
               </div>
             </div>
-            
+
             {/* Notes */}
             <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="notes"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Notes
               </label>
               <textarea
@@ -195,7 +223,7 @@ const OrderFormWidget = ({ onSubmit }) => {
                 placeholder="Additional information or special requirements"
               />
             </div>
-            
+
             {/* Submit Button */}
             <div className="flex justify-end">
               <button
