@@ -174,16 +174,27 @@ const DrumStockCountForm = () => {
     setIsSubmitting(true);
 
     try {
-      // This is where you would submit to your Supabase database
-      // For now, we'll just simulate a successful submission
-      console.log("Submitting drums:", drums);
+      // Filter out empty drums that don't have any data
+      const filteredDrums = drums.filter(d => d.oldId || d.material);
+      
+      // Submit to the API endpoint
+      const response = await fetch('/stock-count/api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filteredDrums), // Use filteredDrums here instead of drums
+      });
 
-      // Simulated successful submission
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save drums');
+      }
 
       setSubmitMessage({
         type: "success",
-        text: `Successfully submitted ${drums.length} drums!`,
+        text: `Successfully submitted ${filteredDrums.length} drums!`,
       });
 
       // Clear the form after successful submission

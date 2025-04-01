@@ -3,7 +3,7 @@
 import { useState, useEffect, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SortingState } from "@tanstack/react-table";
-import { SearchBar } from "@/components/table";
+import { SearchBar } from "@/components/obselete/table";
 import { GridModal, BentoGrid } from "./grid";
 import type { Order, OrdersResponse } from "@/types/models";
 import { fetchOrders } from "@/features/orders/api/fetch-orders";
