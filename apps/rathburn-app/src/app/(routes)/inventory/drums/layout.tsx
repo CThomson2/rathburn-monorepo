@@ -1,6 +1,6 @@
 "use client";
 
-import { useSidebar } from "@/utils/use-sidebar";
+import { useSidebar } from "@/hooks/use-sidebar";
 
 export default function DrumsLayout({
   children,

@@ -8,7 +8,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "dev:rathburn": "pnpm dev --filter rathburn-app",
-    "start:rathburn": "pnpm start --filter rathburn-app"
+    "start:rathburn": "pnpm start --filter rathburn-app",
+    "dev:template": "pnpm dev --filter @repo/dashboard-ui", 
+    "build:template": "pnpm build --filter @repo/dashboard-ui", 
+    "start:template": "pnpm start --filter @repo/dashboard-ui"
   },
   "devDependencies": {
     "prettier": "^3.5.3",

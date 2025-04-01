@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withDatabase, DATABASE_ROUTE_CONFIG } from "@/database";
-import { MaterialStock } from "@/features/dashboard/types/api";
+import { MaterialStock } from "@/features/old-dashboard/types/api";
 
 // Force dynamic rendering and no caching for this database-dependent route
 export const dynamic = DATABASE_ROUTE_CONFIG.dynamic;
