@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getRecentOrders } from "../api/get-recent-orders";
-import { RecentOrdersResponse } from "../types/api";
+import { RecentOrdersResponse } from "../../../types/dashboard";
 
 export function useRecentOrders(searchTerm?: string) {
   return useQuery<RecentOrdersResponse>({

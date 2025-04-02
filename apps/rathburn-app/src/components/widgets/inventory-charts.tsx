@@ -1,18 +1,20 @@
+"use client";
 
 import { useState } from "react";
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp, BarChart2, PieChart as PieChartIcon, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StockLevel, Category, TrendData } from "@/types/dashboard";
 
-const InventoryCharts = ({ stockLevels, categories, trendData }) => {
+const InventoryCharts = ({ stockLevels, categories, trendData }: { stockLevels: StockLevel[], categories: Category[], trendData: TrendData[] }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
   // Colors for the charts
   const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#14b8a6", "#f97316", "#6366f1"];
   
   // Format large numbers with K suffix
-  const formatNumber = (num) => {
+  const formatNumber = (num: number) => {
     return num >= 1000 ? `${(num / 1000).toFixed(1)}k` : num;
   };
   

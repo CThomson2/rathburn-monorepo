@@ -1,5 +1,5 @@
 import { clientApi as api } from "@/lib/api-client/client";
-import { RecentOrdersResponse } from "../types/api";
+import { RecentOrdersResponse } from "../../../types/dashboard";
 
 export const getRecentOrders = (
   searchTerm?: string

@@ -41,7 +41,7 @@ export const FormDrawer = ({
   return (
     <Drawer
       open={isOpen}
-      onOpenChange={(isOpen) => {
+      onOpenChange={(isOpen: boolean) => {
         if (!isOpen) {
           close();
         } else {

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,17 +24,45 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "public/*": ["./public/*"],
-      "@prisma-client/*": ["./prisma/generated/client/*"],
-      "@config/*": ["./config/*"],
-      "@repo/ui/*": ["../../packages/ui/src/*"],
-      "@repo/ui": ["../../packages/ui/src/index"],
-      "@repo/eslint-config/*": ["../../packages/eslint-config/*"],
-      "@repo/typescript-config/*": ["../../packages/typescript-config/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "public/*": [
+        "./public/*"
+      ],
+      "@prisma-client/*": [
+        "./prisma/generated/client/*"
+      ],
+      "@config/*": [
+        "./config/*"
+      ],
+      "@repo/ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@repo/ui": [
+        "../../packages/ui/src/index"
+      ],
+      "@repo/eslint-config/*": [
+        "../../packages/eslint-config/*"
+      ],
+      "@repo/typescript-config/*": [
+        "../../packages/typescript-config/*"
+      ]
     },
-    "types": ["node", "jest"]
+    "types": [
+      "node",
+      "jest",
+      "@testing-library/jest-dom"
+    ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }

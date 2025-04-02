@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { InventoryOverview } from "../types/api";
+import { InventoryOverview } from "../../../types/dashboard";
 import { getStockLevels, getWeeklyStockChanges } from "../api/get-stock-levels";
 
 export function useInventoryOverview() {

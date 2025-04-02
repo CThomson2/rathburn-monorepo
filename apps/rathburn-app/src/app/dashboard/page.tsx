@@ -16,7 +16,7 @@ import OrderFormWidget from "@/components/widgets/order-form-widget";
 import InventoryCharts from "@/components/widgets/inventory-charts";
 import AlertsWidget from "@/components/widgets/alerts-widget";
 import { createClient } from "@/lib/supabase/server";
-import { InventoryData, OrderData, StockLevel } from "./workflow/types";
+import { InventoryData, OrderData, StockLevel } from "./types";
 
 function calculateAlertLevel(
   currentStock: number,

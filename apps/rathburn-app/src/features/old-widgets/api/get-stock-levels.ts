@@ -1,5 +1,5 @@
 import { clientApi as api } from "@/lib/api-client/client";
-import { DailyChange, StockLevels } from "../types/api";
+import { DailyChange, StockLevels } from "../../../types/dashboard";
 
 interface WeeklyStockChangesResponse {
   weeklyStockChanges: DailyChange[];

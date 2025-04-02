@@ -1,6 +1,5 @@
 "use client";
 import Breadcrumb from "../breadcrumbs/breadcrumb";
-import DataTable from "./data-table-one";
 import DataTableTwo from "./data-table-two";
 import React from "react";
 

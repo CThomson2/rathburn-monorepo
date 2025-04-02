@@ -1,8 +1,15 @@
-
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, PackageCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const MetricCards = ({ totalValue, belowSafetyStock, pendingOrders, stockAccuracy }) => {
+// Define the props interface
+interface MetricCardsProps {
+  totalValue: number;
+  belowSafetyStock: number;
+  pendingOrders: number;
+  stockAccuracy: number;
+}
+
+const MetricCards = ({ totalValue, belowSafetyStock, pendingOrders, stockAccuracy }: MetricCardsProps) => {
   // Format the total value with commas and currency symbol
   const formattedValue = new Intl.NumberFormat('en-US', {
     style: 'currency',
