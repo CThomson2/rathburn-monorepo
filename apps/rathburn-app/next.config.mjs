@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Re-enable standalone mode
   output: "standalone",
   reactStrictMode: true,
   

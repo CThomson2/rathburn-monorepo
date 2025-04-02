@@ -18,9 +18,12 @@ module.exports = {
         HOST: "0.0.0.0", // Listen on all interfaces
         __NEXT_PRIVATE_STANDALONE_CONFIG: "true",
         NEXT_TELEMETRY_DISABLED: 1,
-        MONOREPO_ROOT: "/home/ec2-user/rathburn-monorepo"
+        MONOREPO_ROOT: "/home/ec2-user/rathburn-monorepo",
+        NODE_OPTIONS: "--no-warnings" // Suppress warnings
       },
       env_file: ".next/standalone/.env",
+      node_args: "--no-warnings", // Add node args to suppress warnings
+      interpreter: "/usr/bin/node", // Specify path to Node.js 18 or 16
     },
     
     // Development configuration
@@ -39,9 +42,12 @@ module.exports = {
         HOST: "0.0.0.0",
         __NEXT_PRIVATE_STANDALONE_CONFIG: "true",
         NEXT_TELEMETRY_DISABLED: 1,
-        MONOREPO_ROOT: process.cwd().replace(/\/apps\/rathburn-app$/, '')
+        MONOREPO_ROOT: process.cwd().replace(/\/apps\/rathburn-app$/, ''),
+        NODE_OPTIONS: "--no-warnings" // Suppress warnings
       },
       env_file: ".next/standalone/.env",
+      node_args: "--no-warnings", // Add node args to suppress warnings
+      interpreter_args: "--no-warnings", // More options to suppress warnings
     }
   ],
 };
