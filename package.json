@@ -9,6 +9,10 @@
     "check-types": "turbo run check-types",
     "dev:rathburn": "pnpm dev --filter rathburn-app",
     "start:rathburn": "pnpm start --filter rathburn-app",
+    "build:rathburn": "MONOREPO_ROOT=$(pwd) pnpm build --filter rathburn-app",
+    "build:rathburn:standalone": "pnpm build:rathburn && pnpm postbuild --filter rathburn-app",
+    "start:rathburn:standalone": "cd apps/rathburn-app && node scripts/start-standalone.js",
+    "start:rathburn:pm2": "cd apps/rathburn-app && pm2 start ecosystem.config.js --only rathburn-dev",
     "dev:template": "pnpm dev --filter @repo/dashboard-ui", 
     "build:template": "pnpm build --filter @repo/dashboard-ui", 
     "start:template": "pnpm start --filter @repo/dashboard-ui"
