@@ -20,11 +20,12 @@
     "git:log": "git log --oneline --graph",
     "git:reset-soft": "git reset --soft HEAD~1",
     "git:reset-hard": "git reset --hard",
-    "psql:rds": "psql postgresql://rathburn:\".GVvkpsES!zQmWR_9wFq#ST9lt8O\"@db-production-1.cr888e0aspwm.eu-west-2.rds.amazonaws.com:5432/rb_production",
+    "psql:db": "psql postgresql://postgres.ppnulxweiiczciuxcypn:51sA8WHVxFebPv1d@aws-0-eu-west-2.pooler.supabase.com:5432/postgres",
     "scanner:dev": "node lib/firmware/scanner.js",
     "scanner:prod": "SCANNER_API_URL=http://3.8.53.147:3000/api/barcodes/scan/drum node lib/firmware/scanner.js",
     "scanner:test-dev": "node scripts/test-scanner-api.js",
-    "scanner:test-prod": "SCANNER_API_URL=http://3.8.53.147:3000/api/barcodes/scan/drum node scripts/test-scanner-api.js"
+    "scanner:test-prod": "SCANNER_API_URL=http://3.8.53.147:3000/api/barcodes/scan/drum node scripts/test-scanner-api.js",
+    "extract-drums": "node scripts/download-drums-to-csv.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

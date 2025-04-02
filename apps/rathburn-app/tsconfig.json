@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -24,45 +20,24 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "public/*": [
-        "./public/*"
-      ],
-      "@prisma-client/*": [
-        "./prisma/generated/client/*"
-      ],
-      "@config/*": [
-        "./config/*"
-      ],
-      "@repo/ui/*": [
-        "../../packages/ui/src/*"
-      ],
-      "@repo/ui": [
-        "../../packages/ui/src/index"
-      ],
-      "@repo/eslint-config/*": [
-        "../../packages/eslint-config/*"
-      ],
-      "@repo/typescript-config/*": [
-        "../../packages/typescript-config/*"
-      ]
+      "@/*": ["./src/*"],
+      "public/*": ["./public/*"],
+      "data/*": ["./data/*"],
+      "@prisma-client/*": ["./prisma/generated/client/*"],
+      "@config/*": ["./config/*"],
+      "@repo/ui/*": ["../../packages/ui/src/*"],
+      "@repo/ui": ["../../packages/ui/src/index"],
+      "@repo/eslint-config/*": ["../../packages/eslint-config/*"],
+      "@repo/typescript-config/*": ["../../packages/typescript-config/*"]
     },
-    "types": [
-      "node",
-      "jest",
-      "@testing-library/jest-dom"
-    ]
+    "types": ["node", "jest", "@testing-library/jest-dom"]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "utils/anthropic.js"
   ],
-  "exclude": [
-    "node_modules",
-    ".next"
-  ]
+  "exclude": ["node_modules", ".next"]
 }
