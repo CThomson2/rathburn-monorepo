@@ -1,3 +1,5 @@
+// "use client";
+
 import {
   Package2,
   RefreshCcw,
@@ -12,9 +14,9 @@ import DashboardLayout from "@/components/layouts/dashboard-layout";
 import { WorkflowCard } from "@/components/cards/workflow-card";
 import { Alert } from "@/components/widgets/alerts-widget";
 import MetricCards from "@/components/widgets/metric-cards";
-import OrderFormWidget from "@/components/widgets/order-form-widget";
+import OrderFormClient from "@/components/widgets/order-form-client";
 import InventoryCharts from "@/components/widgets/inventory-charts";
-import AlertsWidget from "@/components/widgets/alerts-widget";
+import AlertsClient from "@/components/widgets/alerts-client";
 import { createClient } from "@/lib/supabase/server";
 import { InventoryData, OrderData, StockLevel } from "./types";
 
@@ -146,8 +148,8 @@ export default async function Page() {
 
           {/* Right Column - 1/3 width on large screens */}
           <div className="space-y-6">
-            <OrderFormWidget onSubmit={() => {}} />
-            <AlertsWidget alerts={processedData.alerts} />
+            <OrderFormClient />
+            <AlertsClient alerts={processedData.alerts} />
           </div>
         </div>
       </div>

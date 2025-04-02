@@ -1,3 +1,5 @@
+"use client";
+
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +14,13 @@ export interface Alert {
   minRequired: number;
 }
 
-const AlertsWidget = ({ alerts }: { alerts: Alert[] }) => {
+const AlertsWidget = ({
+  alerts,
+  onOrderClick,
+}: {
+  alerts: Alert[];
+  onOrderClick?: (alert: Alert) => void;
+}) => {
   // Sort alerts by criticality level
   const sortedAlerts = [...alerts].sort((a, b) => {
     const levelOrder: Record<AlertLevel, number> = {
@@ -90,7 +98,10 @@ const AlertsWidget = ({ alerts }: { alerts: Alert[] }) => {
                         </span>
                       </div>
                     </div>
-                    <button className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100">
+                    <button
+                      className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100"
+                      onClick={() => onOrderClick && onOrderClick(alert)}
+                    >
                       Order
                     </button>
                   </div>
