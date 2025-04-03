@@ -27,13 +27,89 @@ if (!fs.existsSync(serverPath)) {
   process.exit(1);
 }
 
-// Copy the node-polyfill-crypto.js file to the standalone directory
-const polyfillSource = path.join(appDir, 'node-polyfill-crypto.js');
-const polyfillDest = path.join(appDir, '.next', 'standalone', 'node-polyfill-crypto.js');
-if (fs.existsSync(polyfillSource)) {
-  console.log('Copying node-polyfill-crypto.js to standalone directory...');
-  fs.copyFileSync(polyfillSource, polyfillDest);
+// Fix common issues with standalone build
+console.log('Checking for missing modules...');
+
+// 1. Fix for missing log module
+const outputDir = path.join(appDir, '.next', 'standalone', 'node_modules', 'next', 'dist', 'build', 'output');
+if (!fs.existsSync(outputDir)) {
+  console.log('Creating missing output directory...');
+  fs.mkdirSync(outputDir, { recursive: true });
 }
+
+const logPath = path.join(outputDir, 'log.js');
+if (!fs.existsSync(logPath)) {
+  console.log('Creating missing log.js module...');
+  const logContent = `
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+// Simple stub implementation of Next.js log functions
+exports.error = (...args) => console.error(...args);
+exports.warn = (...args) => console.warn(...args);
+exports.info = (...args) => console.info(...args);
+exports.log = (...args) => console.log(...args);
+exports.trace = (...args) => console.trace(...args);
+exports.debug = (...args) => console.debug(...args);
+`;
+  fs.writeFileSync(logPath, logContent);
+}
+
+// 2. Fix for node-polyfill-crypto
+console.log('Copying node-polyfill-crypto.js to standalone directory...');
+const polyfillContent = `
+// This is a stub file to resolve the "Cannot find module './node-polyfill-crypto'" error
+// when running Next.js standalone server in Node.js >=18.
+
+// No actual implementation needed as modern Node.js already has crypto built-in
+module.exports = {};
+`;
+
+const nextServerDir = path.join(appDir, '.next', 'standalone', 'node_modules', 'next', 'dist', 'server');
+if (!fs.existsSync(nextServerDir)) {
+  fs.mkdirSync(nextServerDir, { recursive: true });
+}
+fs.writeFileSync(path.join(nextServerDir, 'node-polyfill-crypto.js'), polyfillContent);
+fs.writeFileSync(path.join(appDir, '.next', 'standalone', 'node-polyfill-crypto.js'), polyfillContent);
+
+// 3. Fix for missing config module
+console.log('Creating missing config module...');
+const configDir = path.join(appDir, '.next', 'standalone', 'node_modules', 'next', 'dist', 'server');
+const configContent = `
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+// Basic stub for Next.js server config
+exports.default = {
+  compress: true,
+  generateEtags: true,
+  poweredByHeader: true,
+  reactRoot: true,
+  runtime: 'nodejs',
+};
+`;
+fs.writeFileSync(path.join(configDir, 'config.js'), configContent);
+
+// 4. Fix for missing lib/constants module
+console.log('Creating missing constants module...');
+const libDir = path.join(appDir, '.next', 'standalone', 'node_modules', 'next', 'dist', 'lib');
+if (!fs.existsSync(libDir)) {
+  fs.mkdirSync(libDir, { recursive: true });
+}
+
+const constantsContent = `
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+// Minimum stub for Next.js constants
+exports.PHASE_DEVELOPMENT_SERVER = "phase-development-server";
+exports.PHASE_PRODUCTION_BUILD = "phase-production-build";
+exports.PHASE_PRODUCTION_SERVER = "phase-production-server";
+exports.PHASE_EXPORT = "phase-export";
+exports.PERMANENT_REDIRECT_STATUS = 308;
+exports.TEMPORARY_REDIRECT_STATUS = 307;
+`;
+fs.writeFileSync(path.join(libDir, 'constants.js'), constantsContent);
 
 // Set environment variables for the standalone server
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';

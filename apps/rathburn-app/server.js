@@ -29,7 +29,10 @@ if (!fs.existsSync(STANDALONE_PATH)) {
   process.exit(1);
 }
 
-// Create polyfill file if needed
+// Fix for missing modules
+console.log('Checking for missing modules...');
+
+// 1. Create polyfill file if needed
 const polyfillPath = path.join(__dirname, '.next', 'standalone', 'node-polyfill-crypto.js');
 if (!fs.existsSync(polyfillPath)) {
   console.log('Creating node-polyfill-crypto.js...');
@@ -39,6 +42,71 @@ if (!fs.existsSync(polyfillPath)) {
     '// when running Next.js standalone server in Node.js >=18.\n\n' +
     '// No actual implementation needed as modern Node.js already has crypto built-in\n' +
     'module.exports = {};\n'
+  );
+}
+
+// 2. Fix for missing log module
+const outputDir = path.join(__dirname, '.next', 'standalone', 'node_modules', 'next', 'dist', 'build', 'output');
+if (!fs.existsSync(outputDir)) {
+  console.log('Creating missing output directory...');
+  fs.mkdirSync(outputDir, { recursive: true });
+}
+
+const logPath = path.join(outputDir, 'log.js');
+if (!fs.existsSync(logPath)) {
+  console.log('Creating missing log.js module...');
+  fs.writeFileSync(
+    logPath,
+    '"use strict";\n' +
+    'Object.defineProperty(exports, "__esModule", { value: true });\n\n' +
+    '// Simple stub implementation of Next.js log functions\n' +
+    'exports.error = (...args) => console.error(...args);\n' +
+    'exports.warn = (...args) => console.warn(...args);\n' +
+    'exports.info = (...args) => console.info(...args);\n' +
+    'exports.log = (...args) => console.log(...args);\n' +
+    'exports.trace = (...args) => console.trace(...args);\n' +
+    'exports.debug = (...args) => console.debug(...args);\n'
+  );
+}
+
+// 3. Fix for missing config module
+const serverDir = path.join(__dirname, '.next', 'standalone', 'node_modules', 'next', 'dist', 'server');
+if (!fs.existsSync(path.join(serverDir, 'config.js'))) {
+  console.log('Creating missing config module...');
+  fs.writeFileSync(
+    path.join(serverDir, 'config.js'),
+    '"use strict";\n' +
+    'Object.defineProperty(exports, "__esModule", { value: true });\n\n' +
+    '// Basic stub for Next.js server config\n' +
+    'exports.default = {\n' +
+    '  compress: true,\n' +
+    '  generateEtags: true,\n' +
+    '  poweredByHeader: true,\n' +
+    '  reactRoot: true,\n' +
+    '  runtime: "nodejs",\n' +
+    '};\n'
+  );
+}
+
+// 4. Fix for missing lib/constants module
+console.log('Creating missing constants module...');
+const libDir = path.join(__dirname, '.next', 'standalone', 'node_modules', 'next', 'dist', 'lib');
+if (!fs.existsSync(libDir)) {
+  fs.mkdirSync(libDir, { recursive: true });
+}
+
+if (!fs.existsSync(path.join(libDir, 'constants.js'))) {
+  fs.writeFileSync(
+    path.join(libDir, 'constants.js'),
+    '"use strict";\n' +
+    'Object.defineProperty(exports, "__esModule", { value: true });\n\n' +
+    '// Minimum stub for Next.js constants\n' +
+    'exports.PHASE_DEVELOPMENT_SERVER = "phase-development-server";\n' +
+    'exports.PHASE_PRODUCTION_BUILD = "phase-production-build";\n' +
+    'exports.PHASE_PRODUCTION_SERVER = "phase-production-server";\n' +
+    'exports.PHASE_EXPORT = "phase-export";\n' +
+    'exports.PERMANENT_REDIRECT_STATUS = 308;\n' +
+    'exports.TEMPORARY_REDIRECT_STATUS = 307;\n'
   );
 }
 

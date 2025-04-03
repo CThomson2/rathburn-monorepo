@@ -123,9 +123,22 @@ DEPS_TO_COPY.forEach(dep => {
 // Fix the Next.js build output log module issue
 console.log('\n5. Fixing Next.js output/log module issue...');
 
-// Create the missing output directory structure
-const outputDir = path.join(STANDALONE_DIR, 'node_modules', 'next', 'dist', 'build', 'output');
-fs.mkdirSync(outputDir, { recursive: true });
+// Define the missing modules
+const missingDirs = [
+  // Missing log module path
+  path.join(STANDALONE_DIR, 'node_modules', 'next', 'dist', 'build', 'output'),
+  
+  // Another common missing module path
+  path.join(STANDALONE_DIR, 'node_modules', 'next', 'dist', 'compiled', '@vercel', 'nft'),
+];
+
+// Create missing directories
+missingDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Created directory: ${dir}`);
+  }
+});
 
 // Create a basic log.js module
 const logContent = `
@@ -141,6 +154,8 @@ exports.trace = (...args) => console.trace(...args);
 exports.debug = (...args) => console.debug(...args);
 `;
 
+// Write the log module
+const outputDir = path.join(STANDALONE_DIR, 'node_modules', 'next', 'dist', 'build', 'output');
 fs.writeFileSync(path.join(outputDir, 'log.js'), logContent);
 console.log('✅ Created log.js module');
 

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Re-enable standalone mode
+  // Enable standalone mode for production builds
   output: "standalone",
   reactStrictMode: true,
   
