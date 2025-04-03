@@ -6,129 +6,148 @@
  * files and configurations needed for deployment.
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { execSync } = require("child_process");
+const path = require("path");
+const fs = require("fs");
 
+console.log("Preparing standalone build for deployment...");
+
+// Paths
 const appDir = process.cwd();
-const nextDir = path.join(appDir, '.next');
-const standaloneDir = path.join(nextDir, 'standalone');
-const standaloneNodeModulesDir = path.join(standaloneDir, 'node_modules');
-
-console.log('Preparing standalone build for deployment...');
+const nextDir = path.join(appDir, ".next");
+const standaloneDir = path.join(nextDir, "standalone");
+const staticDir = path.join(standaloneDir, ".next", "static");
+const publicDir = path.join(standaloneDir, "public");
 
 // Check if standalone directory exists
 if (!fs.existsSync(standaloneDir)) {
-  console.error('Standalone directory not found. Make sure you build with "output: standalone" in next.config.js');
+  console.error(
+    'Standalone directory not found. Make sure to build with "output: standalone" in next.config.js'
+  );
   process.exit(1);
 }
 
 // Check if server.js exists
-if (!fs.existsSync(path.join(standaloneDir, 'server.js'))) {
-  console.error('server.js not found in standalone directory. Build may have failed.');
+if (!fs.existsSync(path.join(standaloneDir, "server.js"))) {
+  console.error(
+    "server.js not found in standalone directory. Build may have failed."
+  );
   process.exit(1);
 }
 
-console.log('Next.js standalone build found. Enhancing for deployment...');
+console.log("Next.js standalone build found. Enhancing for deployment...");
 
-// Create necessary directories if they don't exist
-const dirs = [
-  path.join(standaloneDir, '.next', 'static'),
-  path.join(standaloneDir, 'public'),
-];
-
-dirs.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    console.log(`Creating directory: ${dir}`);
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
-
-// Copy static files if needed
-const staticSrcDir = path.join(nextDir, 'static');
-const staticDestDir = path.join(standaloneDir, '.next', 'static');
-if (fs.existsSync(staticSrcDir) && fs.readdirSync(staticSrcDir).length > 0) {
-  console.log('Copying static files...');
-  try {
-    execSync(`cp -r ${staticSrcDir}/* ${staticDestDir}/`);
-  } catch (error) {
-    console.log('Static files already exist in destination, skipping...');
-  }
+// Ensure .next/static directory exists in standalone
+if (!fs.existsSync(staticDir)) {
+  console.log("Creating directory: " + staticDir);
+  fs.mkdirSync(staticDir, { recursive: true });
 }
 
-// Copy public directory if it exists and is not empty
-const publicDir = path.join(appDir, 'public');
-const standalonePublicDir = path.join(standaloneDir, 'public');
-if (fs.existsSync(publicDir)) {
-  const files = fs.readdirSync(publicDir);
-  if (files.length > 0) {
-    console.log('Copying public directory...');
-    try {
-      execSync(`cp -r ${publicDir}/* ${standalonePublicDir}/`);
-    } catch (error) {
-      console.log('Error copying public directory, it may already exist: ', error.message);
-    }
-  } else {
-    console.log('Public directory exists but is empty, skipping...');
+// Copy static files
+const originalStaticDir = path.join(nextDir, "static");
+if (fs.existsSync(originalStaticDir)) {
+  console.log("Copying static files...");
+  execSync(`cp -r ${originalStaticDir}/* ${staticDir}`);
+}
+
+// Copy public directory
+const originalPublicDir = path.join(appDir, "public");
+if (fs.existsSync(originalPublicDir)) {
+  console.log("Copying public directory...");
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
   }
+  execSync(`cp -r ${originalPublicDir}/* ${publicDir}`);
 }
 
 // Copy environment files
-console.log('Copying environment files...');
-try {
-  execSync(`cp ${path.join(appDir, '.env')}* ${standaloneDir}/ 2>/dev/null || true`);
-} catch (error) {
-  console.log('No .env files found, skipping...');
+console.log("Copying environment files...");
+const envFiles = [
+  ".env",
+  ".env.local",
+  ".env.production",
+  ".env.production.local",
+];
+envFiles.forEach((file) => {
+  const sourcePath = path.join(appDir, file);
+  if (fs.existsSync(sourcePath)) {
+    fs.copyFileSync(sourcePath, path.join(standaloneDir, file));
+  }
+});
+
+// Check if critical modules exist in standalone build
+console.log("Checking for required dependencies...");
+const criticalModules = [
+  "sharp",
+  "next",
+  "react",
+  "react-dom",
+  "@supabase/supabase-js",
+  "@supabase/ssr",
+  "react-is",
+];
+const standaloneNodeModules = path.join(standaloneDir, "node_modules");
+
+// Create a map to track which modules need to be copied
+const modulesToCopy = new Map();
+
+criticalModules.forEach((module) => {
+  const modulePath = path.join(standaloneNodeModules, module);
+  if (!fs.existsSync(modulePath)) {
+    console.warn(`⚠️ Warning: ${module} not found in standalone build`);
+    modulesToCopy.set(module, true);
+  } else {
+    console.log(`✓ ${module} is linked`);
+  }
+});
+
+// Try to add missing modules directly
+for (const [module, _] of modulesToCopy) {
+  console.log(`Manually adding ${module}...`);
+  try {
+    // First check if module exists in node_modules
+    const sourcePath = path.join(appDir, "node_modules", module);
+    if (fs.existsSync(sourcePath)) {
+      // Create target directory if it doesn't exist
+      const targetPath = path.join(standaloneNodeModules, module);
+      const targetDir = path.dirname(targetPath);
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+
+      // Copy the module
+      execSync(`cp -r "${sourcePath}" "${targetDir}/"`);
+      console.log(`✓ Successfully copied ${module}`);
+    } else {
+      // Try to find in pnpm structure
+      try {
+        // Using find command to locate the module in pnpm structure
+        const cmd = `find ${appDir}/node_modules/.pnpm -name "${module}" -type d | grep -v "node_modules/${module}/node_modules"`;
+        const result = execSync(cmd).toString().trim().split("\n")[0];
+
+        if (result && fs.existsSync(result)) {
+          const targetPath = path.join(standaloneNodeModules, module);
+          const targetDir = path.dirname(targetPath);
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
+
+          execSync(`cp -r "${result}" "${targetDir}/"`);
+          console.log(`✓ Successfully copied ${module} from pnpm structure`);
+        } else {
+          throw new Error(`Module not found in pnpm structure`);
+        }
+      } catch (err) {
+        console.error(`⚠️ Error adding ${module}: ${err.message}`);
+      }
+    }
+  } catch (error) {
+    console.error(`⚠️ Error adding ${module}: ${error.message}`);
+  }
 }
 
-// Check required dependencies (but don't try to copy them)
-const requiredDependencies = [
-  'sharp',
-  'next',
-  'react',
-  'react-dom',
-  '@supabase/supabase-js',
-  '@supabase/ssr',
-];
-
-console.log('Checking for required dependencies...');
-requiredDependencies.forEach(dep => {
-  const destDir = path.join(standaloneNodeModulesDir, dep);
-  if (fs.existsSync(destDir)) {
-    const isSymlink = fs.lstatSync(destDir).isSymbolicLink();
-    console.log(`✓ ${dep} is ${isSymlink ? 'linked' : 'copied'}`);
-  } else {
-    console.warn(`⚠️ Warning: ${dep} not found in standalone build`);
-  }
-});
-
-// For dependencies not properly included by Next.js, manually copy them
-// Example with @supabase modules which might not be automatically included
-const supabaseDeps = ['@supabase/supabase-js', '@supabase/ssr'];
-supabaseDeps.forEach(dep => {
-  const destDir = path.join(standaloneNodeModulesDir, dep);
-  if (!fs.existsSync(destDir)) {
-    console.log(`Manually adding ${dep}...`);
-    try {
-      // Find the dependency in the pnpm structure
-      const pnpmRoot = path.join(appDir, 'node_modules', '.pnpm');
-      // Use find to locate the actual directory regardless of version
-      const findCmd = `find ${pnpmRoot} -name "${dep.replace('@', '')}" -type d | grep -v "node_modules/${dep.replace('@', '')}/node_modules"`;
-      const foundDir = execSync(findCmd).toString().trim().split('\n')[0];
-      
-      if (foundDir) {
-        fs.mkdirSync(path.dirname(destDir), { recursive: true });
-        execSync(`cp -r ${foundDir} ${path.dirname(destDir)}/`);
-        console.log(`✓ Successfully added ${dep}`);
-      } else {
-        console.warn(`⚠️ Could not find ${dep} in pnpm structure`);
-      }
-    } catch (error) {
-      console.warn(`⚠️ Error adding ${dep}: ${error.message}`);
-    }
-  }
-});
-
-console.log('Standalone build preparation complete!');
-console.log(`Standalone server is ready at: ${path.join(standaloneDir, 'server.js')}`);
-console.log('You can start the server with: node .next/standalone/server.js');
+console.log("Standalone build preparation complete!");
+console.log(
+  `Standalone server is ready at: ${path.join(standaloneDir, "server.js")}`
+);
+console.log("You can start the server with: node .next/standalone/server.js");

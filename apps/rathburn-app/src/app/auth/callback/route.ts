@@ -17,8 +17,8 @@ export async function GET(request: Request) {
 
   if (redirectTo) {
     // Ensure the redirect path is valid
-    const validRedirectPaths = ["/reset-password", "/inventory/dashboard"];
-    const defaultRedirect = "/inventory/dashboard";
+    const validRedirectPaths = ["/reset-password", "/inventory/orders/new"];
+    const defaultRedirect = "/inventory/orders/new";
 
     // Check if the redirectTo path is in our valid paths, otherwise use default
     const isValidPath = validRedirectPaths.some((path) =>

@@ -2,24 +2,58 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Build Commands
+## Build and Run Commands
 
-- `pnpm dev` or `npm run dev` - Start development server
-- `pnpm build` or `npm run build` - Build for production (runs Prisma generate first)
-- `pnpm lint` or `npm run lint` - Run ESLint
-- `pnpm test` or `npm test` - Run all tests
-- `pnpm test:watch` or `npm run test:watch` - Run tests in watch mode
-- `pnpm test -- -t "test name"` or `npm run test -- -t "test name"` - Run specific test
-- `pnpm prisma:generate` or `npm run prisma:generate` - Generate Prisma client
-- `pnpm prisma:pull` or `npm run prisma:pull` - Pull database schema
-- `pnpm prisma:build` or `npm run prisma:build` - Pull database schema and generate client
-- `pnpm prisma:migrate` or `npm run prisma:migrate` - Run database migrations
-- `pnpm clean` or `npm run clean` - Clean Next.js cache
+### From Monorepo Root
 
-### Monorepo Commands
-- `pnpm dev:rathburn` - Start development server for rathburn-app
-- `pnpm start:rathburn` - Start production server for rathburn-app
+```bash
+# Development
+pnpm dev:rathburn                      # Run in development mode
+
+# Build
+pnpm build:rathburn                    # Standard build
+pnpm build:rathburn:standalone         # Standalone build (for production)
+
+# Run
+pnpm start:rathburn                    # Start using server.js wrapper (recommended)
+pnpm start:rathburn:standalone         # Equivalent to above
+pnpm start:rathburn:pm2                # Start with PM2 (development config)
+pnpm start:rathburn:prod               # Start with PM2 (production config)
+```
+
+### From App Directory (apps/rathburn-app)
+
+```bash
+# Development
+pnpm dev                               # Run in development mode
+
+# Build
+pnpm build                             # Standard build
+pnpm build && pnpm postbuild           # Standalone build (for production)
+
+# Run
+pnpm start                             # Start using server.js wrapper (recommended)
+pnpm start:standalone                  # Start directly (not recommended)
+pm2 start ecosystem.config.js --only rathburn-dev   # Start with PM2 (dev)
+pm2 start ecosystem.config.js --only rathburn-app   # Start with PM2 (prod)
+```
+
+### Common Commands
+- `pnpm lint` - Run ESLint
+- `pnpm test` - Run all tests
+- `pnpm test:watch` - Run tests in watch mode
+- `pnpm test -- -t "test name"` - Run specific test
+- `pnpm prisma:generate` - Generate Prisma client
+- `pnpm prisma:pull` - Pull database schema
+- `pnpm prisma:build` - Pull database schema and generate client
+- `pnpm prisma:migrate` - Run database migrations
+- `pnpm clean` - Clean Next.js cache
 - `pnpm format` - Format all files with Prettier
+
+### Troubleshooting
+If you encounter "ReferenceError: crypto is not defined" or other module errors:
+1. Build with standalone mode: `pnpm build:rathburn:standalone` (or `pnpm build && pnpm postbuild`)
+2. Always use the server wrapper: `pnpm start:rathburn` (or `pnpm start`)
 
 ## Code Standards
 
