@@ -8,9 +8,9 @@ node_modules
 # Local env files
 .env
 .env.local
-.env.development
+.env.development.local
 .env.test.local
-.env.production
+.env.production.local
 
 # Testing
 coverage
@@ -27,8 +27,6 @@ out/
 build
 dist
 
-# Dashboard template package
-# packages/template-source/
 
 # Debug
 npm-debug.log*
@@ -38,9 +36,3 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
-
-# Public folders
-**/public/*
-
-# Prisma 
-**/prisma/generated/client
