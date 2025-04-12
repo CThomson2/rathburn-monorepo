@@ -1,0 +1,130 @@
+┌ vite_react_shadcn_ts#build > cache miss, executing aa237e2afdba14ef 
+│ 
+│ 
+│ > vite_react_shadcn_ts@0.0.0 build /home/ec2-user/rathburn-monorepo/apps/kpi-da
+│ shboard
+│ > vite build
+│ 
+│ vite v5.4.16 building for production...
+│ transforming (3) src/main.tsx
+└────>
+┌ rathburn-app#build > cache miss, executing f8ad5767c65fe41d 
+│ 
+│ 
+│ > rathburn-app@0.1.0 build /home/ec2-user/rathburn-monorepo/apps/rathburn-app
+│ > npx prisma generate && npm run clean && next build
+│ 
+│ 
+│ > rathburn-app@0.1.0 postbuild /home/ec2-user/rathburn-monorepo/apps/rathburn-a
+│ pp
+│ > node scripts/prepare-standalone.js && node scripts/copy-node-modules.js && no
+│ de scripts/patch-next-modules.js
+│ 
+│ Preparing standalone build for deployment...
+│ Next.js standalone build found. Enhancing for deployment...
+│ Copying static files...
+│ Copying environment files...
+│ Checking for required dependencies...
+│ ⚠️ Warning: sharp not found in standalone build
+│ ✓ next is linked
+│ ⚠️ Warning: react not found in standalone build
+│ ⚠️ Warning: react-dom not found in standalone build
+│ ⚠️ Warning: @supabase/supabase-js not found in standalone build
+│ ⚠️ Warning: @supabase/ssr not found in standalone build
+│ Manually adding @supabase/supabase-js...
+│ ⚠️ Error adding @supabase/supabase-js: Command failed: find /home/ec2-user/rathb
+│ urn-monorepo/apps/rathburn-app/node_modules/.pnpm -name "supabase/supabase-js" 
+│ -type d | grep -v "node_modules/supabase/supabase-js/node_modules"
+│ Manually adding @supabase/ssr...
+│ ⚠️ Error adding @supabase/ssr: Command failed: find /home/ec2-user/rathburn-mono
+│ repo/apps/rathburn-app/node_modules/.pnpm -name "supabase/ssr" -type d | grep -
+│ v "node_modules/supabase/ssr/node_modules"
+│ Standalone build preparation complete!
+│ Standalone server is ready at: /home/ec2-user/rathburn-monorepo/apps/rathburn-a
+│ pp/.next/standalone/server.js
+│ You can start the server with: node .next/standalone/server.js
+│ Copying essential node modules to standalone folder...
+│ Checking sharp...
+│ Found sharp at /home/ec2-user/rathburn-monorepo/apps/rathburn-app/node_modules/
+│ sharp
+│ ✓ Successfully copied sharp
+│ Checking @supabase/supabase-js...
+│ Found @supabase/supabase-js at /home/ec2-user/rathburn-monorepo/apps/rathburn-a
+│ pp/node_modules/@supabase/supabase-js
+│ ✓ Successfully copied @supabase/supabase-js
+│ Checking @supabase/ssr...
+│ Found @supabase/ssr at /home/ec2-user/rathburn-monorepo/apps/rathburn-app/node_
+│ modules/@supabase/ssr
+│ ✓ Successfully copied @supabase/ssr
+│ ✅ Node modules copying complete!
+│ Patching Next.js modules for standalone build compatibility...
+│ Found Next.js server directory at: /home/ec2-user/rathburn-monorepo/apps/rathbu
+│ rn-app/.next/standalone/node_modules/next/dist/server
+│ ✅ Created polyfill at: /home/ec2-user/rathburn-monorepo/apps/rathburn-app/.nex
+│ t/standalone/node_modules/next/dist/server/node-polyfill-crypto.js
+│ Found Next.js server directory at: /home/ec2-user/rathburn-monorepo/apps/rathbu
+│ rn-app/node_modules/next/dist/server
+│ ✅ Created polyfill at: /home/ec2-user/rathburn-monorepo/apps/rathburn-app/node
+│ _modules/next/dist/server/node-polyfill-crypto.js
+│ Found Next.js server directory at: /home/ec2-user/rathburn-monorepo/apps/rathbu
+│ rn-app/node_modules/.pnpm/next@14.2.1_@babel+core@7.26.10_@opentelemetry+api@1.
+│ 9.0_babel-plugin-macros@3.1.0_react-dom@_4saqf7usvzgj6j3dqoxpogiarm/node_module
+│ s/next/dist/server
+│ ✅ Created polyfill at: /home/ec2-user/rathburn-monorepo/apps/rathburn-app/node
+│ _modules/.pnpm/next@14.2.1_@babel+core@7.26.10_@opentelemetry+api@1.9.0_babel-p
+│ lugin-macros@3.1.0_react-dom@_4saqf7usvzgj6j3dqoxpogiarm/node_modules/next/dist
+│ /server/node-polyfill-crypto.js
+│ ✅ Created polyfill at: /home/ec2-user/rathburn-monorepo/apps/rathburn-app/.nex
+│ t/standalone/server/node-polyfill-crypto.js
+│ ✅ Created polyfill at: /home/ec2-user/rathburn-monorepo/apps/rathburn-app/.nex
+│ t/standalone/node-polyfill-crypto.js
+│ ✅ Patched server.js at: /home/ec2-user/rathburn-monorepo/apps/rathburn-app/.ne
+│ xt/standalone/server.js
+│ 
+│ 🎉 Successfully patched 6 module(s).
+│ You can now start the standalone server with:
+│   node .next/standalone/server.js
+└────>
+┌ @repo/dashboard-ui#build > cache miss, executing f42bab0bc4fa6bbf 
+│ 
+│ 
+│ > @repo/dashboard-ui@0.1.0 build /home/ec2-user/rathburn-monorepo/packages/temp
+│ late-source
+│ > next build
+│ 
+│ 
+│ > Build error occurred
+│ ReferenceError: crypto is not defined
+│     at /home/ec2-user/rathburn-monorepo/node_modules/.pnpm/next@14.2.1_@babel+c
+│ ore@7.26.10_@opentelemetry+api@1.9.0_babel-plugin-macros@3.1.0_react-dom@_4saqf
+│ 7usvzgj6j3dqoxpogiarm/node_modules/next/dist/server/app-render/encryption-utils
+│ .js:103:29
+│     at new Promise (<anonymous>)
+│     at generateEncryptionKeyBase64 (/home/ec2-user/rathburn-monorepo/node_modul
+│ es/.pnpm/next@14.2.1_@babel+core@7.26.10_@opentelemetry+api@1.9.0_babel-plugin-
+│ macros@3.1.0_react-dom@_4saqf7usvzgj6j3dqoxpogiarm/node_modules/next/dist/serve
+│ r/app-render/encryption-utils.js:101:52)
+│     at /home/ec2-user/rathburn-monorepo/node_modules/.pnpm/next@14.2.1_@babel+c
+│ ore@7.26.10_@opentelemetry+api@1.9.0_babel-plugin-macros@3.1.0_react-dom@_4saqf
+│ 7usvzgj6j3dqoxpogiarm/node_modules/next/dist/build/index.js:413:90
+│     at async Span.traceAsyncFn (/home/ec2-user/rathburn-monorepo/node_modules/.
+│ pnpm/next@14.2.1_@babel+core@7.26.10_@opentelemetry+api@1.9.0_babel-plugin-macr
+│ os@3.1.0_react-dom@_4saqf7usvzgj6j3dqoxpogiarm/node_modules/next/dist/trace/tra
+│ ce.js:154:20)
+│     at async build (/home/ec2-user/rathburn-monorepo/node_modules/.pnpm/next@14
+│ .2.1_@babel+core@7.26.10_@opentelemetry+api@1.9.0_babel-plugin-macros@3.1.0_rea
+│ ct-dom@_4saqf7usvzgj6j3dqoxpogiarm/node_modules/next/dist/build/index.js:366:9)
+│  ELIFECYCLE  Command failed with exit code 1.
+│ command finished with error: command (/home/ec2-user/rathburn-monorepo/packages
+│ /template-source) /home/ec2-user/.local/share/pnpm/.tools/pnpm/9.0.0/bin/pnpm r
+│ un build exited (1)
+└────>
+@repo/dashboard-ui#build: command (/home/ec2-user/rathburn-monorepo/packages/template-source) /home/ec2-user/.local/share/pnpm/.tools/pnpm/9.0.0/bin/pnpm run build exited (1)
+
+ Tasks:    0 successful, 3 total
+Cached:    0 cached, 3 total
+  Time:    5.237s 
+Failed:    @repo/dashboard-ui#build
+
+ ERROR  run failed: command  exited (1)
+ ELIFECYCLE  Command failed with exit code 1.

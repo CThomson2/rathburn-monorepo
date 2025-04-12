@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 import { ObjectKeys } from "@/types/util-types";
 
 interface DrumFields {
@@ -16,9 +16,9 @@ type DrumFieldKeys = ObjectKeys<DrumFields>;
 
 const DrumStockCountForm = () => {
   // Form state
-  const [drums, setDrums] = useState<DrumFields[]>([
+  const [drums, setDrums] = useState([
     {
-      oldId: 0,
+      oldId: "",
       material: "",
       batchCode: "",
       supplier: "",
@@ -30,6 +30,7 @@ const DrumStockCountForm = () => {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchCount, setBatchCount] = useState(2);
   const [batchTemplate, setBatchTemplate] = useState({
+    oldIdPrefix: "",
     oldIdStart: 1,
     material: "",
     batchCode: "",
@@ -63,13 +64,13 @@ const DrumStockCountForm = () => {
   }, [submitMessage]);
 
   // Handle input changes
-  const handleChange = <K extends keyof DrumFields>(
+  const handleChange = (
     index: number,
-    field: K,
-    value: DrumFields[K]
+    field: keyof DrumFields,
+    value: string
   ) => {
     const newDrums = [...drums];
-    newDrums[index][field] = value;
+    newDrums[index][field] = value; // Ensure field is a valid key of DrumFields
     setDrums(newDrums);
   };
 
@@ -89,7 +90,7 @@ const DrumStockCountForm = () => {
     setDrums([
       ...drums,
       {
-        oldId: 0,
+        oldId: "",
         material: "",
         batchCode: "",
         supplier: "",
@@ -111,7 +112,7 @@ const DrumStockCountForm = () => {
       // Don't remove the last row, just clear it
       setDrums([
         {
-          oldId: 0,
+          oldId: "",
           material: "",
           batchCode: "",
           supplier: "",
@@ -129,13 +130,14 @@ const DrumStockCountForm = () => {
 
   // Generate batch entries
   const generateBatchEntries = () => {
-    const { oldIdStart, material, batchCode, supplier, status } = batchTemplate;
+    const { oldIdPrefix, oldIdStart, material, batchCode, supplier, status } =
+      batchTemplate;
 
-    const newBatchDrums: DrumFields[] = [];
+    const newBatchDrums = [];
     for (let i = 0; i < batchCount; i++) {
       const oldIdNumber = oldIdStart + i;
       newBatchDrums.push({
-        oldId: oldIdNumber,
+        oldId: `${oldIdPrefix}${oldIdNumber}`,
         material,
         batchCode,
         supplier,
@@ -146,6 +148,7 @@ const DrumStockCountForm = () => {
     setDrums([...drums, ...newBatchDrums]);
     setShowBatchModal(false);
     setBatchTemplate({
+      oldIdPrefix: "",
       oldIdStart: 1,
       material: "",
       batchCode: "",
@@ -172,21 +175,21 @@ const DrumStockCountForm = () => {
 
     try {
       // Filter out empty drums that don't have any data
-      const filteredDrums = drums.filter((d) => d.oldId);
-
+      const filteredDrums = drums.filter(d => d.oldId || d.material);
+      
       // Submit to the API endpoint
-      const response = await fetch("/stock-count/api", {
-        method: "POST",
+      const response = await fetch('/stock-count/api', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(filteredDrums), // Use filteredDrums here instead of drums
       });
 
       const result = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(result.error || "Failed to save drums");
+        throw new Error(result.error || 'Failed to save drums');
       }
 
       setSubmitMessage({
@@ -197,7 +200,7 @@ const DrumStockCountForm = () => {
       // Clear the form after successful submission
       setDrums([
         {
-          oldId: 0,
+          oldId: "",
           material: "",
           batchCode: "",
           supplier: "",
@@ -230,38 +233,6 @@ const DrumStockCountForm = () => {
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Drum Stock Count</h1>
-
-      <div className="mb-6 space-y-4 text-gray-700">
-        <div>
-          <h2 className="font-semibold text-lg mb-2">Drum ID System:</h2>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>
-              <strong>New drums with existing ID labels</strong> will keep their
-              current IDs in the new system
-            </li>
-            <li>
-              <strong>Washed/process drums (P)</strong> will keep their orignal
-              IDs in the new system
-            </li>
-            <li>
-              <strong>New drums without labels</strong> will use sequential IDs
-              starting from <strong>15001</strong>
-            </li>
-            <li>
-              <strong>Repro drums (R)</strong> will use new sequential IDs
-              starting from <strong>3001</strong> (regardless of existing
-              labels)
-            </li>
-            <li>
-              <strong>
-                Waste/empty drums (W), and Unknown/unmarked drums (X)
-              </strong>{" "}
-              will use IDs from
-              <strong>9001</strong> onwards and require manual verification
-            </li>
-          </ul>
-        </div>
-      </div>
 
       {submitMessage.text && (
         <div
@@ -313,7 +284,7 @@ const DrumStockCountForm = () => {
                       type="text"
                       value={drum.oldId}
                       onChange={(e) =>
-                        handleChange(index, "oldId", parseInt(e.target.value))
+                        handleChange(index, "oldId", e.target.value)
                       }
                       className="w-full p-1 border rounded"
                       placeholder="ID on label"
@@ -414,20 +385,28 @@ const DrumStockCountForm = () => {
             <h2 className="text-xl font-bold mb-4">Add Batch of Drums</h2>
 
             <div className="mb-4">
-              <label className="block mb-1">Starting ID Number</label>
-              <input
-                type="number"
-                value={batchTemplate.oldIdStart}
-                onChange={(e) =>
-                  handleBatchTemplateChange(
-                    "oldIdStart",
-                    parseInt(e.target.value)
-                  )
-                }
-                className="w-full p-2 border rounded"
-                placeholder="Starting number"
-                min="1"
-              />
+              <label className="block mb-1">ID Prefix</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={batchTemplate.oldIdPrefix}
+                  onChange={(e) =>
+                    handleBatchTemplateChange("oldIdPrefix", e.target.value)
+                  }
+                  className="w-1/2 p-2 border rounded"
+                  placeholder="e.g. D-"
+                />
+                <input
+                  type="number"
+                  value={batchTemplate.oldIdStart}
+                  onChange={(e) =>
+                    handleBatchTemplateChange("oldIdStart", e.target.value)
+                  }
+                  className="w-1/2 p-2 border rounded"
+                  placeholder="Starting number"
+                  min="1"
+                />
+              </div>
             </div>
 
             <div className="mb-4">
