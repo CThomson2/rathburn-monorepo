@@ -46,11 +46,11 @@ if (fs.existsSync(path.join(appDir, "node_modules/sharp"))) {
 // Copy static assets
 console.log("📁 Copying static assets...");
 runCommand(
-  `mkdir -p .next/standalone/.next/static`,
+  `mkdir -p .next/standalone/apps/web/.next/static`,
   "Failed to create static directory"
 );
 runCommand(
-  `cp -r .next/static/* .next/standalone/.next/static/`,
+  `cp -r .next/static/* .next/standalone/apps/web/.next/static/`,
   "Failed to copy static assets"
 );
 
@@ -65,7 +65,14 @@ if (fs.existsSync("public")) {
 // Copy environment variables if they exist
 console.log("🔒 Copying environment variables...");
 if (fs.existsSync(".env")) {
-  runCommand(`cp .env .next/standalone/.env`, "Failed to copy .env file");
+  runCommand(
+    `mkdir -p .next/standalone/apps/web`,
+    "Failed to create app directory"
+  );
+  runCommand(
+    `cp .env .next/standalone/apps/web/.env`,
+    "Failed to copy .env file"
+  );
 } else {
   console.log("ℹ️ No .env file found, skipping...");
 }

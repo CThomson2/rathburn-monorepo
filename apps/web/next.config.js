@@ -7,18 +7,7 @@ const nextConfig = {
       bodySizeLimit: "2mb",
     },
   },
-  // Configure output tracing to include necessary files for standalone mode
-  output: {
-    standalone: true,
-    tracing: {
-      ignoreRootDirectory: true,
-      includedFiles: [
-        "**/package.json",
-        "**/node_modules/**/*.node",
-        "**/node_modules/**/*.wasm",
-      ],
-    },
-  },
+  outputFileTracing: true,
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Properly configure crypto polyfill
