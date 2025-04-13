@@ -7,7 +7,7 @@
 .yarn/install-state.gz
 
 # testing
-/coverage
+# /coverage
 
 # next.js
 /.next/
@@ -17,8 +17,8 @@
 /build
 
 # misc
-.DS_Store
-*.pem
+# .DS_Store
+# *.pem
 
 # debug
 npm-debug.log*
@@ -26,11 +26,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # env files (can opt-in for commiting if needed)
-.env*
+# .env*
 
 # vercel
-.vercel
+# .vercel
 
 # typescript
-*.tsbuildinfo
-next-env.d.ts
+# *.tsbuildinfo
+# next-env.d.ts
