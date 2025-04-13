@@ -1,0 +1,101 @@
+---
+description: Use this rule whenever working on database migrations with supabase, writing SQL queries, or chatting about database design
+globs: 
+alwaysApply: false
+---
+# PostgreSQL Style Guide and Conventions
+
+## Table Design
+
+### Naming Conventions
+- Table names MUST be singular nouns (e.g., `user` not `users`)
+- Use snake_case for all identifiers
+- Avoid double-quoted identifiers
+- Junction tables follow format: `table_a_table_b`
+
+### Primary Keys
+- Default to `uuid` data type with `gen_random_uuid()` default
+- For integer sequences, use: `id INTEGER GENERATED ALWAYS AS IDENTITY`
+- Never use `serial` type
+- Single-column PKs must be named `id`
+- Multi-column PKs use `_id` suffix for each column
+
+### Foreign Keys
+- Format: `{referenced_table_singular}_id`
+- Example: `user_id` for referencing `user.id`
+- Must be indexed
+
+### Standard Columns
+- Use `timestamptz` for all timestamp columns
+- Standard timestamp columns:
+  ```sql
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  deleted_at TIMESTAMPTZ
+  ```
+
+## Constraints and Indexes
+
+### Naming Patterns
+- Foreign keys: `{table}_{column}_fkey`
+- Check constraints: `{table}_{column}_check`
+- Unique constraints: `{table}_{column}_unique`
+- Indexes: `idx_{table}_{column(s)}_{type}`
+- Triggers: `trg_{trigger_function_name}`
+
+### Index Requirements
+- All foreign key columns must be indexed
+- Consider partial indexes for filtered queries
+- Use covering indexes (INCLUDE) for frequently accessed columns
+
+## Schema Organization
+
+### Schema Usage
+- `public`: Core application tables
+- `auth`: Authentication and authorization
+- `logs`: Audit and logging
+- `utils`: Utility functions and views
+
+### Views
+- Materialized views: Prefix with `mv_`
+- Regular views: Prefix with `vw_`
+
+## Documentation
+
+### Comments
+- Add relevant comments to table definitions
+- Document complex constraints or business rules
+- Format:
+  ```sql
+  COMMENT ON TABLE table_name IS 'Description of the table purpose';
+  COMMENT ON COLUMN table_name.column_name IS 'Description of the column purpose';
+  ```
+
+## Functions and Procedures
+
+### Naming and Structure
+- Use snake_case for function names
+- Prefix trigger functions with `tf_`
+- Include parameter types in name when overloading
+- Document return values and side effects
+
+## Data Validation
+
+### Constraints
+- Boolean columns must have defaults
+- Text columns that shouldn't be empty: `NOT NULL`
+- Use CHECK constraints for data validation
+- Define appropriate foreign key actions (ON DELETE, ON UPDATE)
+
+## Performance Considerations
+
+### Indexing Strategy
+- Index all foreign key columns
+- Create partial indexes for filtered queries
+- Use covering indexes for frequently accessed columns
+- Regular maintenance of indexes required
+
+### Materialized Views
+- Use for complex, infrequently updated queries
+- Implement refresh strategy
+- Consider automated refresh triggers

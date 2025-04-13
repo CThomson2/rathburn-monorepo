@@ -5,12 +5,12 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "next dev --port 3000",
+    "clean": "rm -rf .next .turbo node_modules",
     "build": "next build",
-    "start": "node server.js",
-    "start:next": "next start",
+    "start": "node .next/standalone/apps/web/server.js",
+    "start:custom": "node server.js",
     "lint": "next lint --max-warnings 0",
-    "check-types": "tsc --noEmit",
-    "clean": "rm -rf .next .turbo node_modules"
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
