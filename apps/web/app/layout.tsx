@@ -23,7 +23,7 @@ interface RootLayoutProps {
 
 export default function RootLayout({
   children,
-}: Readonly<RootLayoutProps>): React.JSX.Element {
+}: RootLayoutProps): React.JSX.Element {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>

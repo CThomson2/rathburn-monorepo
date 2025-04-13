@@ -7,13 +7,24 @@ const nextConfig = {
       bodySizeLimit: "2mb",
     },
   },
-  // Ensure static assets are copied to the correct location
-  outputFileTracing: true,
+  // Configure output tracing to include necessary files for standalone mode
+  output: {
+    standalone: true,
+    tracing: {
+      ignoreRootDirectory: true,
+      includedFiles: [
+        "**/package.json",
+        "**/node_modules/**/*.node",
+        "**/node_modules/**/*.wasm",
+      ],
+    },
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
+      // Properly configure crypto polyfill
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        crypto: require.resolve("crypto-browserify"),
+        crypto: false, // Let webpack handle the polyfill
       };
     }
     return config;
