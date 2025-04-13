@@ -35,11 +35,11 @@ jobs:
       # Build application
       - name: Install dependencies
         run: |
-          # Install all dependencies including platform-specific ones
-          pnpm install
-          # Ensure platform-specific packages are installed
-          pnpm install @swc/core@latest --save-dev
-          pnpm install @swc/core-linux-x64-gnu @esbuild/linux-x64 --save-optional
+          # Install all dependencies explicitly for the workspace root
+          pnpm install -w
+          # Ensure platform-specific packages are installed at workspace root
+          pnpm install @swc/core@latest --save-dev -w
+          pnpm install @swc/core-linux-x64-gnu @esbuild/linux-x64 --save-optional -w
 
       - name: Build application and populate static assets
         run: |
