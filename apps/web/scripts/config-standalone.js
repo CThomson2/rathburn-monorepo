@@ -1,13 +1,26 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require("fs");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require("path");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { execSync } = require("child_process");
+
+// Detect if we're running from monorepo root or app directory
+const isMonorepoRoot =
+  !fs.existsSync("next.config.js") && fs.existsSync("apps/web/next.config.js");
+const appDir = isMonorepoRoot
+  ? path.join(process.cwd(), "apps/web")
+  : process.cwd();
+const standalonePath = path.join(appDir, ".next/standalone");
+
+console.log(
+  `Running from ${isMonorepoRoot ? "monorepo root" : "app directory"}`
+);
+console.log(`App directory: ${appDir}`);
+console.log(`Standalone path: ${standalonePath}`);
 
 function runCommand(command, errorMessage) {
   try {
-    execSync(command, { stdio: "inherit" });
+    console.log(`Executing: ${command}`);
+    execSync(command, { stdio: "inherit", cwd: appDir });
   } catch (error) {
     console.error(`❌ ${errorMessage}`);
     console.error(error);
@@ -17,15 +30,18 @@ function runCommand(command, errorMessage) {
 
 // Ensure sharp is available for image processing in standalone
 console.log("📦 Installing sharp for image processing...");
-runCommand("pnpm install --save-optional sharp", "Failed to install sharp");
-runCommand(
-  `mkdir -p .next/standalone/node_modules/sharp`,
-  "Failed to create sharp directory"
-);
-runCommand(
-  `cp -r node_modules/sharp/* .next/standalone/node_modules/sharp/`,
-  "Failed to copy sharp module"
-);
+if (fs.existsSync(path.join(appDir, "node_modules/sharp"))) {
+  runCommand(
+    `mkdir -p .next/standalone/node_modules/sharp`,
+    "Failed to create sharp directory"
+  );
+  runCommand(
+    `cp -r node_modules/sharp/* .next/standalone/node_modules/sharp/`,
+    "Failed to copy sharp module"
+  );
+} else {
+  console.log("⚠️ Sharp module not found, skipping...");
+}
 
 // Copy static assets
 console.log("📁 Copying static assets...");

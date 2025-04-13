@@ -34,7 +34,12 @@ jobs:
 
       # Build application
       - name: Install dependencies
-        run: pnpm install --no-optional
+        run: |
+          # Install all dependencies including platform-specific ones
+          pnpm install
+          # Ensure platform-specific packages are installed
+          pnpm install @swc/core@latest --save-dev
+          pnpm install @swc/core-linux-x64-gnu @esbuild/linux-x64 --save-optional
 
       - name: Build application and populate static assets
         run: |
