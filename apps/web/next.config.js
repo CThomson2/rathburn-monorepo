@@ -7,6 +7,8 @@ const nextConfig = {
       bodySizeLimit: "2mb",
     },
   },
+  // Ensure static assets are copied to the correct location
+  outputFileTracing: true,
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -17,4 +19,5 @@ const nextConfig = {
     return config;
   },
 };
+
 module.exports = nextConfig;

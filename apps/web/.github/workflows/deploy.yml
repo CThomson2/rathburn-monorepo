@@ -1,0 +1,144 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allows the workflow to be manually triggered from the GitHub Actions tab
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_INSTANCE_SG_ID: ${{ secrets.AWS_INSTANCE_SG_ID }}
+      SMTP_API_KEY: ${{ secrets.SMTP_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+    steps:
+      # Set up repository and environment
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Node.js and pnpm
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.4
+          run_install: false
+
+      # Build application
+      - name: Install dependencies
+        run: pnpm install --no-optional
+
+      # Mock database URL to facilitate build process while maintaining security
+      - name: Generate Prisma client
+        run: |
+          pnpm prisma generate
+
+      - name: Build application and populate static assets
+        run: |
+          echo "Build environment:"
+          echo "Current directory: $(pwd)"
+          echo "Starting build..."
+          pnpm run build
+
+          # Run the standalone configuration script
+          node scripts/config-standalone.js
+
+      # Configure AWS and secure SSH access
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Get GitHub runner's public IP
+        id: ip
+        uses: haythem/public-ip@v1.3
+
+      - name: Whitelist GitHub runner's IP in EC2 security group
+        run: |
+          echo "Adding IP ${{ steps.ip.outputs.ipv4 }} to security group $AWS_INSTANCE_SG_ID"
+          aws ec2 authorize-security-group-ingress \
+            --group-id $AWS_INSTANCE_SG_ID \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+      # First SSH connection to set up GitHub authentication
+      - name: Set up GitHub authentication on EC2
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.RB_EC2_KEY }}
+          port: 22
+          command_timeout: "10m"
+          script: |
+            # Set up GitHub authentication using deploy key
+            mkdir -p ~/.ssh
+            echo "${{ secrets.REPO_DEPLOY_KEY }}" > ~/.ssh/github_deploy_key
+            chmod 600 ~/.ssh/github_deploy_key
+            # Configure SSH to use the key for GitHub
+            cat > ~/.ssh/config << EOF
+            Host github.com
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/github_deploy_key
+              IdentitiesOnly yes
+            EOF
+            # Add GitHub to known hosts to avoid prompts
+            ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+            # Test GitHub SSH connection
+            ssh -T -o StrictHostKeyChecking=no git@github.com || echo "GitHub authentication configured"
+      # Main deployment script
+      - name: Deploy application to EC2
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.RB_EC2_KEY }}
+          port: 22
+          command_timeout: "20m"
+          script: |
+            # Navigate to project directory
+            cd /home/ec2-user/rathburn-monorepo/apps/web
+            # Stop and delete PM2 process
+            pm2 stop rathburn-app || true;
+            pm2 delete rathburn-app || true;
+            # Pull latest changes from GitHub
+            git pull origin main;
+
+            # Install pnpm if not already installed
+            if ! command -v pnpm &> /dev/null; then
+                npm install -g pnpm
+            fi
+
+            # Install dependencies
+            pnpm install --no-optional;
+
+            # Build application
+            pnpm run build;
+
+            # Run the standalone configuration script
+            node scripts/config-standalone.js;
+
+            # Start application with PM2
+            pm2 start ecosystem.config.js --node-args="--experimental-modules";
+            pm2 save;
+      # Clean up - revoke temporary security group rule
+      - name: Revoke temporary IP access
+        if: always() # Run even if previous steps failed
+        run: |
+          echo "Removing IP ${{ steps.ip.outputs.ipv4 }} from security group $AWS_INSTANCE_SG_ID"
+          aws ec2 revoke-security-group-ingress \
+            --group-id $AWS_INSTANCE_SG_ID \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32

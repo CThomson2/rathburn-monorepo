@@ -6,7 +6,9 @@
 rathburn-ops-monorepo/
 ├── apps/
 │   ├── web/             # Main Next.js web app (rathburn.app)
-│   └── mobile/          # Vite-based mobile app (mobile.rathburn.app)
+│   ├── rathburn-online/ # Temporary source code taken from existing standalone app elsewhere (to be used to migrate code into apps/web/, then removed)
+│   ├── mobile/          # Vite-based mobile app (mobile.rathburn.app)
+│   └── mcp-server/      # MCP server (git submodule, solely for development purposes and will never be deployed)
 ├── packages/            # Shared packages
 ├── .github/
 │   └── workflows/       # CI/CD workflows

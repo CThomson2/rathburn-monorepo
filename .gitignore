@@ -39,3 +39,7 @@ yarn-error.log*
 
 # Production Temporary Files
 production/
+
+# Temporary apps
+apps/mobile/
+apps/rathburn-online/
