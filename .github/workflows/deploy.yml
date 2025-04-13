@@ -102,13 +102,15 @@ jobs:
           port: 22
           command_timeout: "20m"
           script: |
-            # Navigate to project directory
-            cd /home/ec2-user/rathburn-monorepo/apps/web
-            # Stop and delete PM2 process
-            pm2 stop rathburn-app || true;
-            pm2 delete rathburn-app || true;
+            # Navigate to project directory and create apps/web if it doesn't exist
+            cd /home/ec2-user/rathburn-monorepo
+            if [ ! -d "apps/web" ]; then
+              echo "Creating apps/web directory structure..."
+              mkdir -p apps/web
+            fi
+
             # Pull latest changes from GitHub
-            git pull origin main;
+            git pull origin main
 
             # Install pnpm if not already installed
             if ! command -v pnpm &> /dev/null; then
@@ -116,17 +118,18 @@ jobs:
             fi
 
             # Install dependencies
-            pnpm install --no-optional;
+            pnpm install --no-optional
 
             # Build application
-            pnpm run build;
+            pnpm run build
 
             # Run the standalone configuration script
-            node apps/web/scripts/config-standalone.js;
+            node apps/web/scripts/config-standalone.js
 
-            # Start application with PM2
-            pm2 start ecosystem.config.js --node-args="--experimental-modules";
-            pm2 save;
+            # Start application with pnpm start
+            cd apps/web
+            pnpm start
+
       # Clean up - revoke temporary security group rule
       - name: Revoke temporary IP access
         if: always() # Run even if previous steps failed
