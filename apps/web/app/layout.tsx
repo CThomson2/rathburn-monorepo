@@ -32,3 +32,24 @@ export default function RootLayout({
     </html>
   );
 }
+
+/* Build Error Logfs:
+
+Failed to compile.
+
+`app/layout.tsx`
+
+Type error: Type 'RootLayoutProps' does not satisfy the constraint 'LayoutProps'.
+  Types of property 'children' are incompatible.
+    Type 'import("/home/runner/work/rathburn-monorepo/rathburn-monorepo/node_modules/.pnpm/@types+react@19.1.0/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+
+    Error: @rathburn/web#build: command (/home/runner/work/rathburn-monorepo/rathburn-monorepo/apps/web) /home/runner/setup-pnpm/node_modules/.bin/pnpm run build exited (1)
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+
+    Next.js build worker exited with code: 1 and signal: null
+      ELIFECYCLE Command failed with exit code 1.
+
+    Error:  command finished with error: command (/home/runner/work/rathburn-monorepo/rathburn-monorepo/apps/web) /home/runner/setup-pnpm/node_modules/.bin/pnpm run build exited (1)
+
+*/
