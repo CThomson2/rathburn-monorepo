@@ -41,7 +41,7 @@ jobs:
           echo "Build environment:"
           echo "Current directory: $(pwd)"
           echo "Starting build..."
-          pnpm run build
+          pnpm run build --filter @rathburn/web
 
           # Run the standalone configuration script
           node apps/web/scripts/config-standalone.js
