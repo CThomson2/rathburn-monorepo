@@ -36,11 +36,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-optional
 
-      # Mock database URL to facilitate build process while maintaining security
-      - name: Generate Prisma client
-        run: |
-          pnpm prisma generate
-
       - name: Build application and populate static assets
         run: |
           echo "Build environment:"
@@ -49,7 +44,7 @@ jobs:
           pnpm run build
 
           # Run the standalone configuration script
-          node scripts/config-standalone.js
+          node apps/web/scripts/config-standalone.js
 
       # Configure AWS and secure SSH access
       - name: Configure AWS credentials
@@ -127,7 +122,7 @@ jobs:
             pnpm run build;
 
             # Run the standalone configuration script
-            node scripts/config-standalone.js;
+            node apps/web/scripts/config-standalone.js;
 
             # Start application with PM2
             pm2 start ecosystem.config.js --node-args="--experimental-modules";

@@ -5,15 +5,15 @@ node_modules
 .pnp
 .pnp.js
 
-# Local env files
-# .env
-# .env.local
-# .env.development.local
-# .env.test.local
-# .env.production.local
+Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Testing
-# coverage
+coverage
 
 # Turbo
 .turbo
@@ -37,8 +37,8 @@ yarn-error.log*
 *.pem
 
 # Production Temporary Files
-# production/
+production/
 
 # Temporary apps
-# apps/mobile/
-# apps/rathburn-online/
+apps/mobile/
+apps/rathburn-online/
