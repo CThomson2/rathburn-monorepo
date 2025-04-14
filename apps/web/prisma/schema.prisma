@@ -1,0 +1,838 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "./generated/client"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL")
+  schemas  = ["auth", "public"]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model active_context {
+  context_id Int         @id @default(autoincrement())
+  worker_id  Int?
+  still_id   Int?
+  created_at DateTime?   @default(now()) @db.Timestamptz(6)
+  ref_stills ref_stills? @relation(fields: [still_id], references: [still_id], onDelete: NoAction)
+
+  @@schema("public")
+}
+
+model auth_activity_log {
+  id         String    @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  user_id    String    @db.Uuid
+  action     String
+  ip_address String?
+  metadata   Json?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_auth_activity_log_created_at")
+  @@index([user_id], map: "idx_auth_activity_log_user_id")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bottle_sizes {
+  id             Int              @id @default(autoincrement())
+  volume         String           @db.VarChar(10)
+  product_prices product_prices[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model chemical_group_kind {
+  value         String          @id
+  ref_materials ref_materials[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model distillation_pending_assignment {
+  pending_id               Int                    @id(map: "distillation_pending_assignments_pkey") @default(autoincrement())
+  drum_id                  Int?
+  transport_id             Int
+  assigned_distillation_id Int?
+  status                   String?                @default("pending")
+  distillation_schedule    distillation_schedule? @relation(fields: [assigned_distillation_id], references: [distillation_id], onDelete: NoAction, map: "distillation_pending_assignments_assigned_distillation_id_fkey")
+  stock_drum               stock_drum?            @relation(fields: [drum_id], references: [drum_id], onDelete: Restrict, onUpdate: NoAction, map: "distillation_pending_assignments_drum_id_fkey")
+  log_transport_drum       log_transport_drum     @relation(fields: [transport_id], references: [transport_id], onDelete: NoAction, onUpdate: NoAction, map: "distillation_pending_assignments_transport_id_fkey")
+
+  @@index([assigned_distillation_id], map: "idx_pendingassign_distillation")
+  @@index([drum_id], map: "idx_pendingassign_drum")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model distillation_record {
+  record_id             Int                    @id(map: "distillation_records_pkey") @default(autoincrement())
+  distillation_id       Int?                   @unique(map: "distillation_records_distillation_id_key")
+  actual_start          DateTime?              @default(now()) @db.Timestamptz(6)
+  actual_end            DateTime?              @db.Timestamptz(6)
+  status                String?                @default("in_progress")
+  notes                 String?
+  distillation_schedule distillation_schedule? @relation(fields: [distillation_id], references: [distillation_id], onDelete: Cascade, map: "distillation_records_distillation_id_fkey")
+  stock_drum            stock_drum[]
+  stock_drum_new        stock_drum_new[]
+
+  @@index([actual_start], map: "idx_distrecords_start")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model distillation_schedule {
+  distillation_id                 Int                               @id(map: "distillation_schedules_pkey") @default(autoincrement())
+  scheduled_date                  DateTime                          @db.Date
+  still_id                        Int
+  expected_drum_qty               Decimal                           @default(1.00) @db.Decimal(5, 2)
+  status                          String?                           @default("scheduled")
+  created_at                      DateTime?                         @default(now()) @db.Timestamptz(6)
+  updated_at                      DateTime?                         @default(now()) @db.Timestamptz(6)
+  distillation_pending_assignment distillation_pending_assignment[]
+  distillation_record             distillation_record?
+  ref_stills                      ref_stills                        @relation(fields: [still_id], references: [still_id], map: "distillation_schedules_still_id_fkey")
+  distillation_schedule_items     distillation_schedule_items[]
+  log_load_still                  log_load_still[]
+  log_start_distillation          log_start_distillation?
+  log_transport_drum              log_transport_drum[]
+  log_volume_transfer             log_volume_transfer[]
+
+  @@index([scheduled_date, status], map: "idx_distsched_date_status")
+  @@index([still_id], map: "idx_distsched_still")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model distillation_schedule_items {
+  details_id            Int                   @id(map: "distillation_schedules_details_pkey") @default(autoincrement())
+  distillation_id       Int
+  new_stock_id          Int?
+  repro_stock_id        Int?
+  drum_quantity         Decimal               @db.Decimal(5, 2)
+  status                String?               @default("pending")
+  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  distillation_schedule distillation_schedule @relation(fields: [distillation_id], references: [distillation_id], onDelete: Cascade, map: "distillation_schedules_details_distillation_id_fkey")
+  stock_new             stock_new?            @relation(fields: [new_stock_id], references: [stock_id], onUpdate: NoAction, map: "distillation_schedules_details_new_stock_id_fkey")
+  stock_repro           stock_repro?          @relation(fields: [repro_stock_id], references: [stock_id], onUpdate: NoAction, map: "distillation_schedules_details_repro_stock_id_fkey")
+  stock_activity        stock_activity[]
+
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model drum_status_transition {
+  current_status  Unsupported("drum_status")
+  next_status     Unsupported("drum_status")
+  requires_admin  Boolean?                   @default(false)
+  requires_reason Boolean?                   @default(false)
+
+  @@id([current_status, next_status], map: "drum_status_transitions_pkey")
+  @@ignore
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model drums {
+  old_id         Int
+  material       String    @default("Unknown")
+  batch_code     String?
+  id             Int       @id @default(autoincrement())
+  supplier       String?
+  status         String    @default("'N'::text")
+  created_at     DateTime  @default(now()) @db.Date
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+  site           String    @default("new") @db.VarChar
+  date_ordered   String?
+  chemical_group String?
+  material_code  String
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model log_drum_decommission {
+  decommission_id   Int       @id @default(autoincrement())
+  drum_id           Int
+  decommissioned_at DateTime? @default(now()) @db.Timestamptz(6)
+  worker_id         Int?      @default(9)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model log_drum_scan {
+  scan_id            Int                 @id(map: "scan_log_pkey") @default(autoincrement())
+  scanned_at         DateTime?           @default(now()) @db.Timestamptz(6)
+  drum_id            Int?
+  user_id            Int                 @default(9)
+  scan_type          String
+  scan_status        String              @default("success")
+  error_message      String?
+  stock_drum         stock_drum?         @relation(fields: [drum_id], references: [drum_id], onDelete: NoAction, map: "scan_log_drum_id_fkey")
+  log_load_still     log_load_still?
+  log_transport_drum log_transport_drum?
+
+  @@index([drum_id], map: "idx_scanlog_drum_id")
+  @@index([scan_id], map: "idx_scanlog_scan_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model log_load_still {
+  loading_id            Int                   @id(map: "distillation_loading_log_pkey") @default(autoincrement())
+  scan_id               Int?                  @unique(map: "distillation_loading_log_scan_id_key")
+  drum_id               Int?
+  still_id              Int?
+  distillation_id       Int
+  status                String?               @default("loaded")
+  distillation_schedule distillation_schedule @relation(fields: [distillation_id], references: [distillation_id], onDelete: NoAction, map: "distillation_loading_log_distillation_id_fkey")
+  stock_drum            stock_drum?           @relation(fields: [drum_id], references: [drum_id], onDelete: Restrict, onUpdate: NoAction, map: "distillation_loading_log_drum_id_fkey")
+  log_drum_scan         log_drum_scan?        @relation(fields: [scan_id], references: [scan_id], onDelete: Cascade, onUpdate: NoAction, map: "distillation_loading_log_scan_id_fkey")
+  ref_stills            ref_stills?           @relation(fields: [still_id], references: [still_id], onDelete: Restrict, onUpdate: NoAction, map: "distillation_loading_log_still_id_fkey")
+
+  @@index([drum_id], map: "idx_distload_drum")
+  @@index([still_id, distillation_id], map: "idx_distload_still_distill")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model log_start_distillation {
+  start_id              Int                    @id(map: "distillation_start_log_pkey") @default(autoincrement())
+  distillation_id       Int?                   @unique(map: "distillation_start_log_distillation_id_key")
+  still_id              Int
+  worker_id             Int?
+  status                String?                @default("started")
+  distillation_schedule distillation_schedule? @relation(fields: [distillation_id], references: [distillation_id], onDelete: Restrict, map: "distillation_start_log_distillation_id_fkey")
+  ref_stills            ref_stills             @relation(fields: [still_id], references: [still_id], onDelete: NoAction, map: "distillation_start_log_still_id_fkey")
+
+  @@index([distillation_id], map: "idx_diststart_distill")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model log_transport_drum {
+  transport_id                    Int                               @id(map: "distillation_transport_log_pkey") @default(autoincrement())
+  scan_id                         Int?                              @unique(map: "distillation_transport_log_scan_id_key")
+  drum_id                         Int?
+  transported_at                  DateTime?                         @default(now()) @db.Timestamptz(6)
+  distillation_id                 Int?
+  status                          String?                           @default("in-transit")
+  distillation_pending_assignment distillation_pending_assignment[]
+  distillation_schedule           distillation_schedule?            @relation(fields: [distillation_id], references: [distillation_id], onDelete: NoAction, map: "distillation_transport_log_distillation_id_fkey")
+  stock_drum                      stock_drum?                       @relation(fields: [drum_id], references: [drum_id], onDelete: Restrict, onUpdate: NoAction, map: "distillation_transport_log_drum_id_fkey")
+  log_drum_scan                   log_drum_scan?                    @relation(fields: [scan_id], references: [scan_id], onDelete: Cascade, onUpdate: NoAction, map: "distillation_transport_log_scan_id_fkey")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model log_volume_transfer {
+  transfer_id           Int                   @id(map: "log_volume_transfers_pkey") @default(autoincrement())
+  drum_id               Int
+  distillation_id       Int
+  volume_transferred    Decimal               @db.Decimal(7, 2)
+  remaining_volume      Decimal               @db.Decimal(7, 2)
+  usage_type            String
+  transfer_timestamp    DateTime?             @default(now()) @db.Timestamptz(6)
+  worker_id             Int?                  @default(9)
+  distillation_schedule distillation_schedule @relation(fields: [distillation_id], references: [distillation_id], onDelete: Cascade, map: "log_volume_transfers_distillation_id_fkey")
+  stock_drum            stock_drum            @relation(fields: [drum_id], references: [drum_id], onDelete: Cascade, onUpdate: NoAction, map: "log_volume_transfers_drum_id_fkey")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model notification {
+  notification_id Int       @id(map: "notifications_pkey") @default(autoincrement())
+  message         String
+  message_type    String    @default("info")
+  private         Boolean   @default(false)
+  audience_type   String    @default("all")
+  is_read         Boolean   @default(false)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at      DateTime? @db.Timestamptz(6)
+  created_by      String    @db.Uuid
+
+  @@index([audience_type], map: "idx_notifications_audience")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model order_detail {
+  detail_id                   Int                           @id(map: "stock_order_details_pkey") @default(autoincrement())
+  order_id                    Int
+  batch_code                  String?
+  material_id                 Int
+  material_name               String
+  drum_quantity               Int
+  drum_weight                 Decimal?                      @db.Decimal(6, 2)
+  drum_volume                 Decimal?                      @default(dbgenerated("\nCASE\n    WHEN (drum_weight IS NULL) THEN NULL::numeric\n    ELSE mass_to_volume(material_id, drum_weight)\nEND")) @db.Decimal(6, 2)
+  status                      String                        @default("en route")
+  notes                       String?
+  material_code               String
+  ref_materials               ref_materials                 @relation(fields: [material_code], references: [code], onDelete: NoAction)
+  stock_order                 stock_order                   @relation(fields: [order_id], references: [order_id], onDelete: Cascade, onUpdate: NoAction, map: "stock_order_details_order_id_fkey")
+  order_detail_stock_activity order_detail_stock_activity[]
+  stock_activity              stock_activity[]
+  stock_drum                  stock_drum[]
+  stock_drum_new              stock_drum_new[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model product_prices {
+  product_id     Int
+  bottle_size_id Int
+  price          Decimal      @db.Decimal(10, 2)
+  bottle_sizes   bottle_sizes @relation(fields: [bottle_size_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bottle_size")
+  products       ref_product  @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product")
+
+  @@id([product_id, bottle_size_id])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model raw_materials {
+  material_id    Int      @id @default(autoincrement())
+  material_name  String   @db.VarChar(100)
+  cas_number     String   @db.VarChar(20)
+  chemical_group String?  @default("Hydrocarbon") @db.VarChar(50)
+  description    String?  @db.VarChar(150)
+  un_code        String?  @db.Char(4)
+  flash_point    Int?
+  material_code  String   @default("___") @db.VarChar(4)
+  drum_weight    Decimal? @db.Decimal(5, 2)
+  drum_volume    Int      @default(200)
+  chemical_props Json?
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ref_materials {
+  value                 String                  @id(map: "material_kind_pkey")
+  code                  String                  @unique(map: "material_kind_code_key") @db.VarChar(8)
+  chemical_group        String
+  cas_number            String?
+  order_detail          order_detail[]
+  raw_stock_history     raw_stock_history[]
+  chemical_group_kind   chemical_group_kind     @relation(fields: [chemical_group], references: [value], onDelete: NoAction, onUpdate: NoAction, map: "material_kind_chemical_group_fkey")
+  ref_product           ref_product[]
+  ref_supplier_material ref_supplier_material[]
+  stock_activity        stock_activity[]
+  stock_drum_new        stock_drum_new[]
+  stock_history         stock_history[]
+  stock_new             stock_new[]
+  stock_repro           stock_repro[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ref_stills {
+  still_id               Int                      @id(map: "stills_pkey") @default(autoincrement())
+  still_code             String                   @unique(map: "stills_still_code_key") @db.Char(1)
+  max_capacity           Decimal                  @db.Decimal(2, 1)
+  power_rating_kw        Int
+  lab_id                 Int
+  is_vacuum              Boolean
+  is_operational         Boolean
+  description            String?
+  active_context         active_context[]
+  distillation_schedule  distillation_schedule[]
+  log_load_still         log_load_still[]
+  log_start_distillation log_start_distillation[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ref_suppliers {
+  supplier_id           Int                     @id(map: "suppliers_pkey") @default(autoincrement())
+  supplier_name         String                  @db.VarChar(50)
+  addr_1                String?                 @db.VarChar(20)
+  addr_2                String?                 @db.VarChar(30)
+  city                  String?                 @db.VarChar(30)
+  post_code             String?                 @db.Char(7)
+  country_code          String?                 @db.Char(2)
+  ref_supplier_material ref_supplier_material[]
+  stock_activity        stock_activity[]
+  stock_history         stock_history[]
+  stock_new             stock_new[]
+  stock_order           stock_order[]
+
+  @@schema("public")
+}
+
+model session_settings {
+  id                         String    @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  device_type                String
+  session_duration_seconds   Int
+  inactivity_timeout_seconds Int?
+  created_at                 DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stock_drum {
+  drum_id                         Int                               @id(map: "stock_drums_pkey") @default(autoincrement())
+  drum_type                       String                            @default("new")
+  order_detail_id                 Int
+  fill_level                      Decimal?                          @default(200) @db.Decimal(5, 2)
+  status                          String                            @default("'en_route'::text")
+  created_at                      DateTime?                         @default(now()) @db.Timestamptz(6)
+  updated_at                      DateTime?                         @default(now()) @db.Timestamptz(6)
+  material_code                   String?
+  distillation_id                 Int?
+  distillation_pending_assignment distillation_pending_assignment[]
+  log_drum_scan                   log_drum_scan[]
+  log_load_still                  log_load_still[]
+  log_transport_drum              log_transport_drum[]
+  log_volume_transfer             log_volume_transfer[]
+  distillation_record             distillation_record?              @relation(fields: [distillation_id], references: [record_id], onDelete: NoAction)
+  order_detail                    order_detail                      @relation(fields: [order_detail_id], references: [detail_id], onDelete: Cascade, onUpdate: NoAction, map: "stock_drums_order_detail_id_fkey")
+
+  @@index([drum_id], map: "idx_stockdrums_drum_id")
+  @@index([drum_id, status], map: "idx_stockdrums_drum_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_drum_new {
+  drum_id             Int                  @id @default(autoincrement())
+  material_code       String?
+  drum_type           String               @default("new")
+  order_detail_id     Int
+  status              String               @default("'en_route'::text")
+  fill_level          Decimal?             @default(200) @db.Decimal(5, 2)
+  created_at          DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?            @default(now()) @db.Timestamptz(6)
+  distillation_id     Int?
+  distillation_record distillation_record? @relation(fields: [distillation_id], references: [record_id], onDelete: NoAction)
+  ref_materials       ref_materials?       @relation(fields: [material_code], references: [code], onDelete: NoAction)
+  order_detail        order_detail         @relation(fields: [order_detail_id], references: [detail_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stock_new {
+  stock_id                    Int                           @id @default(autoincrement())
+  supplier_id                 Int?
+  quantity                    Int
+  batch_code                  String                        @unique
+  location                    String?                       @db.VarChar(20)
+  notes                       String?
+  created_at                  DateTime?                     @default(now()) @db.Timestamp(6)
+  updated_at                  DateTime?                     @default(now()) @db.Timestamp(6)
+  material_code               String?
+  distillation_schedule_items distillation_schedule_items[]
+  ref_materials               ref_materials?                @relation(fields: [material_code], references: [code], onDelete: NoAction)
+  ref_suppliers               ref_suppliers?                @relation(fields: [supplier_id], references: [supplier_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stock_order {
+  order_id      Int                       @id(map: "stock_orders_pkey") @default(autoincrement())
+  po_number     String?
+  date_ordered  DateTime                  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  supplier_id   Int
+  eta           Unsupported("daterange")?
+  notes         String?
+  created_at    DateTime?                 @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime?                 @default(now()) @db.Timestamptz(6)
+  order_detail  order_detail[]
+  ref_suppliers ref_suppliers             @relation(fields: [supplier_id], references: [supplier_id], onUpdate: NoAction, map: "stock_orders_supplier_id_fkey")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stock_repro {
+  stock_id                    Int                           @id @default(autoincrement())
+  location                    String
+  notes                       String?
+  created_at                  DateTime?                     @default(now()) @db.Timestamp(6)
+  updated_at                  DateTime?                     @default(now()) @db.Timestamp(6)
+  quantity                    Int
+  material_description        String?
+  material_code               String?
+  distillation_schedule_items distillation_schedule_items[]
+  ref_materials               ref_materials?                @relation(fields: [material_code], references: [code], onDelete: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_profiles {
+  id         String  @id(map: "profiles_pkey") @db.Uuid
+  full_name  String?
+  email      String? @unique(map: "profiles_email_key")
+  avatar_url String?
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_roles {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role       String   @default("user")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, role], map: "user_roles_user_id_role_idx")
+  @@index([user_id])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model worker_passcodes {
+  id            String    @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  user_id       String    @db.Uuid
+  worker_name   String
+  role          String
+  passcode      String
+  is_active     Boolean?  @default(true)
+  last_login_at DateTime? @db.Timestamptz(6)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  created_by    String?   @db.Uuid
+  updated_by    String?   @db.Uuid
+
+  @@index([passcode], map: "idx_worker_passcodes_passcode")
+  @@schema("public")
+}
+
+model order_detail_stock_activity {
+  id                Int            @id @default(autoincrement())
+  order_detail_id   Int
+  stock_activity_id Int
+  created_at        DateTime?      @default(now()) @db.Timestamptz(6)
+  order_detail      order_detail   @relation(fields: [order_detail_id], references: [detail_id], onDelete: NoAction, onUpdate: NoAction)
+  stock_activity    stock_activity @relation(fields: [stock_activity_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([order_detail_id, stock_activity_id])
+  @@schema("public")
+}
+
+model raw_stock_history {
+  id            Int             @id @default(autoincrement())
+  date          DateTime?       @db.Date
+  event_str     String?
+  drum_type     String?
+  no_events     Int?
+  notes_ids     String?
+  notes_batch   String?
+  source        String?
+  created_at    DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime?       @default(now()) @db.Timestamptz(6)
+  material_code String?         @db.VarChar
+  ref_materials ref_materials?  @relation(fields: [material_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  stock_history stock_history[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model stock_activity {
+  id                          Int                           @id @default(autoincrement())
+  activity_date               DateTime                      @db.Date
+  material_code               String?                       @db.VarChar(10)
+  supplier_id                 Int?
+  quantity                    Decimal                       @db.Decimal(3, 2)
+  drum_type                   String
+  drum_ids                    String?
+  batch_code                  String?
+  order_detail_id             Int?
+  distillation_detail_id      Int?
+  activity_type               String
+  status                      String?
+  notes                       String?
+  source_record_id            Int?
+  created_at                  DateTime?                     @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime?                     @default(now()) @db.Timestamptz(6)
+  order_detail_stock_activity order_detail_stock_activity[]
+  distillation_schedule_items distillation_schedule_items?  @relation(fields: [distillation_detail_id], references: [details_id], onDelete: NoAction, onUpdate: NoAction)
+  ref_materials               ref_materials?                @relation(fields: [material_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  order_detail                order_detail?                 @relation(fields: [order_detail_id], references: [detail_id], onDelete: NoAction, onUpdate: NoAction)
+  ref_suppliers               ref_suppliers?                @relation(fields: [supplier_id], references: [supplier_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([activity_date], map: "idx_stock_activity_date")
+  @@index([distillation_detail_id], map: "idx_stock_activity_distillation")
+  @@index([material_code], map: "idx_stock_activity_material_code")
+  @@index([order_detail_id], map: "idx_stock_activity_order_detail")
+  @@schema("public")
+}
+
+model stock_history {
+  id                Int                @id @default(autoincrement())
+  date              DateTime           @db.Date
+  material_name     String
+  supplier_id       Int?
+  supplier_name     String?
+  change            Int?
+  drum_type         String
+  drum_ids          String?
+  batch_code        String?
+  source_record_id  Int?
+  created_at        DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?          @default(now()) @db.Timestamptz(6)
+  material_code     String?            @db.VarChar
+  ref_materials     ref_materials?     @relation(fields: [material_code], references: [code], onDelete: NoAction)
+  raw_stock_history raw_stock_history? @relation(fields: [source_record_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_suppliers     ref_suppliers?     @relation(fields: [supplier_id], references: [supplier_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([date], map: "idx_stock_history_date")
+  @@schema("public")
+}
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model audit_log_entries {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model flow_state {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model identities {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model instances {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model mfa_amr_claims {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model mfa_challenges {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model mfa_factors {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model one_time_tokens {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model password_reset_tokens {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model refresh_tokens {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model saml_providers {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model saml_relay_states {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model schema_migrations {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model sessions {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+// model sso_domains {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+// model sso_providers {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+// model users {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model ref_labs {
+// @@schema("public")
+// }
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ref_product {
+  product_id      Int              @id(map: "products_pkey") @default(autoincrement())
+  name            String           @db.VarChar(50)
+  sku             String           @unique(map: "product_sku_key") @db.VarChar(20)
+  raw_material_id Int?
+  grade           String           @db.VarChar(10)
+  material_code   String?
+  product_prices  product_prices[]
+  ref_materials   ref_materials?   @relation(fields: [material_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ref_supplier_material {
+  supplier_id   Int
+  material_name String
+  quantity      Int
+  location      String        @db.VarChar(20)
+  updated_at    DateTime?     @default(now()) @db.Timestamp(6)
+  material_code String        @db.VarChar
+  ref_materials ref_materials @relation(fields: [material_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "supplier_material_material_code_fkey")
+  ref_suppliers ref_suppliers @relation(fields: [supplier_id], references: [supplier_id], onDelete: Cascade, map: "supplier_material_supplier_id_fkey")
+
+  @@id([supplier_id, material_code])
+  @@schema("public")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model user_queries {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  query_name       String
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  last_executed_at DateTime? @default(now()) @db.Timestamptz(6)
+  execution_count  Int?      @default(1)
+  selected_table   String?
+  selected_columns Json?     @default("[]")
+  filters          Json?     @default("[]")
+  sorts            Json?     @default("[]")
+  join_table       String?
+  join_type        String?
+  join_condition   Json?
+  generated_sql    String?
+  tags             String[]  @default([])
+
+  @@index([selected_table], map: "idx_user_queries_selected_table")
+  @@index([user_id], map: "idx_user_queries_user_id")
+  @@schema("public")
+}
+
+enum aal_level {
+  aal1
+  aal2
+  aal3
+
+  @@schema("auth")
+}
+
+enum code_challenge_method {
+  s256
+  plain
+
+  @@schema("auth")
+}
+
+enum factor_status {
+  unverified
+  verified
+
+  @@schema("auth")
+}
+
+enum factor_type {
+  totp
+  webauthn
+  phone
+
+  @@schema("auth")
+}
+
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+
+  @@schema("auth")
+}

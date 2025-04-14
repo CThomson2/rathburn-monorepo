@@ -10,12 +10,21 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "lucide-react": "^0.294.0",
     "prettier": "^3.5.3",
     "turbo": "^2.5.0",
     "typescript": "5.8.2"
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@10.8.0",
   "engines": {
     "node": ">=18"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "18.3.20",
+      "@types/react-dom": "18.3.6",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
+    }
   }
 }

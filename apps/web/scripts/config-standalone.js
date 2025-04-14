@@ -28,6 +28,13 @@ function runCommand(command, errorMessage) {
   }
 }
 
+// Ensure standalone directories exist
+console.log("📁 Creating standalone directories...");
+runCommand(
+  `mkdir -p .next/standalone/apps/web/.next/static`,
+  "Failed to create standalone directory structure"
+);
+
 // Ensure sharp is available for image processing in standalone
 console.log("📦 Installing sharp for image processing...");
 if (fs.existsSync(path.join(appDir, "node_modules/sharp"))) {
@@ -43,20 +50,26 @@ if (fs.existsSync(path.join(appDir, "node_modules/sharp"))) {
   console.log("⚠️ Sharp module not found, skipping...");
 }
 
-// Copy static assets
+// Check if static directory exists before trying to copy
 console.log("📁 Copying static assets...");
-runCommand(
-  `mkdir -p .next/standalone/apps/web/.next/static`,
-  "Failed to create static directory"
-);
-runCommand(
-  `cp -r .next/static/* .next/standalone/apps/web/.next/static/`,
-  "Failed to copy static assets"
-);
+if (fs.existsSync(path.join(appDir, ".next/static"))) {
+  runCommand(
+    `cp -r .next/static/* .next/standalone/apps/web/.next/static/`,
+    "Failed to copy static assets"
+  );
+} else {
+  console.log("⚠️ Static assets directory not found, skipping...");
+  // This might happen during the first build with the new structure
+  // Create an empty directory to prevent further errors
+  runCommand(
+    `mkdir -p .next/standalone/apps/web/.next/static`,
+    "Failed to create static directory"
+  );
+}
 
 // Copy public assets
 console.log("📁 Copying public assets...");
-if (fs.existsSync("public")) {
+if (fs.existsSync(path.join(appDir, "public"))) {
   runCommand(`cp -r public .next/standalone/`, "Failed to copy public folder");
 } else {
   console.log("ℹ️ No public folder found, skipping...");
@@ -64,11 +77,7 @@ if (fs.existsSync("public")) {
 
 // Copy environment variables if they exist
 console.log("🔒 Copying environment variables...");
-if (fs.existsSync(".env")) {
-  runCommand(
-    `mkdir -p .next/standalone/apps/web`,
-    "Failed to create app directory"
-  );
+if (fs.existsSync(path.join(appDir, ".env"))) {
   runCommand(
     `cp .env .next/standalone/apps/web/.env`,
     "Failed to copy .env file"
@@ -77,19 +86,38 @@ if (fs.existsSync(".env")) {
   console.log("ℹ️ No .env file found, skipping...");
 }
 
-// Copy fonts directory if it exists
+// Check for fonts in both the old and new locations
 console.log("🔤 Copying fonts...");
-if (fs.existsSync("app/fonts")) {
-  runCommand(
-    `mkdir -p .next/standalone/app/fonts`,
-    "Failed to create fonts directory"
-  );
-  runCommand(
-    `cp -r app/fonts/* .next/standalone/app/fonts/`,
-    "Failed to copy fonts"
-  );
-} else {
-  console.log("ℹ️ No fonts directory found, skipping...");
+const fontPaths = [
+  "app/fonts", // Old path
+  "src/app/fonts", // New path
+  ".next/server/app/fonts", // Built fonts path
+];
+
+let fontsFound = false;
+for (const fontPath of fontPaths) {
+  if (fs.existsSync(path.join(appDir, fontPath))) {
+    console.log(`Found fonts in ${fontPath}`);
+    const targetDir = fontPath.includes("src")
+      ? ".next/standalone/src/app/fonts"
+      : fontPath.includes(".next")
+        ? ".next/standalone/apps/web/.next/server/app/fonts"
+        : ".next/standalone/app/fonts";
+
+    runCommand(
+      `mkdir -p ${targetDir}`,
+      `Failed to create fonts directory at ${targetDir}`
+    );
+    runCommand(
+      `cp -r ${fontPath}/* ${targetDir}/`,
+      `Failed to copy fonts from ${fontPath}`
+    );
+    fontsFound = true;
+  }
+}
+
+if (!fontsFound) {
+  console.log("ℹ️ No fonts directory found in any location, skipping...");
 }
 
 console.log("✅ Standalone configuration completed successfully");
