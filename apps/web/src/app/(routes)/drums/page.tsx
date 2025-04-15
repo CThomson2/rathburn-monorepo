@@ -17,6 +17,11 @@ interface DrumSectionProps {
   count?: number;
 }
 
+/**
+ * Fetches drum counts from the database and returns them.
+ *
+ * @returns An object with `drumCount` and `reproDrumCount` properties, each containing the total quantity of drums in stock.
+ */
 async function getDrumCounts() {
   return executeDbOperation(async (client) => {
     try {

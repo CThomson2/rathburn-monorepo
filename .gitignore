@@ -41,4 +41,5 @@ production/
 
 # Temporary apps
 apps/rathburn-online/
+apps/mcp-server/
 apps/web/deploy/deploy-2025-04-15T08-45-37-743Z.zip

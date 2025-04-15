@@ -158,8 +158,6 @@ export default function ChemicalInventoryDashboard() {
 
   return (
     <div className="p-6 max-w-full bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Chemical Solvent Inventory</h1>
-
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
@@ -273,7 +271,7 @@ export default function ChemicalInventoryDashboard() {
                   type="category"
                   dataKey="name"
                   tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => {
+                  tickFormatter={(value: string) => {
                     const item = filteredInventory.find(
                       (item) => item.name === value
                     );
@@ -281,11 +279,11 @@ export default function ChemicalInventoryDashboard() {
                   }}
                 />
                 <Tooltip
-                  formatter={(value, name) => [
+                  formatter={(value: string, name: string) => [
                     value,
                     name === "newStock" ? "New Drums" : "Repro Drums",
                   ]}
-                  labelFormatter={(label) => {
+                  labelFormatter={(label: string) => {
                     const item = filteredInventory.find(
                       (item) => item.name === label
                     );
@@ -305,14 +303,14 @@ export default function ChemicalInventoryDashboard() {
                   stackId="a"
                   fill="#3b82f6"
                   name="New Drums"
-                  onClick={(data) => handleBarClick(data)}
+                  onClick={(data: DrumInventory) => handleBarClick(data)}
                 />
                 <Bar
                   dataKey="reproStock"
                   stackId="a"
                   fill="#10b981"
                   name="Repro Drums"
-                  onClick={(data) => handleBarClick(data)}
+                  onClick={(data: DrumInventory) => handleBarClick(data)}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -395,7 +393,7 @@ export default function ChemicalInventoryDashboard() {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip
-                      formatter={(value, name) => {
+                      formatter={(value: string, name: string) => {
                         if (name === "newStock") return [value, "New Drums"];
                         if (name === "reproStock")
                           return [value, "Repro Drums"];

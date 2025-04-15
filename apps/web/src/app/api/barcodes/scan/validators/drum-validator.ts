@@ -8,7 +8,7 @@ import { z } from "zod";
 export const drumBarcodeSchema = z
   .string()
   .regex(
-    /^[A-Z]{3,5}-\d{4,5}$/,
+    /^[A-Z]{3,6}-\d{4,5}$/,
     "Invalid drum barcode format. Expected format: XXX(X?X?)-12345 (material code followed by drum ID)"
   );
 
@@ -21,7 +21,7 @@ export const drumBarcodeSchema = z
 export function parseDrumBarcode(
   barcode: string
 ): { materialCode: string; drumId: number } | null {
-  const match = barcode.match(/^([A-Z]{3,5})-(\d{4,5})$/);
+  const match = barcode.match(/^([A-Z]{3,6})-(\d{4,5})$/);
   if (!match || !match[1] || !match[2]) {
     return null;
   }
