@@ -157,18 +157,21 @@ export default function ChemicalInventoryDashboard() {
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
-    <div className="p-6 max-w-full bg-gray-50 min-h-screen">
+    <div className="p-3 max-w-full bg-gray-50">
+      {/* <h1 className="text-2xl font-bold mb-3">Inventory Management System</h1> */}
+      <h2 className="text-xl font-semibold mb-4">Chemical Solvent Inventory</h2>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+        <div className="bg-white p-3 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">Total Drums</h3>
           <div className="flex items-center">
-            <Package className="mr-2 text-blue-500" />
+            <Package className="mr-2 text-blue-500" size={18} />
             <span className="text-2xl font-bold">{totalStock}</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-3 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">New Drums</h3>
           <div className="flex items-center">
             <div className="w-4 h-4 rounded mr-2 bg-blue-500"></div>
@@ -176,7 +179,7 @@ export default function ChemicalInventoryDashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-3 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">Repro Drums</h3>
           <div className="flex items-center">
             <div className="w-4 h-4 rounded mr-2 bg-green-500"></div>
@@ -184,23 +187,23 @@ export default function ChemicalInventoryDashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-3 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">Low Stock Alert</h3>
           <div className="flex items-center">
-            <AlertTriangle className="mr-2 text-amber-500" />
+            <AlertTriangle className="mr-2 text-amber-500" size={18} />
             <span className="text-2xl font-bold">{lowStockCount}</span>
           </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-3 mb-4">
         <div className="flex items-center bg-white rounded-lg shadow px-3 py-2 flex-grow">
-          <Search className="text-gray-400 mr-2" size={18} />
+          <Search className="text-gray-400 mr-2" size={16} />
           <input
             type="text"
             placeholder="Search by name, code or chemical group..."
-            className="flex-grow focus:outline-none"
+            className="flex-grow focus:outline-none text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -208,55 +211,57 @@ export default function ChemicalInventoryDashboard() {
 
         <div className="flex gap-2 flex-wrap">
           <button
-            className="flex items-center bg-white rounded-lg shadow px-4 py-2"
+            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
             onClick={() => handleSort("name")}
           >
-            <ArrowUpDown size={18} className="mr-2 text-gray-500" />
+            <ArrowUpDown size={16} className="mr-1.5 text-gray-500" />
             Sort by Name
           </button>
 
           <button
-            className="flex items-center bg-white rounded-lg shadow px-4 py-2"
+            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
             onClick={() => handleSort("code")}
           >
-            <ArrowUpDown size={18} className="mr-2 text-gray-500" />
+            <ArrowUpDown size={16} className="mr-1.5 text-gray-500" />
             Sort by Code
           </button>
 
           <button
-            className="flex items-center bg-white rounded-lg shadow px-4 py-2"
+            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
             onClick={() => handleSort("total")}
           >
-            <ArrowUpDown size={18} className="mr-2 text-gray-500" />
+            <ArrowUpDown size={16} className="mr-1.5 text-gray-500" />
             Sort by Total
           </button>
 
           <button
-            className={`flex items-center rounded-lg shadow px-4 py-2 ${showLowStock ? "bg-amber-100" : "bg-white"}`}
+            className={`flex items-center rounded-lg shadow px-3 py-1.5 text-sm ${
+              showLowStock ? "bg-amber-100" : "bg-white"
+            }`}
             onClick={() => setShowLowStock(!showLowStock)}
           >
-            <Filter size={18} className="mr-2 text-gray-500" />
+            <Filter size={16} className="mr-1.5 text-gray-500" />
             {showLowStock ? "All Items" : "Below Threshold"}
           </button>
         </div>
       </div>
 
       {/* Main Chart Area */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold mb-4">Solvent Drum Inventory</h2>
+      <div className="bg-white p-4 rounded-lg shadow mb-4">
+        <h2 className="text-lg font-semibold mb-3">Solvent Drum Inventory</h2>
 
         {filteredInventory.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             No matching inventory items found.
           </div>
         ) : (
-          <div className="h-96">
+          <div className="h-[75vh]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 layout="vertical"
                 data={filteredInventory}
-                margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
-                barSize={20}
+                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                barSize={15}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
@@ -275,8 +280,9 @@ export default function ChemicalInventoryDashboard() {
                     const item = filteredInventory.find(
                       (item) => item.name === value
                     );
-                    return item ? `${item.code} - ${value}` : value;
+                    return item ? item.code : value;
                   }}
+                  width={70}
                 />
                 <Tooltip
                   formatter={(value: string, name: string) => [
@@ -320,9 +326,9 @@ export default function ChemicalInventoryDashboard() {
 
       {/* Detail Panel (conditionally rendered) */}
       {selectedItem && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-xl font-semibold">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="flex justify-between items-start mb-3">
+            <h2 className="text-lg font-semibold">
               {selectedItem.code} - {selectedItem.name}
             </h2>
             <button
@@ -333,12 +339,12 @@ export default function ChemicalInventoryDashboard() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="text-lg font-medium mb-3">
+              <h3 className="text-base font-medium mb-2">
                 Inventory Information
               </h3>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                 <dt className="text-gray-500">Material Code:</dt>
                 <dd className="font-medium">{selectedItem.code}</dd>
                 <dt className="text-gray-500">Chemical Group:</dt>
@@ -366,8 +372,8 @@ export default function ChemicalInventoryDashboard() {
               </dl>
 
               {selectedItem.total < (selectedItem.threshold || 0) && (
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center">
-                  <AlertTriangle className="text-amber-500 mr-2" />
+                <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-md flex items-center text-sm">
+                  <AlertTriangle className="text-amber-500 mr-2" size={16} />
                   <span className="text-amber-700">
                     Stock is below threshold level
                   </span>
@@ -376,8 +382,8 @@ export default function ChemicalInventoryDashboard() {
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-3">Stock Distribution</h3>
-              <div className="h-48">
+              <h3 className="text-base font-medium mb-2">Stock Distribution</h3>
+              <div className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={[

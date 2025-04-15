@@ -6,7 +6,6 @@ import ScanView from "../views/Scan";
 // import InventoryView from "./views/InventoryView";
 // import "./App.css";
 
-/*************  ✨ Windsurf Command ⭐  *************/
 /**
  * The Index component is the main entry point of the application, managing
  * the active tab state and rendering the appropriate view based on the selected tab.
@@ -20,7 +19,6 @@ import ScanView from "../views/Scan";
  * indicating they may be under development or not needed for the current release.
  */
 
-/*******  3aac3653-2a92-4e90-a54b-f996412e6169  *******/
 function Index() {
   const [activeTab, setActiveTab] = useState("scan");
 

@@ -70,13 +70,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     // { name: "Orders", icon: Clipboard, href: "/orders" },
   ];
 
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
+  const openSidebar = () => {
+    setSidebarOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
         />
       )}
 
@@ -87,20 +95,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-          <div className="text-xl font-bold text-[#bc261a] alfa-font">
+        <div className="flex items-center justify-between h-12 px-4 border-b border-gray-200">
+          <div className="text-lg font-bold text-[#bc261a] alfa-font">
             RATHBURN ONLINE
           </div>
           <button
-            className="p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100"
-            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 lg:hidden"
+            onClick={closeSidebar}
             aria-label="Close sidebar"
           >
             {/* @ts-ignore - React/TypeScript compatibility issue */}
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
-        <nav className="mt-5 px-2">
+        <nav className="mt-3 px-2">
           <div className="space-y-1">
             {navItems.map((item) => {
               const isActive =
@@ -114,7 +122,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "group flex items-center px-3 py-3 text-sm font-medium rounded-md",
+                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
                     isActive
                       ? "bg-blue-50 text-blue-600"
                       : "text-gray-700 hover:bg-gray-100"
@@ -155,26 +163,28 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <div className={cn("lg:pl-64 flex flex-col min-h-screen")}>
         {/* Top header */}
         <header className="bg-white shadow-sm z-10">
-          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8">
             <button
-              className="p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 lg:hidden"
-              onClick={() => setSidebarOpen(true)}
+              className="p-1.5 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 lg:hidden"
+              onClick={openSidebar}
               aria-label="Open sidebar"
             >
               {/* @ts-ignore - React/TypeScript compatibility issue */}
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
-            <div className="flex items-center space-x-4">
-              <button
-                className="p-1 rounded-full text-gray-500 hover:text-gray-600 hover:bg-gray-100"
-                aria-label="Notifications"
-              >
-                {/* @ts-ignore - React/TypeScript compatibility issue */}
-                <Bell size={20} />
-              </button>
-              <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                {/* @ts-ignore - React/TypeScript compatibility issue */}
-                <User size={18} />
+            <div className="flex items-center justify-center">
+              <div className="flex items-center space-x-3">
+                <button
+                  className="inline-flex items-center justify-center p-1 rounded-full text-gray-500 hover:text-gray-600 hover:bg-gray-100"
+                  aria-label="Notifications"
+                >
+                  {/* @ts-ignore - React/TypeScript compatibility issue */}
+                  <Bell size={18} />
+                </button>
+                <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 text-white">
+                  {/* @ts-ignore - React/TypeScript compatibility issue */}
+                  <User size={16} />
+                </div>
               </div>
             </div>
           </div>
@@ -184,7 +194,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <HeaderControls />
 
         {/* Page content */}
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pt-2">{children}</main>
       </div>
     </div>
   );

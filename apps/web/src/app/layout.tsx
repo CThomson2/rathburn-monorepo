@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "Dashboard | Rathburn Dashboard",
   description: "View and manage inventory statistics and operations",
   icons: {
-    icon: "/rc-logo-b.png",
+    icon: "/ms-icon-150x150.png",
   },
 };
 
@@ -66,9 +66,9 @@ export default function RootLayout({
 
           {/* Main content */}
           <main
-            className={cn(
-              !isAuth && "pt-16" // Add padding only when Hero is shown
-            )}
+          // className={cn(
+          //   !isAuth && "pt-16" // Add padding only when Hero is shown
+          // )}
           >
             {children}
           </main>
