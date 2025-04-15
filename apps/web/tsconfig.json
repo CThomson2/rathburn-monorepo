@@ -2,11 +2,7 @@
   "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
     "target": "es2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -19,23 +15,11 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@/config/*": [
-        "./config/*"
-      ],
-      "@/prisma/*": [
-        "./prisma/*"
-      ],
-      "react": [
-        "./node_modules/@types/react"
-      ]
+      "@/*": ["./src/*"],
+      "@/config/*": ["./config/*"],
+      "react": ["./node_modules/@types/react"]
     },
-    "types": [
-      "node",
-      "react-dom/canary"
-    ],
+    "types": ["node", "react-dom/canary"],
     "baseUrl": "."
   },
   "include": [
@@ -46,8 +30,5 @@
     ".next/types/**/*.ts",
     "build/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "src/components/ui"
-  ]
+  "exclude": ["node_modules", "src/components/ui"]
 }

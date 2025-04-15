@@ -14,6 +14,10 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+NEXT_PUBLIC_SUPABASE_URL=https://ppnulxweiiczciuxcypn.supabase.co \
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwbnVseHdlaWljemNpdXhjeXBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMzg3NDAsImV4cCI6MjA1ODYxNDc0MH0.qFMUbh8JFO-lyiWTp-9EXG4lKwPR5Gy4nmGEzfX3CNA \
+NODE_ENV=production
+
 echo -e "${GREEN}Starting deployment process...${NC}"
 
 # Function to handle errors

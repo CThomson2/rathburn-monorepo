@@ -55,11 +55,11 @@ const nextConfig = {
       loader: "null-loader",
     });
 
-    // Exclude orders feature with type errors
-    config.module.rules.push({
-      test: /features\/orders\/.*\.(tsx|jsx)$/,
-      loader: "null-loader",
-    });
+    // Comment out this exclusion rule as we need the orders feature now
+    // config.module.rules.push({
+    //   test: /features\/orders\/.*\.(tsx|jsx)$/,
+    //   loader: "null-loader",
+    // });
 
     // Exclude problematic API route causing build errors
     config.module.rules.push({

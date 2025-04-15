@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { supabase } from "@/lib/supabase/sse-client";
+import { createClient } from "@/lib/supabase/server";
 
 // Tells Next.js to never cache this route and always fetch fresh data
 export const dynamic = "force-dynamic";
@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
 
   console.log(`[Scans SSE ${connectionId}] New connection established`);
 
-  // Create a Supabase client with the service role key for realtime subscriptions
+  // Create Supabase client using the centralized function
+  const supabase = createClient();
 
   // ReadableStream is a Web API that allows streaming data to clients
   const stream = new ReadableStream({
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
             schema: "public",
             table: "log_drum_scan",
           },
-          (payload) => {
+          (payload: any) => {
             console.log(
               `\n[Scans SSE ${connectionId}] New scan detected:`,
               payload.new.scan_id

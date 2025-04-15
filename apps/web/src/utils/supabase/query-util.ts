@@ -30,7 +30,7 @@ export class SupabaseQuery<T extends PublicTableNames> {
   private async getPrimaryKeyColumn(): Promise<string> {
     // Return from cache if available
     if (SupabaseQuery.pkCache[this.tableName]) {
-      return SupabaseQuery.pkCache[this.tableName];
+      return SupabaseQuery.pkCache[this.tableName] as string;
     }
 
     try {

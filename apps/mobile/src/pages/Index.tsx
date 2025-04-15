@@ -1,71 +1,84 @@
 
-import { useState, useEffect } from 'react';
-import LoginForm from '../components/LoginForm';
+import { useState } from 'react';
 import BarcodeScanner from '../components/BarcodeScanner';
-import ActivityLog from '../components/ActivityLog';
-import Navigation from '../components/Navigation';
 import { toast } from '@/components/ui/use-toast';
+import { useBarcodeScannerHistory } from '@/hooks/use-barcode-scanner';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'scanner' | 'activity'>('scanner');
+  const { scans, addScan, clearScans } = useBarcodeScannerHistory();
+  const [copySuccess, setCopySuccess] = useState<number | null>(null);
   
-  // Handle successful login
-  const handleLogin = (user: string) => {
-    setIsLoggedIn(true);
-    setUsername(user);
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUsername('');
+  // Handle barcode scan
+  const handleBarcodeScan = (data: string) => {
+    addScan(data);
     toast({
-      description: "You have been logged out.",
+      title: "Barcode Scanned",
+      description: data,
+      duration: 3000,
     });
   };
 
-  // Handle barcode scan
-  const handleBarcodeScan = (data: string) => {
-    console.log('Barcode scanned:', data);
-    // In a real app, this would send data to your backend
+  // Copy scan to clipboard
+  const copyToClipboard = (text: string, index: number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopySuccess(index);
+      setTimeout(() => setCopySuccess(null), 2000);
+    });
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      {!isLoggedIn ? (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-          <div className="mb-8">
-            <svg viewBox="0 0 24 24" className="w-24 h-24 text-industrial-blue" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 6L3 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M20 12L3 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M20 18H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M14 3L14 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M9 3L9 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <LoginForm onSuccessfulLogin={handleLogin} />
+      <header className="bg-blue-600 text-white p-4 shadow-md">
+        <h1 className="text-xl font-bold">Barcode Scanner</h1>
+      </header>
+      
+      <main className="flex-1 p-4 flex flex-col">
+        {/* Barcode scanner component */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex-1 min-h-40">
+          <BarcodeScanner onScan={handleBarcodeScan} />
         </div>
-      ) : (
-        <div className="flex flex-col h-screen">
-          {/* Main content area */}
-          <div className="flex-1 overflow-hidden">
-            {activeTab === 'scanner' ? (
-              <BarcodeScanner onScan={handleBarcodeScan} />
-            ) : (
-              <ActivityLog />
+        
+        {/* Recent scans display */}
+        <div className="bg-white rounded-lg shadow-md p-4 max-h-[50vh] overflow-auto">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">Recent Scans</h2>
+            {scans.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearScans}
+                className="text-red-600 hover:text-red-800"
+              >
+                Clear All
+              </Button>
             )}
           </div>
           
-          {/* Bottom navigation */}
-          <Navigation 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            onLogout={handleLogout}
-          />
+          {scans.length > 0 ? (
+            <ul className="space-y-2 divide-y">
+              {scans.map((scan, index) => (
+                <li 
+                  key={index} 
+                  className="py-2 flex justify-between items-center group"
+                  onClick={() => copyToClipboard(scan, index)}
+                >
+                  <span className="font-mono text-sm break-all">{scan}</span>
+                  <span className={`text-xs px-2 ${copySuccess === index ? 'text-green-600' : 'text-gray-400 group-hover:text-blue-500'}`}>
+                    {copySuccess === index ? 'Copied!' : 'Click to copy'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 text-center py-4">No scans yet</p>
+          )}
         </div>
-      )}
+      </main>
+      
+      <footer className="bg-gray-200 p-3 text-center text-sm text-gray-600">
+        Keyboard Wedge Scanner | v1.0.0
+      </footer>
     </div>
   );
 };

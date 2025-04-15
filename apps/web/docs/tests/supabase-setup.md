@@ -103,8 +103,8 @@ If authentication isn't working as expected:
 Ensure these environment variables are set:
 
 ```
-SUPABASE_URL=your-supabase-url
-SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 Without these, authentication will fail.
