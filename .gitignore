@@ -40,5 +40,5 @@ yarn-error.log*
 production/
 
 # Temporary apps
-apps/mobile/
 apps/rathburn-online/
+apps/web/deploy/deploy-2025-04-15T08-45-37-743Z.zip
