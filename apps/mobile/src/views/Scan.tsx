@@ -41,7 +41,7 @@ const ScanView = () => {
         {/* Recent scans display */}
         <div className="bg-white rounded-lg shadow-md p-4 max-h-[50vh] overflow-auto">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Recent Scans</h2>
+            <h2 className="text-lg no-selectfont-semibold">Recent Scans</h2>
             {scans.length > 0 && (
               <Button
                 variant="outline"
@@ -77,7 +77,7 @@ const ScanView = () => {
         </div>
       </main>
 
-      <footer className="bg-gray-200 p-3 text-center text-sm text-gray-600">
+      <footer className="no-select bg-gray-200 p-3 text-center text-sm text-gray-600">
         Keyboard Wedge Scanner | v1.0.0
       </footer>
     </div>
