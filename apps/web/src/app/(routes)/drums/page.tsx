@@ -3,21 +3,7 @@ import { Metadata } from "next";
 import { ChevronRight } from "lucide-react";
 
 import { executeDbOperation } from "@/lib/database";
-import dynamic from "next/dynamic";
-
-// Dynamically import the client component with no SSR
-// This is necessary because this component likely:
-// 1. Uses browser-specific APIs (like printing functionality)
-// 2. May interact with the DOM directly
-// 3. Could use libraries incompatible with server-side rendering
-// Setting ssr:false ensures the component only loads in the browser,
-// preventing hydration errors or issues with missing browser APIs during SSR
-const StockLabelsGenerator = dynamic(
-  () => import("./_components/stock-labels-generator"),
-  {
-    ssr: false,
-  }
-);
+import StockLabelsWrapper from "./_components/stock-labels-wrapper";
 
 export const metadata: Metadata = {
   title: "Drums Management | Dashboard",
@@ -57,7 +43,7 @@ async function getDrumCounts() {
       // Calculate totals
       const drumCount =
         newDrumData?.reduce(
-          (sum, item) =>
+          (sum: number, item: { quantity: number }) =>
             sum + (typeof item.quantity === "number" ? item.quantity : 0),
           0
         ) || 0;
@@ -154,7 +140,7 @@ export default async function DrumsPage() {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Drum Labels
         </h2>
-        <StockLabelsGenerator />
+        <StockLabelsWrapper />
       </div>
     </div>
   );

@@ -120,4 +120,66 @@ if (!fontsFound) {
   console.log("ℹ️ No fonts directory found in any location, skipping...");
 }
 
+// Copy the server.js file to the correct location
+console.log("🚀 Setting up server.js...");
+if (fs.existsSync(path.join(standalonePath, "server.js"))) {
+  // Copy server.js from root standalone to apps/web directory if needed
+  runCommand(
+    `cp .next/standalone/server.js .next/standalone/apps/web/server.js`,
+    "Failed to copy server.js file to apps/web directory"
+  );
+  console.log("✅ server.js copied to apps/web directory");
+} else {
+  console.warn("⚠️ server.js not found in standalone directory!");
+  console.log("🔧 Using server template instead...");
+
+  // Use our fallback server template
+  runCommand(
+    `cp scripts/server-template.js .next/standalone/server.js`,
+    "Failed to copy server template file"
+  );
+
+  // Also copy to the apps/web directory
+  runCommand(
+    `cp scripts/server-template.js .next/standalone/apps/web/server.js`,
+    "Failed to copy server template to apps/web directory"
+  );
+
+  // Make it executable
+  runCommand(
+    `chmod +x .next/standalone/server.js .next/standalone/apps/web/server.js`,
+    "Failed to make server.js executable"
+  );
+
+  console.log("✅ Server template implemented successfully");
+}
+
+// Create a package.json file in the standalone directory if it doesn't exist
+console.log("📦 Setting up standalone package.json...");
+const standalonePackagePath = path.join(standalonePath, "package.json");
+if (!fs.existsSync(standalonePackagePath)) {
+  const packageJson = {
+    name: "web-standalone",
+    version: "1.0.0",
+    private: true,
+    scripts: {
+      start: "node server.js",
+    },
+    dependencies: {
+      next: "14.2.24",
+      react: "^19.0.0",
+      "react-dom": "^19.0.0",
+    },
+  };
+
+  fs.writeFileSync(
+    standalonePackagePath,
+    JSON.stringify(packageJson, null, 2),
+    "utf8"
+  );
+  console.log("✅ Created standalone package.json");
+} else {
+  console.log("ℹ️ Standalone package.json already exists");
+}
+
 console.log("✅ Standalone configuration completed successfully");

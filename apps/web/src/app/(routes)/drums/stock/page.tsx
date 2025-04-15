@@ -1,7 +1,7 @@
 import { Metadata } from "next";
-import { getDrumStockData } from "@/features/inventory/drum-stock/data-utils";
-import { DrumStockColumns } from "@/features/inventory/drum-stock/columns";
-import DataTable from "@/components/desktop/dashboard/data-tables/data-table-one";
+// import { getDrumStockData } from "@/features/inventory/drum-stock/data-utils";
+// import { DrumStockColumns } from "@/features/inventory/drum-stock/columns";
+// import DataTable from "@/components/desktop/dashboard/data-tables/data-table-one";
 
 export const metadata: Metadata = {
   title: "Drums Stock | Dashboard",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default async function DrumStockPage() {
   // Fetch data from the database
-  const drumStockData = await getDrumStockData();
+  // const drumStockData = await getDrumStockData();
 
   return (
     <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -21,7 +21,7 @@ export default async function DrumStockPage() {
         </p>
       </div>
 
-      <DataTable columns={DrumStockColumns} data={drumStockData} />
+      {/* <DataTable columns={DrumStockColumns} data={drumStockData} /> */}
     </div>
   );
 }
