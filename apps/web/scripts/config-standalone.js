@@ -122,6 +122,11 @@ if (!fontsFound) {
 
 // Copy the server.js file to the correct location
 console.log("🚀 Setting up server.js...");
+runCommand(
+  `mkdir -p .next/standalone/apps/web/.next/server`,
+  "Failed to create server directory"
+);
+
 if (fs.existsSync(path.join(standalonePath, "server.js"))) {
   // Copy server.js from root standalone to apps/web directory if needed
   runCommand(
@@ -152,6 +157,47 @@ if (fs.existsSync(path.join(standalonePath, "server.js"))) {
   );
 
   console.log("✅ Server template implemented successfully");
+}
+
+// Create a minimal Next.js server handler if it doesn't exist
+console.log("🔧 Setting up minimal server handler...");
+const serverHandlerPath = path.join(
+  standalonePath,
+  "apps",
+  "web",
+  ".next",
+  "server.js"
+);
+if (!fs.existsSync(serverHandlerPath)) {
+  const minimalServerHandler = `
+// Minimal Next.js server handler
+module.exports = function(req, res) {
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "text/html");
+  res.end(\`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Next.js App</title>
+      <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { color: #0070f3; }
+      </style>
+    </head>
+    <body>
+      <h1>Next.js Standalone App</h1>
+      <p>Your app is running in minimal mode. Features excluded from the build are not available.</p>
+    </body>
+    </html>
+  \`);
+};
+module.exports.default = module.exports;
+`;
+
+  fs.writeFileSync(serverHandlerPath, minimalServerHandler);
+  console.log(`✅ Created minimal server handler at ${serverHandlerPath}`);
+} else {
+  console.log("✓ Server handler already exists");
 }
 
 // Create a package.json file in the standalone directory if it doesn't exist

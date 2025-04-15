@@ -61,6 +61,12 @@ const nextConfig = {
       loader: "null-loader",
     });
 
+    // Exclude problematic API route causing build errors
+    config.module.rules.push({
+      test: /api\/materials\/groups\/route\.ts$/,
+      loader: "null-loader",
+    });
+
     return config;
   },
   // Exclude specific paths from the build

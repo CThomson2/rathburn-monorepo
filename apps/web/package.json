@@ -10,6 +10,7 @@
     "start": "node .next/standalone/server.js",
     "start:custom": "node server.js",
     "start:standalone": "cd .next/standalone && node server.js",
+    "prepare-deploy": "node scripts/prepare-deploy.js",
     "lint": "next lint --max-warnings 0",
     "check-types": "tsc --noEmit"
   },

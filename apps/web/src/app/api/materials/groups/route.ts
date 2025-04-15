@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma-client";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
+// Skip this during build time - the webpack rule will exclude it anyway
+export const runtime = "nodejs"; // Use this instead of config object
+
 interface GroupStock {
   chemical_group: string;
   total_stock: bigint;
@@ -18,6 +21,18 @@ interface GroupStock {
 }
 
 export async function GET() {
+  // Check if running in production build context, in which case defer to fallback
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE === "phase-production-build"
+  ) {
+    console.log("Skipping database query during build");
+    return NextResponse.json(
+      { error: "Not available during build" },
+      { status: 503 }
+    );
+  }
+
   try {
     // Get stock levels by chemical group with material details
     const groupStockLevels = await prisma.$queryRaw<GroupStock[]>`
