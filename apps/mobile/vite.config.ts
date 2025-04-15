@@ -12,64 +12,71 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' && componentTagger(),
+    mode === "development" && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: [
-        'favicon.ico',
-        'placeholder.svg',
-        'robots.txt'
-      ],
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "placeholder.svg", "robots.txt"],
       manifest: {
-        name: 'Barcode Scanner',
-        short_name: 'Scanner',
-        description: 'Barcode Scanner PWA for Keyboard Wedge Scanners',
-        theme_color: '#3B82F6',
-        background_color: '#3B82F6',
-        display: 'standalone',
-        orientation: 'portrait',
+        name: "Barcode Scanner",
+        short_name: "Scanner",
+        description: "Barcode Scanner PWA for Keyboard Wedge Scanners",
+        theme_color: "#3B82F6",
+        background_color: "#3B82F6",
+        display: "standalone",
+        orientation: "portrait",
         icons: [
           {
-            src: '/favicon.ico',
-            sizes: '64x64',
-            type: 'image/x-icon'
+            src: "/favicon.ico",
+            sizes: "64x64",
+            type: "image/x-icon",
           },
           {
-            src: '/placeholder.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
+            src: "/placeholder.svg",
+            sizes: "192x192",
+            type: "image/svg+xml",
+            purpose: "any maskable",
           },
           {
-            src: '/placeholder.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
-          }
-        ]
+            src: "/placeholder.svg",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable",
+          },
+        ],
       },
       workbox: {
         clientsClaim: true,
         skipWaiting: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: "NetworkFirst",
             options: {
-              cacheName: 'google-fonts-cache',
+              cacheName: "supabase-api-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24, // 1 day
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts-cache",
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
-      }
-    })
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
+      },
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {

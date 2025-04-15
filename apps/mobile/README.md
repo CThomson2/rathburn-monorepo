@@ -65,6 +65,7 @@ zip -r ../barcode-scanner.zip *
 ## Browser Compatibility
 
 The app is compatible with:
+
 - Chrome/Edge 76+
 - Firefox 67+
 - Safari 13.1+
@@ -73,6 +74,7 @@ The app is compatible with:
 ## Barcode Scanner Compatibility
 
 Works with any keyboard wedge/HID barcode scanner that emulates keyboard input, including:
+
 - Honeywell scanners
 - Zebra/Symbol scanners
 - Datalogic scanners

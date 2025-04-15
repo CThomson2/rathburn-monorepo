@@ -1,86 +1,67 @@
+// App.tsx
+import { useState } from "react";
+import BarcodeScannerInput from "../components/BarcodeScannerInput";
+import ScanView from "../views/Scan";
+// import HistoryView from "./views/HistoryView";
+// import InventoryView from "./views/InventoryView";
+// import "./App.css";
 
-import { useState } from 'react';
-import BarcodeScanner from '../components/BarcodeScanner';
-import { toast } from '@/components/ui/use-toast';
-import { useBarcodeScannerHistory } from '@/hooks/use-barcode-scanner';
-import { Button } from '@/components/ui/button';
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * The Index component is the main entry point of the application, managing
+ * the active tab state and rendering the appropriate view based on the selected tab.
+ *
+ * - It provides a barcode scanning functionality through the BarcodeScannerInput component,
+ *   where the scanned barcode is processed by the handleBarcodeScan function.
+ * - The component includes a tab navigation system allowing the user to switch
+ *   between different views: Scan, History, and Inventory.
+ *
+ * Note: The HistoryView and InventoryView components are currently commented out,
+ * indicating they may be under development or not needed for the current release.
+ */
 
-const Index = () => {
-  const { scans, addScan, clearScans } = useBarcodeScannerHistory();
-  const [copySuccess, setCopySuccess] = useState<number | null>(null);
-  
-  // Handle barcode scan
-  const handleBarcodeScan = (data: string) => {
-    addScan(data);
-    toast({
-      title: "Barcode Scanned",
-      description: data,
-      duration: 3000,
-    });
-  };
+/*******  3aac3653-2a92-4e90-a54b-f996412e6169  *******/
+function Index() {
+  const [activeTab, setActiveTab] = useState("scan");
 
-  // Copy scan to clipboard
-  const copyToClipboard = (text: string, index: number) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopySuccess(index);
-      setTimeout(() => setCopySuccess(null), 2000);
-    });
+  const handleBarcodeScan = (barcode: string) => {
+    console.log("Barcode scanned:", barcode);
+    // Process the barcode data here
+    // This could include API calls to Supabase
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-blue-600 text-white p-4 shadow-md">
-        <h1 className="text-xl font-bold">Barcode Scanner</h1>
-      </header>
-      
-      <main className="flex-1 p-4 flex flex-col">
-        {/* Barcode scanner component */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex-1 min-h-40">
-          <BarcodeScanner onScan={handleBarcodeScan} />
-        </div>
-        
-        {/* Recent scans display */}
-        <div className="bg-white rounded-lg shadow-md p-4 max-h-[50vh] overflow-auto">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Recent Scans</h2>
-            {scans.length > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={clearScans}
-                className="text-red-600 hover:text-red-800"
-              >
-                Clear All
-              </Button>
-            )}
-          </div>
-          
-          {scans.length > 0 ? (
-            <ul className="space-y-2 divide-y">
-              {scans.map((scan, index) => (
-                <li 
-                  key={index} 
-                  className="py-2 flex justify-between items-center group"
-                  onClick={() => copyToClipboard(scan, index)}
-                >
-                  <span className="font-mono text-sm break-all">{scan}</span>
-                  <span className={`text-xs px-2 ${copySuccess === index ? 'text-green-600' : 'text-gray-400 group-hover:text-blue-500'}`}>
-                    {copySuccess === index ? 'Copied!' : 'Click to copy'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 text-center py-4">No scans yet</p>
-          )}
-        </div>
+    <div className="app-container">
+      <BarcodeScannerInput onScan={handleBarcodeScan} />
+
+      <main className="content">
+        {activeTab === "scan" && <ScanView />}
+        {/* {activeTab === "history" && <HistoryView />} */}
+        {/* {activeTab === "inventory" && <InventoryView />} */}
       </main>
-      
-      <footer className="bg-gray-200 p-3 text-center text-sm text-gray-600">
-        Keyboard Wedge Scanner | v1.0.0
-      </footer>
+
+      <nav className="tab-navigation">
+        <button
+          className={activeTab === "scan" ? "active" : ""}
+          onClick={() => setActiveTab("scan")}
+        >
+          Scan
+        </button>
+        <button
+          className={activeTab === "history" ? "active" : ""}
+          onClick={() => setActiveTab("history")}
+        >
+          History
+        </button>
+        <button
+          className={activeTab === "inventory" ? "active" : ""}
+          onClick={() => setActiveTab("inventory")}
+        >
+          Inventory
+        </button>
+      </nav>
     </div>
   );
-};
+}
 
 export default Index;
