@@ -1,8 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type {
-  SupabaseClient,
-  PostgrestQueryBuilder,
-} from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { FilterCondition, SortSpec, TableDataOptions } from "../types";
 import type { Database } from "@/types/models/database.types";
 
@@ -21,70 +18,85 @@ export const availableTables = [
 export type AvailableTable = (typeof availableTables)[number]["name"];
 
 /**
- * Build a query with the given sort specifications
+ * Builds a Supabase query with the given filter and sort options
+ *
+ * @param table - The table name to query
+ * @param options - Query options including filters, sorts, and pagination
+ * @returns A configured Supabase query builder
  */
-export function buildSortQuery(
-  query: PostgrestQueryBuilder<any>,
-  sorts: SortSpec[]
-) {
-  return sorts.reduce((acc, sort) => {
-    return acc.order(sort.column, { ascending: sort.ascending });
-  }, query);
-}
-
-/**
- * Build a query with the given filter conditions
- */
-export function buildFilterQuery(
-  query: PostgrestQueryBuilder<any>,
-  filters: FilterCondition[]
-) {
-  return filters.reduce((acc, filter) => {
-    switch (filter.operator) {
-      case "eq":
-        return acc.eq(filter.column, filter.value);
-      case "neq":
-        return acc.neq(filter.column, filter.value);
-      case "gt":
-        return acc.gt(filter.column, filter.value);
-      case "gte":
-        return acc.gte(filter.column, filter.value);
-      case "lt":
-        return acc.lt(filter.column, filter.value);
-      case "lte":
-        return acc.lte(filter.column, filter.value);
-      case "like":
-        return acc.like(filter.column, filter.value);
-      case "ilike":
-        return acc.ilike(filter.column, filter.value);
-      case "is":
-        return acc.is(filter.column, filter.value);
-      default:
-        return acc;
-    }
-  }, query);
-}
-
-export function buildQuery<T extends AvailableTable>(
-  table: T,
-  options?: TableDataOptions
-): PostgrestQueryBuilder<Database["public"]["Tables"][T]> {
+export function buildQuery(table: string, options?: TableDataOptions) {
   const supabase = createClient();
-  let query = supabase.from(table);
 
-  if (options?.filters) {
-    options.filters.forEach((filter: FilterCondition) => {
-      query = query.filter(filter.column, filter.operator, filter.value);
+  // Start with a basic query - using type assertion to bypass strict typing
+  const query = (supabase as any)
+    .from(table)
+    .select(
+      options?.columns && options.columns.length > 0
+        ? options.columns.join(",")
+        : "*"
+    );
+
+  // Apply filters
+  if (options?.filters && options.filters.length > 0) {
+    options.filters.forEach((filter) => {
+      const { column, operator, value } = filter;
+
+      // Use a switch to handle different operator types
+      switch (operator) {
+        case "eq":
+          query.eq(column, value);
+          break;
+        case "neq":
+          query.neq(column, value);
+          break;
+        case "gt":
+          query.gt(column, value);
+          break;
+        case "gte":
+          query.gte(column, value);
+          break;
+        case "lt":
+          query.lt(column, value);
+          break;
+        case "lte":
+          query.lte(column, value);
+          break;
+        case "like":
+          query.like(column, `%${value}%`);
+          break;
+        case "ilike":
+          query.ilike(column, `%${value}%`);
+          break;
+        case "is":
+          query.is(column, value === "null" ? null : value);
+          break;
+        case "in":
+          try {
+            const values = JSON.parse(value);
+            if (Array.isArray(values)) {
+              query.in(column, values);
+            }
+          } catch (e) {
+            console.error("Error parsing 'in' values:", e);
+          }
+          break;
+      }
     });
   }
 
-  if (options?.sort) {
-    const { column, ascending } = options.sort as SortSpec;
-    query = query.order(column, { ascending });
+  // Apply sorting
+  if (options?.sorts && options.sorts.length > 0) {
+    options.sorts.forEach((sort) => {
+      query.order(sort.column, { ascending: sort.direction === "asc" });
+    });
   }
 
-  if (options?.limit) {
-    query = query.limit(options.limit);
+  // Apply pagination
+  if (options?.pagination) {
+    const { page = 1, pageSize = 20 } = options.pagination;
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize - 1;
+    query.range(start, end);
   }
 
   return query;

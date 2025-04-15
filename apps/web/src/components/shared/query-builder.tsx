@@ -196,9 +196,12 @@ const SQLQueryBuilder: React.FC = () => {
    * Adds a new WHERE condition with default values
    */
   const addWhereCondition = () => {
+    // Make sure we have at least one column available
+    if (availableColumns.length === 0) return;
+
     setWhereConditions([
       ...whereConditions,
-      { column: availableColumns[0], operator: "=", value: "" },
+      { column: availableColumns[0] as string, operator: "=", value: "" },
     ]);
   };
 
@@ -222,7 +225,11 @@ const SQLQueryBuilder: React.FC = () => {
     value: string
   ) => {
     const newConditions = [...whereConditions];
-    newConditions[index] = { ...newConditions[index], [field]: value };
+    if (!index || !newConditions[index]) return;
+    newConditions[index] = {
+      ...newConditions[index],
+      [field]: value as string,
+    };
     setWhereConditions(newConditions);
   };
 
@@ -380,7 +387,9 @@ const SQLQueryBuilder: React.FC = () => {
                 <Checkbox
                   id="select-all"
                   checked={selectAll}
-                  onCheckedChange={handleSelectAllChange}
+                  onCheckedChange={(checked: boolean) =>
+                    handleSelectAllChange(checked)
+                  }
                 />
                 <label htmlFor="select-all">All columns (*)</label>
               </div>
@@ -396,7 +405,9 @@ const SQLQueryBuilder: React.FC = () => {
                       <Checkbox
                         id={`col-${column}`}
                         checked={selectedColumns.includes(column)}
-                        onCheckedChange={() => toggleColumn(column)}
+                        onCheckedChange={(checked: boolean) => {
+                          if (checked !== undefined) toggleColumn(column);
+                        }}
                       />
                       <label htmlFor={`col-${column}`} className="text-sm">
                         {column}
@@ -419,9 +430,9 @@ const SQLQueryBuilder: React.FC = () => {
                 <Checkbox
                   id="enable-join"
                   checked={joinTable !== null}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     if (checked) {
-                      setJoinTable(JOINABLE_TABLES[0].name);
+                      setJoinTable(JOINABLE_TABLES[0]?.name || null);
                     } else {
                       setJoinTable(null);
                     }
@@ -555,9 +566,9 @@ const SQLQueryBuilder: React.FC = () => {
                 <Checkbox
                   id="enable-orderby"
                   checked={orderByColumn !== null}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     if (checked) {
-                      setOrderByColumn(availableColumns[0]);
+                      setOrderByColumn(availableColumns[0] as string);
                     } else {
                       setOrderByColumn(null);
                     }
@@ -609,7 +620,7 @@ const SQLQueryBuilder: React.FC = () => {
                 <Checkbox
                   id="enable-limit"
                   checked={limit !== null}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     if (checked) {
                       setLimit(100);
                     } else {

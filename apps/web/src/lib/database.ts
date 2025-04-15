@@ -49,7 +49,9 @@ export async function executeDbOperation<T>(
  * });
  */
 export async function selectFromTable<
-  T extends keyof Database["public"]["Tables"],
+  T extends
+    | keyof Database["public"]["Tables"]
+    | keyof Database["public"]["Views"],
 >(
   table: T,
   options: {
@@ -59,20 +61,28 @@ export async function selectFromTable<
     offset?: number;
     orderBy?: { column: string; ascending?: boolean };
   } = {}
-): Promise<Tables<T>[]> {
+): Promise<
+  (T extends keyof Database["public"]["Tables"] ? Tables<T> : Tables<T>)[]
+> {
   return executeDbOperation(async (client) => {
     // Use type casting to avoid TypeScript errors
     const typedClient = client as any;
-    let query = typedClient.from(table).select(options.columns || "*");
+    let query = typedClient.from(table);
 
-    // Apply filters if provided
-    if (options.filters) {
-      for (const [key, value] of Object.entries(options.filters)) {
-        query = query.eq(key, value);
-      }
+    if (options.columns) {
+      query = query.select(options.columns);
+    } else {
+      query = query.select();
     }
 
-    // Apply pagination if provided
+    if (options.filters) {
+      Object.entries(options.filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          query = query.eq(key, value);
+        }
+      });
+    }
+
     if (options.limit) {
       query = query.limit(options.limit);
     }
@@ -84,7 +94,6 @@ export async function selectFromTable<
       );
     }
 
-    // Apply ordering if provided
     if (options.orderBy) {
       query = query.order(options.orderBy.column, {
         ascending: options.orderBy.ascending ?? true,
@@ -94,10 +103,11 @@ export async function selectFromTable<
     const { data, error } = await query;
 
     if (error) {
-      throw error;
+      console.error("Database query error:", error);
+      throw new Error(error.message);
     }
 
-    return (data || []) as Tables<T>[];
+    return data;
   });
 }
 

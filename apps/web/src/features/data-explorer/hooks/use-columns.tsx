@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { SelectedColumn } from "../types";
+import { AvailableTable } from "../constants/tables";
 
 /**
  * Hook to fetch and manage columns for a given table
  * @param tableName The name of the table to fetch columns for
  * @returns Object containing columns and loading state
  */
-export function useColumns(tableName: string) {
+export function useColumns(tableName: AvailableTable) {
   const [columns, setColumns] = useState<SelectedColumn[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -25,7 +26,7 @@ export function useColumns(tableName: string) {
         setError(null);
 
         const supabase = createClient();
-        
+
         // Fetch a single row to get column names
         const { data, error } = await supabase
           .from(tableName)
@@ -36,7 +37,9 @@ export function useColumns(tableName: string) {
 
         if (data && data.length > 0) {
           // Extract column names from first row
-          const columnNames = Object.keys(data[0]).map((col) => ({
+          const columnNames = Object.keys(
+            data[0] as Record<string, unknown>
+          ).map((col) => ({
             name: col,
             selected: true, // Select all columns by default
           }));
@@ -47,9 +50,9 @@ export function useColumns(tableName: string) {
             .from(tableName)
             .select("*")
             .limit(0);
-          
+
           if (emptyError) throw new Error(emptyError.message);
-          
+
           // We can't get columns if there's no data
           setColumns([]);
         }
@@ -76,16 +79,12 @@ export function useColumns(tableName: string) {
 
   // Helper to select/deselect all columns
   const toggleAllColumns = (selected: boolean) => {
-    setColumns((prev) =>
-      prev.map((col) => ({ ...col, selected }))
-    );
+    setColumns((prev) => prev.map((col) => ({ ...col, selected })));
   };
 
   // Get only selected column names
   const getSelectedColumns = () => {
-    return columns
-      .filter((col) => col.selected)
-      .map((col) => col.name);
+    return columns.filter((col) => col.selected).map((col) => col.name);
   };
 
   return {
@@ -97,4 +96,3 @@ export function useColumns(tableName: string) {
     getSelectedColumns,
   };
 }
-

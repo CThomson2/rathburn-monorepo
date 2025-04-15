@@ -63,7 +63,9 @@ export type TableType<T extends string> =
  * type User = ViewType<'users'>
  */
 export type ViewType<T extends string> =
-  T extends ViewExists<T> ? Tables<T> : Record<string, any>; // Fallback type for views that don't exist yet
+  T extends ViewExists<T>
+    ? Database["public"]["Views"][T]["Row"]
+    : Record<string, any>; // Fallback type for views that don't exist yet
 
 /**
  * Type helper for getting a table's insert data type from Supabase

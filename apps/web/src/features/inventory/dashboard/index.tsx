@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/server";
-import { ViewType } from "@/types/models/base";
 import {
   BarChart,
   Bar,
@@ -18,39 +16,37 @@ import {
   AlertTriangle,
   Package,
 } from "lucide-react";
+import { selectFromTable } from "@/lib/database";
+import { ViewType } from "@/types/models/base";
+import { DrumInventory } from "../types";
 
-// View for chemical inventory dashboard: `vw_drum_inventory`
-// Types: `ViewType<'vw_drum_inventory'>`
 export default function ChemicalInventoryDashboard() {
-  const [inventory, setInventory] = useState<ViewType<"vw_drum_inventory">[]>(
+  const [inventory, setInventory] = useState<DrumInventory[]>([]);
+  const [filteredInventory, setFilteredInventory] = useState<DrumInventory[]>(
     []
   );
-  const [filteredInventory, setFilteredInventory] = useState<
-    ViewType<"vw_drum_inventory">[]
-  >([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "name",
     direction: "asc",
   });
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedItem, setSelectedItem] = useState<DrumInventory | null>(null);
   const [showLowStock, setShowLowStock] = useState(false);
 
   // Summary statistics
   const totalNew = filteredInventory.reduce(
-    (sum, item) => sum + (item.raw_drums ?? 0),
+    (sum, item) => sum + item.newStock,
     0
   );
   const totalRepro = filteredInventory.reduce(
-    (sum, item) => sum + (item.repro_drums ?? 0),
+    (sum, item) => sum + (item.reproStock || 0),
     0
   );
   const totalStock = totalNew + totalRepro;
   const lowStockCount = filteredInventory.filter(
-    (item) =>
-      (item.raw_drums ?? 0) + (item.repro_drums ?? 0) < (item.threshold ?? 0)
+    (item) => item.newStock + item.reproStock < (item.threshold || 0)
   ).length;
 
   useEffect(() => {
@@ -58,28 +54,28 @@ export default function ChemicalInventoryDashboard() {
       try {
         setLoading(true);
 
-        // Fetch inventory data from Supabase
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("vw_drum_inventory")
-          .select("*");
+        // Fetch inventory data from vw_drum_inventory view using our database layer
+        const data =
+          await selectFromTable<"vw_drum_inventory">("vw_drum_inventory");
 
-        if (error) throw error;
+        if (!data) throw new Error("No data returned from the database");
 
         // Transform data for visualization
         const transformedData = data.map((item) => ({
-          id: item.id,
-          name: item.chemical_name,
-          rawDrums: item.raw_drums,
-          reproDrums: item.repro_drums,
+          id: item.code || "",
+          code: item.code,
+          name: item.value,
+          newStock: item.raw_drums || 0,
+          reproStock: item.repro_drums || 0,
           category: item.ch_group,
-          reorderThreshold: item.threshold,
-          total: item.raw_drums + item.repro_drums,
+          chGroup: item.ch_group,
+          threshold: item.threshold || 10,
+          total: (item.raw_drums || 0) + (item.repro_drums || 0),
         }));
 
         setInventory(transformedData);
         setFilteredInventory(transformedData);
-      } catch (err) {
+      } catch (err: any) {
         setError(err.message);
         console.error("Error fetching inventory:", err);
       } finally {
@@ -97,23 +93,39 @@ export default function ChemicalInventoryDashboard() {
     if (searchTerm) {
       result = result.filter(
         (item) =>
-          item?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item?.category.toLowerCase().includes(searchTerm.toLowerCase())
+          (item.name &&
+            item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.code &&
+            item.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.category &&
+            item.category.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     if (showLowStock) {
       result = result.filter(
-        (item) => item.raw_drums + item.reproStock < item.reorderThreshold
+        (item) => item.newStock + item.reproStock < (item.threshold || 0)
       );
     }
 
+    if (!result || result.length === 0) return;
+
     // Apply sorting
     result.sort((a, b) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
+      if (
+        a[sortConfig.key as keyof DrumInventory] != null &&
+        b[sortConfig.key as keyof DrumInventory] != null &&
+        a[sortConfig.key as keyof DrumInventory] <
+          b[sortConfig.key as keyof DrumInventory]
+      ) {
         return sortConfig.direction === "asc" ? -1 : 1;
       }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
+      if (
+        a[sortConfig.key as keyof DrumInventory] != null &&
+        b[sortConfig.key as keyof DrumInventory] != null &&
+        a[sortConfig.key as keyof DrumInventory] >
+          b[sortConfig.key as keyof DrumInventory]
+      ) {
         return sortConfig.direction === "asc" ? 1 : -1;
       }
       return 0;
@@ -122,7 +134,7 @@ export default function ChemicalInventoryDashboard() {
     setFilteredInventory(result);
   }, [inventory, searchTerm, sortConfig, showLowStock]);
 
-  const handleSort = (key) => {
+  const handleSort = (key: string) => {
     setSortConfig((prevConfig) => ({
       key,
       direction:
@@ -132,7 +144,7 @@ export default function ChemicalInventoryDashboard() {
     }));
   };
 
-  const handleBarClick = (item) => {
+  const handleBarClick = (item: DrumInventory) => {
     setSelectedItem(item);
   };
 
@@ -151,7 +163,7 @@ export default function ChemicalInventoryDashboard() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm">Total Inventory</h3>
+          <h3 className="text-gray-500 text-sm">Total Drums</h3>
           <div className="flex items-center">
             <Package className="mr-2 text-blue-500" />
             <span className="text-2xl font-bold">{totalStock}</span>
@@ -159,7 +171,7 @@ export default function ChemicalInventoryDashboard() {
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm">New Stock</h3>
+          <h3 className="text-gray-500 text-sm">New Drums</h3>
           <div className="flex items-center">
             <div className="w-4 h-4 rounded mr-2 bg-blue-500"></div>
             <span className="text-2xl font-bold">{totalNew}</span>
@@ -167,7 +179,7 @@ export default function ChemicalInventoryDashboard() {
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm">Repro Stock</h3>
+          <h3 className="text-gray-500 text-sm">Repro Drums</h3>
           <div className="flex items-center">
             <div className="w-4 h-4 rounded mr-2 bg-green-500"></div>
             <span className="text-2xl font-bold">{totalRepro}</span>
@@ -189,20 +201,28 @@ export default function ChemicalInventoryDashboard() {
           <Search className="text-gray-400 mr-2" size={18} />
           <input
             type="text"
-            placeholder="Search chemicals..."
+            placeholder="Search by name, code or chemical group..."
             className="flex-grow focus:outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             className="flex items-center bg-white rounded-lg shadow px-4 py-2"
             onClick={() => handleSort("name")}
           >
             <ArrowUpDown size={18} className="mr-2 text-gray-500" />
             Sort by Name
+          </button>
+
+          <button
+            className="flex items-center bg-white rounded-lg shadow px-4 py-2"
+            onClick={() => handleSort("code")}
+          >
+            <ArrowUpDown size={18} className="mr-2 text-gray-500" />
+            Sort by Code
           </button>
 
           <button
@@ -218,14 +238,14 @@ export default function ChemicalInventoryDashboard() {
             onClick={() => setShowLowStock(!showLowStock)}
           >
             <Filter size={18} className="mr-2 text-gray-500" />
-            {showLowStock ? "All Items" : "Low Stock Only"}
+            {showLowStock ? "All Items" : "Below Threshold"}
           </button>
         </div>
       </div>
 
       {/* Main Chart Area */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold mb-4">Stock Levels</h2>
+        <h2 className="text-xl font-semibold mb-4">Solvent Drum Inventory</h2>
 
         {filteredInventory.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
@@ -241,33 +261,57 @@ export default function ChemicalInventoryDashboard() {
                 barSize={20}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} />
+                <XAxis
+                  type="number"
+                  label={{
+                    value: "Number of Drums",
+                    position: "insideBottom",
+                    offset: -5,
+                  }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => {
+                    const item = filteredInventory.find(
+                      (item) => item.name === value
+                    );
+                    return item ? `${item.code} - ${value}` : value;
+                  }}
+                />
                 <Tooltip
                   formatter={(value, name) => [
                     value,
-                    name === "raw_drums" ? "New Stock" : "Repro Stock",
+                    name === "newStock" ? "New Drums" : "Repro Drums",
                   ]}
-                  labelFormatter={(label) => `Chemical: ${label}`}
+                  labelFormatter={(label) => {
+                    const item = filteredInventory.find(
+                      (item) => item.name === label
+                    );
+                    return item
+                      ? `${item.code} - ${label} (${item.category})`
+                      : label;
+                  }}
                 />
                 <Legend
                   payload={[
-                    { value: "New Stock", type: "square", color: "#3b82f6" },
-                    { value: "Repro Stock", type: "square", color: "#10b981" },
+                    { value: "New Drums", type: "square", color: "#3b82f6" },
+                    { value: "Repro Drums", type: "square", color: "#10b981" },
                   ]}
                 />
                 <Bar
-                  dataKey="raw_drums"
+                  dataKey="newStock"
                   stackId="a"
                   fill="#3b82f6"
-                  name="New Stock"
+                  name="New Drums"
                   onClick={(data) => handleBarClick(data)}
                 />
                 <Bar
                   dataKey="reproStock"
                   stackId="a"
                   fill="#10b981"
-                  name="Repro Stock"
+                  name="Repro Drums"
                   onClick={(data) => handleBarClick(data)}
                 />
               </BarChart>
@@ -281,7 +325,7 @@ export default function ChemicalInventoryDashboard() {
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-xl font-semibold">
-              {selectedItem.name} Details
+              {selectedItem.code} - {selectedItem.name}
             </h2>
             <button
               className="text-gray-500 hover:text-gray-700"
@@ -297,37 +341,37 @@ export default function ChemicalInventoryDashboard() {
                 Inventory Information
               </h3>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <dt className="text-gray-500">Category:</dt>
+                <dt className="text-gray-500">Material Code:</dt>
+                <dd className="font-medium">{selectedItem.code}</dd>
+                <dt className="text-gray-500">Chemical Group:</dt>
                 <dd>{selectedItem.category}</dd>
-                <dt className="text-gray-500">New Stock:</dt>
-                <dd className="font-semibold">
-                  {selectedItem.raw_drums} drums
-                </dd>
-                <dt className="text-gray-500">Repro Stock:</dt>
+                <dt className="text-gray-500">New Drums:</dt>
+                <dd className="font-semibold">{selectedItem.newStock} drums</dd>
+                <dt className="text-gray-500">Repro Drums:</dt>
                 <dd className="font-semibold">
                   {selectedItem.reproStock} drums
                 </dd>
                 <dt className="text-gray-500">Total:</dt>
                 <dd className="font-semibold">
-                  {selectedItem.raw_drums + selectedItem.reproStock} drums
+                  {selectedItem.newStock + selectedItem.reproStock} drums
                 </dd>
-                <dt className="text-gray-500">Reorder Threshold:</dt>
+                <dt className="text-gray-500">Threshold Level:</dt>
                 <dd
                   className={
-                    selectedItem.total < selectedItem.reorderThreshold
+                    selectedItem.total < (selectedItem.threshold || 0)
                       ? "text-red-500 font-bold"
                       : ""
                   }
                 >
-                  {selectedItem.reorderThreshold} drums
+                  {selectedItem.threshold} drums
                 </dd>
               </dl>
 
-              {selectedItem.total < selectedItem.reorderThreshold && (
+              {selectedItem.total < (selectedItem.threshold || 0) && (
                 <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center">
                   <AlertTriangle className="text-amber-500 mr-2" />
                   <span className="text-amber-700">
-                    Stock is below reorder threshold
+                    Stock is below threshold level
                   </span>
                 </div>
               )}
@@ -341,21 +385,38 @@ export default function ChemicalInventoryDashboard() {
                     data={[
                       {
                         name: selectedItem.name,
-                        raw_drums: selectedItem.raw_drums,
+                        newStock: selectedItem.newStock,
                         reproStock: selectedItem.reproStock,
+                        threshold: selectedItem.threshold,
                       },
                     ]}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value, name) => {
+                        if (name === "newStock") return [value, "New Drums"];
+                        if (name === "reproStock")
+                          return [value, "Repro Drums"];
+                        if (name === "threshold") return [value, "Threshold"];
+                        return [value, name];
+                      }}
+                    />
                     <Legend />
-                    <Bar dataKey="raw_drums" name="New Stock" fill="#3b82f6" />
+                    <Bar dataKey="newStock" name="New Drums" fill="#3b82f6" />
                     <Bar
                       dataKey="reproStock"
-                      name="Repro Stock"
+                      name="Repro Drums"
                       fill="#10b981"
+                    />
+                    {/* Adding a reference line for the threshold */}
+                    <Bar
+                      dataKey="threshold"
+                      name="Threshold"
+                      fill="transparent"
+                      strokeDasharray="5 5"
+                      stroke="#f59e0b"
                     />
                   </BarChart>
                 </ResponsiveContainer>

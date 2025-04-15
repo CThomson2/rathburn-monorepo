@@ -1,5 +1,4 @@
 import { Database } from "@/types/models/database.types";
-import type { SupabaseQueryBuilder } from "@supabase/supabase-js";
 
 export type ValidTable =
   | keyof Database["public"]["Tables"]
@@ -45,7 +44,6 @@ export interface PaginationOptions {
 
 // Type for table data options
 export interface TableDataOptions {
-  tableName: string;
   pagination?: PaginationOptions;
   filters?: FilterCondition[];
   sorts?: SortSpec[];

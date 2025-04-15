@@ -11,7 +11,12 @@ import {
 // Import utility functions and types
 import { cn } from "@/lib/utils";
 import { ChevronDown, FilterIcon, SearchIcon } from "lucide-react";
-import { FilterOption } from "@/types/models";
+
+// Define FilterOption interface locally instead of importing it
+interface FilterOption {
+  label: string;
+  value: string;
+}
 
 // Props interface for the SearchBar component
 interface SearchBarProps {

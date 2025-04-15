@@ -50,20 +50,27 @@ import {
   TableRow,
 } from "@/components/core/ui/table";
 import { FilterCondition, SortSpec } from "../types";
-import { availableTables } from "../constants/tables";
+import { availableTables, buildQuery } from "../constants/tables";
 import { useColumns } from "../hooks/use-columns";
 import type { Database } from "@/types/models/database.types";
-import type { PostgrestFilterBuilder } from "@supabase/supabase-js";
-import { buildFilterQuery, buildSortQuery } from "../utils/query-builders";
 
 type TableName = (typeof availableTables)[number]["name"];
 type TableRecord<T extends TableName> = Database["public"]["Tables"][T]["Row"];
 type QueryResult = Record<string, unknown>;
 
+/**
+ * A wizard-style component to build and execute a query.
+ *
+ * This component renders a step-by-step query builder that allows users to
+ * select a table, choose columns, apply filters, and sort the results.
+ * After the query is built, it can be executed and the results will be displayed.
+ *
+ * @returns A JSX element representing the query builder component.
+ */
 export default function QueryBuilderView() {
   // State for the query builder
   const [activeStep, setActiveStep] = useState<string>("table");
-  const [selectedTable, setSelectedTable] = useState<TableName | "">("");
+  const [selectedTable, setSelectedTable] = useState<TableName>("stock_drum");
   const [tableDescription, setTableDescription] = useState<string>("");
   const [filterConditions, setFilterConditions] = useState<FilterCondition[]>(
     []
@@ -186,9 +193,9 @@ export default function QueryBuilderView() {
       setError(null);
 
       // Get the list of selected columns
-      const selectedColumns = getSelectedColumns().join(", ");
+      const selectedColumns = getSelectedColumns();
 
-      if (!selectedColumns) {
+      if (selectedColumns.length === 0) {
         setError(new Error("Please select at least one column"));
         return;
       }
@@ -198,30 +205,27 @@ export default function QueryBuilderView() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
-      // Build the query
-      let query = supabase
-        .from(selectedTable)
-        .select(selectedColumns || "*") as PostgrestFilterBuilder<
-        Database,
-        Database["public"]["Tables"][TableName]["Row"],
-        QueryResult
-      >;
-
-      // Add filter conditions
-      query = buildFilterQuery(query, filterConditions);
-
-      // Add sorting
-      query = buildSortQuery(query, sortSpecs);
-
-      // Limit to 100 results for now
-      query = query.limit(100);
+      // Use the buildQuery utility from tables
+      const query = buildQuery(selectedTable, {
+        columns: selectedColumns,
+        filters: filterConditions,
+        sorts: sortSpecs,
+        pagination: {
+          page: 1,
+          pageSize: 100,
+        },
+      });
 
       // Execute the query
       const { data, error } = await query;
 
       if (error) throw new Error(error.message);
 
-      setQueryResults(data || []);
+      // Need to convert the data to our expected format
+      const typedResults = (data || []) as unknown as QueryResult[];
+
+      // Update state with the results
+      setQueryResults(typedResults);
       setShowResults(true);
     } catch (err) {
       console.error("Error executing query:", err);

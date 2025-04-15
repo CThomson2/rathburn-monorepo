@@ -5,6 +5,13 @@ import { availableTables } from "../constants/tables";
 
 type TableName = (typeof availableTables)[number]["name"];
 
+/**
+ * Applies filter conditions to a Supabase query
+ *
+ * @param query - The Supabase query object (must support filtering methods)
+ * @param conditions - Array of filter conditions to apply
+ * @returns The query with filters applied
+ */
 export function buildFilterQuery(query: any, conditions: FilterCondition[]) {
   return conditions.reduce((acc, condition) => {
     const { column, operator, value } = condition;
@@ -31,6 +38,13 @@ export function buildFilterQuery(query: any, conditions: FilterCondition[]) {
   }, query);
 }
 
+/**
+ * Applies sorting specifications to a Supabase query
+ *
+ * @param query - The Supabase query object (must support order method)
+ * @param specs - Array of sort specifications to apply
+ * @returns The query with sorting applied
+ */
 export function buildSortQuery(query: any, specs: SortSpec[]) {
   return specs.reduce((acc, spec) => {
     const { column, direction } = spec;

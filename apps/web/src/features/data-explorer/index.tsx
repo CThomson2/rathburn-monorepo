@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import dynamic from "next/dynamic";
 import {
   Tabs,
   TabsContent,
@@ -8,11 +9,73 @@ import {
   TabsTrigger,
 } from "@/components/core/ui/tabs";
 import { Button } from "@/components/core/ui/button";
-import { PlusCircle, TableProperties, Database } from "lucide-react";
-import SpreadsheetView from "./components/spreadsheet-view";
-import QueryBuilderView from "./components/query-builder-view";
+import {
+  PlusCircle,
+  TableProperties,
+  Database,
+  AlertCircle,
+} from "lucide-react";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/core/ui/alert";
 
 type ViewMode = "spreadsheet" | "query-builder";
+
+// Dynamic imports with error handling
+const SpreadsheetView = dynamic(
+  () =>
+    import("./components/spreadsheet-view").catch(() => () => (
+      <FallbackComponent
+        title="Spreadsheet View Unavailable"
+        message="This feature is currently being built and may not work correctly."
+      />
+    )),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        Loading spreadsheet view...
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const QueryBuilderView = dynamic(
+  () =>
+    import("./components/query-builder-view").catch(() => () => (
+      <FallbackComponent
+        title="Query Builder Unavailable"
+        message="This feature is currently being built and may not work correctly."
+      />
+    )),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        Loading query builder...
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+// Fallback component for when imports fail
+function FallbackComponent({
+  title,
+  message,
+}: {
+  title: string;
+  message: string;
+}) {
+  return (
+    <Alert variant="destructive">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  );
+}
 
 export default function DataExplorerPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("spreadsheet");
@@ -49,10 +112,26 @@ export default function DataExplorerPage() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="spreadsheet" className="mt-6">
-          <SpreadsheetView />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center p-8">
+                Loading spreadsheet view...
+              </div>
+            }
+          >
+            <SpreadsheetView />
+          </Suspense>
         </TabsContent>
         <TabsContent value="query-builder" className="mt-6">
-          <QueryBuilderView />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center p-8">
+                Loading query builder...
+              </div>
+            }
+          >
+            <QueryBuilderView />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

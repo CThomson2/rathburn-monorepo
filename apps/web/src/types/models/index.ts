@@ -9,4 +9,3 @@ export * from "./orders";
 
 // Re-export domain-specific types
 export * from "./drums";
-export * from "./activity";
