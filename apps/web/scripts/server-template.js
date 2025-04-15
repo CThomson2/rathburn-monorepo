@@ -21,15 +21,15 @@ try {
   // Check multiple possible locations for the Next.js server handler
   const possibleServerPaths = [
     // Try from standalone root
-    path.join(cwd, "apps", "web", ".next", "server.js"),
+    path.join(cwd, "apps", "web", ".next", "standalone", "server.js"),
     // Try from standalone root with different structure
-    path.join(cwd, "apps", "web", ".next", "server", "index.js"),
+    path.join(cwd, "apps", "web", ".next", "standalone", "server", "index.js"),
     // Try from app folder
-    path.join(cwd, ".next", "server.js"),
+    path.join(cwd, ".next", "standalone", "server.js"),
     // Try from app folder with different structure
-    path.join(cwd, ".next", "server", "index.js"),
+    path.join(cwd, ".next", "standalone", "server", "index.js"),
     // Try relative path that Next.js 14+ sometimes uses
-    path.join(cwd, "server.js"),
+    path.join(cwd, ".next", "standalone", "server.js"),
   ];
 
   console.log("Checking these paths for Next.js server handler:");

@@ -31,7 +31,7 @@ function runCommand(command, errorMessage) {
 // Ensure standalone directories exist
 console.log("📁 Creating standalone directories...");
 runCommand(
-  `mkdir -p .next/standalone/apps/web/.next/static`,
+  `mkdir -p .next/standalone/apps/web/.next/static .next/standalone/.next/static`,
   "Failed to create standalone directory structure"
 );
 
@@ -56,6 +56,10 @@ if (fs.existsSync(path.join(appDir, ".next/static"))) {
   runCommand(
     `cp -r .next/static/* .next/standalone/apps/web/.next/static/`,
     "Failed to copy static assets"
+  );
+  runCommand(
+    `cp -r .next/static/* .next/standalone/.next/static/`,
+    "Failed to copy static assets to root"
   );
 } else {
   console.log("⚠️ Static assets directory not found, skipping...");
@@ -82,8 +86,112 @@ if (fs.existsSync(path.join(appDir, ".env"))) {
     `cp .env .next/standalone/apps/web/.env`,
     "Failed to copy .env file"
   );
+  runCommand(
+    `cp .env .next/standalone/.env`,
+    "Failed to copy .env file to standalone root"
+  );
 } else {
   console.log("ℹ️ No .env file found, skipping...");
+}
+
+// Copy essential Next.js files for standalone server
+console.log("📄 Copying essential Next.js files...");
+const essentialFiles = [
+  "BUILD_ID",
+  "routes-manifest.json",
+  "build-manifest.json",
+  "prerender-manifest.json",
+  "app-paths-manifest.json",
+  "app-build-manifest.json",
+  "react-loadable-manifest.json",
+  "trace",
+  "cache",
+];
+
+for (const file of essentialFiles) {
+  const sourcePath = path.join(appDir, ".next", file);
+  const targetPath1 = path.join(standalonePath, ".next", file);
+  const targetPath2 = path.join(standalonePath, "apps", "web", ".next", file);
+
+  if (fs.existsSync(sourcePath)) {
+    console.log(`Copying ${file}...`);
+
+    // Copy file or directory based on type
+    try {
+      const stats = fs.lstatSync(sourcePath);
+      if (stats.isDirectory()) {
+        // Create target directories
+        if (!fs.existsSync(path.dirname(targetPath1))) {
+          fs.mkdirSync(path.dirname(targetPath1), { recursive: true });
+        }
+        if (!fs.existsSync(path.dirname(targetPath2))) {
+          fs.mkdirSync(path.dirname(targetPath2), { recursive: true });
+        }
+
+        // Create target subdirectories
+        if (!fs.existsSync(targetPath1)) {
+          fs.mkdirSync(targetPath1, { recursive: true });
+        }
+        if (!fs.existsSync(targetPath2)) {
+          fs.mkdirSync(targetPath2, { recursive: true });
+        }
+
+        // Copy directory contents using executables that work on both Unix and Windows
+        runCommand(
+          `cp -r "${sourcePath}"/* "${targetPath1}"/`,
+          `Failed to copy ${file} to standalone root`
+        );
+        runCommand(
+          `cp -r "${sourcePath}"/* "${targetPath2}"/`,
+          `Failed to copy ${file} to apps/web`
+        );
+      } else {
+        // Create target directories
+        if (!fs.existsSync(path.dirname(targetPath1))) {
+          fs.mkdirSync(path.dirname(targetPath1), { recursive: true });
+        }
+        if (!fs.existsSync(path.dirname(targetPath2))) {
+          fs.mkdirSync(path.dirname(targetPath2), { recursive: true });
+        }
+
+        // Copy individual file
+        fs.copyFileSync(sourcePath, targetPath1);
+        fs.copyFileSync(sourcePath, targetPath2);
+      }
+    } catch (err) {
+      console.warn(
+        `⚠️ Warning: Failed to copy ${file}: ${err.message}, skipping...`
+      );
+    }
+  }
+}
+
+// Copy the server directory
+if (fs.existsSync(path.join(appDir, ".next", "server"))) {
+  console.log("Copying server directory...");
+
+  // Ensure target directories exist
+  fs.mkdirSync(path.join(standalonePath, ".next", "server"), {
+    recursive: true,
+  });
+  fs.mkdirSync(path.join(standalonePath, "apps", "web", ".next", "server"), {
+    recursive: true,
+  });
+
+  try {
+    runCommand(
+      `cp -r .next/server/* .next/standalone/.next/server/`,
+      "Failed to copy server directory to standalone root"
+    );
+    runCommand(
+      `cp -r .next/server/* .next/standalone/apps/web/.next/server/`,
+      "Failed to copy server directory to apps/web"
+    );
+  } catch (err) {
+    console.warn(
+      `⚠️ Warning: Failed to copy server directory: ${err.message}, continuing...`
+    );
+  }
 }
 
 // Check for fonts in both the old and new locations
@@ -120,23 +228,55 @@ if (!fontsFound) {
   console.log("ℹ️ No fonts directory found in any location, skipping...");
 }
 
-// Copy the server.js file to the correct location
+// Check for Next.js generated server.js
+console.log("🔍 Looking for Next.js generated server.js...");
+const possibleServerPaths = [
+  // Standard Next.js standalone output
+  path.join(standalonePath, "server.js"),
+  // Next.js 14+ sometimes puts it here
+  path.join(standalonePath, "apps", "web", "server.js"),
+  // Server index
+  path.join(standalonePath, "server", "index.js"),
+];
+
+let serverFound = false;
+let foundServerPath = null;
+for (const serverPath of possibleServerPaths) {
+  if (fs.existsSync(serverPath)) {
+    console.log(`✓ Found server.js at: ${serverPath}`);
+    foundServerPath = serverPath;
+    serverFound = true;
+    break;
+  }
+}
+
+// Set up server.js in all required locations
 console.log("🚀 Setting up server.js...");
 runCommand(
   `mkdir -p .next/standalone/apps/web/.next/server`,
   "Failed to create server directory"
 );
 
-if (fs.existsSync(path.join(standalonePath, "server.js"))) {
-  // Copy server.js from root standalone to apps/web directory if needed
-  runCommand(
-    `cp .next/standalone/server.js .next/standalone/apps/web/server.js`,
-    "Failed to copy server.js file to apps/web directory"
+if (serverFound) {
+  // Copy server.js to both root standalone and apps/web
+  console.log(
+    `Copying server from ${foundServerPath} to required locations...`
   );
-  console.log("✅ server.js copied to apps/web directory");
+
+  // Copy to the standalone root if not already there
+  if (foundServerPath !== path.join(standalonePath, "server.js")) {
+    fs.copyFileSync(foundServerPath, path.join(standalonePath, "server.js"));
+    console.log("✅ Copied server.js to standalone root");
+  }
+
+  // Copy to apps/web directory
+  fs.copyFileSync(
+    foundServerPath,
+    path.join(standalonePath, "apps", "web", "server.js")
+  );
+  console.log("✅ Copied server.js to apps/web directory");
 } else {
-  console.warn("⚠️ server.js not found in standalone directory!");
-  console.log("🔧 Using server template instead...");
+  console.warn("⚠️ No Next.js server.js found! Using template instead...");
 
   // Use our fallback server template
   runCommand(
@@ -209,7 +349,7 @@ if (!fs.existsSync(standalonePackagePath)) {
     version: "1.0.0",
     private: true,
     scripts: {
-      start: "node server.js",
+      start: "NODE_ENV=production node server.js",
     },
     dependencies: {
       next: "14.2.24",
@@ -226,6 +366,37 @@ if (!fs.existsSync(standalonePackagePath)) {
   console.log("✅ Created standalone package.json");
 } else {
   console.log("ℹ️ Standalone package.json already exists");
+}
+
+// Create a symlink from the app to node_modules for proper module resolution
+console.log("🔗 Setting up app symlinks...");
+try {
+  fs.mkdirSync(path.join(standalonePath, "node_modules", "apps"), {
+    recursive: true,
+  });
+
+  // Only create the symlink if it doesn't already exist
+  const symlinkTarget = path.join(
+    standalonePath,
+    "node_modules",
+    "apps",
+    "web"
+  );
+  if (!fs.existsSync(symlinkTarget)) {
+    fs.symlinkSync(
+      path.join(standalonePath, "apps", "web"),
+      symlinkTarget,
+      "dir"
+    );
+    console.log("✅ Created symlink for apps/web in node_modules");
+  } else {
+    console.log("ℹ️ Symlink for apps/web already exists");
+  }
+} catch (error) {
+  console.warn(
+    "⚠️ Failed to create symlinks, but continuing...",
+    error.message
+  );
 }
 
 console.log("✅ Standalone configuration completed successfully");

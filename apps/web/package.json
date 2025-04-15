@@ -7,9 +7,9 @@
     "dev": "next dev --port 3000",
     "clean": "rm -rf .next .turbo node_modules",
     "build": "next build && node scripts/config-standalone.js",
-    "start": "node .next/standalone/server.js",
+    "start": "node server.js",
     "start:custom": "node server.js",
-    "start:standalone": "cd .next/standalone && node server.js",
+    "start:standalone": "cd .next/standalone && NODE_ENV=production node server.js",
     "prepare-deploy": "node scripts/prepare-deploy.js",
     "lint": "next lint --max-warnings 0",
     "check-types": "tsc --noEmit"
