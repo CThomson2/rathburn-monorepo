@@ -4,7 +4,7 @@ import { StockOrderFormValues, StockOrderDetailInput } from "../types";
 import { useState, useEffect, useCallback } from "react";
 import styles from "./form.module.css";
 import { cn } from "@/lib/utils";
-import { Dropdown } from "./form/dropdown";
+import { Dropdown } from "@/components/core/patterns/form/dropdown";
 import { Loader2, Plus, Trash2, Calendar } from "lucide-react";
 import { clientApi as api } from "@/lib/api-client/client";
 

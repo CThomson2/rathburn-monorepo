@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HeaderControls } from "./header/header-controls";
+import { HeaderControls } from "./header-controls";
 import { signOutAction } from "@/app/actions";
 import { Button } from "@/components/core/ui/button";
 

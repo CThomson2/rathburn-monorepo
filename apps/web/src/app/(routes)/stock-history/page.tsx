@@ -13,7 +13,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/core/ui/tabs";
-import type { Database } from "@/types/models/orders/database.types";
+import type { Database } from "@/types/models/database.types";
 
 import {
   StockHistoryChart,

@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+// TODO: Remove this after the drum labels are printed for existing stock
+// TODO: Repurpose the stock labels generator component to fetch counts for new and repro drums
 export async function GET() {
   try {
     // Create Supabase client

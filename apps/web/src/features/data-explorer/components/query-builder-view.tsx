@@ -52,7 +52,7 @@ import {
 import { FilterCondition, SortSpec } from "../types";
 import { availableTables } from "../constants/tables";
 import { useColumns } from "../hooks/use-columns";
-import type { Database } from "@/types/models/orders/database.types";
+import type { Database } from "@/types/models/database.types";
 import type { PostgrestFilterBuilder } from "@supabase/supabase-js";
 import { buildFilterQuery, buildSortQuery } from "../utils/query-builders";
 

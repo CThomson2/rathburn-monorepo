@@ -43,7 +43,7 @@ import {
   buildSortQuery,
 } from "../constants/tables";
 import { useColumns } from "../hooks/use-columns";
-import { Database } from "@/types/models/orders/database.types";
+import { Database } from "@/types/models/database.types";
 
 /**
  * SpreadsheetView is a React component that renders a data table with pagination,

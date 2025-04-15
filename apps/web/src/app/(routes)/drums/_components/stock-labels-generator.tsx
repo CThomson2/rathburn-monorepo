@@ -12,6 +12,26 @@ import {
 import { Printer, FileDown, Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/core/ui/alert";
 
+/**
+ * StockLabelsGenerator component.
+ *
+ * This component provides functionality to generate and view PDF barcode labels for the existing drum stock.
+ * It fetches the total count of drums from the API on mount and displays the count.
+ * Users can generate PDF labels for the drum stock via an API call and view the generated PDF in a new tab.
+ *
+ * State Variables:
+ * - totalDrums: Stores the total number of drums available in inventory.
+ * - isLoading: Indicates if the PDF generation process is ongoing.
+ * - pdfBlob: Stores the Blob data of the generated PDF for viewing.
+ * - isLoadingCount: Indicates if the drum count is being loaded.
+ * - error: Stores any error messages encountered during API calls.
+ *
+ * Functions:
+ * - fetchDrumCount: Fetches the total drum count from the API and updates the state.
+ * - generateLabels: Initiates the PDF generation process by calling the API and stores the result.
+ * - viewPdf: Opens the generated PDF in a new tab if available.
+ */
+
 export default function StockLabelsGenerator() {
   const [totalDrums, setTotalDrums] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);

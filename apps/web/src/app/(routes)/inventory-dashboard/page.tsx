@@ -7,7 +7,7 @@ import InventoryCharts from "@/components/desktop/widgets/InventoryCharts";
 import AlertsWidget, {
   type Alert,
 } from "@/components/desktop/widgets/AlertsWidget";
-import { Database } from "@/types/models/orders/database.types";
+import { Database } from "@/types/models/database.types";
 
 // Type definitions for our API data
 interface StockMaterial {

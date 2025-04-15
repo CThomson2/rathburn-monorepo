@@ -25,7 +25,7 @@ export function HeaderControls({
   }
 
   // Only show database button in development
-  const showDatabaseBtn = process.env.NODE_ENV === "development";
+  // const showDatabaseBtn = process.env.NODE_ENV === "development";
 
   return (
     <div
@@ -36,19 +36,18 @@ export function HeaderControls({
     >
       <ThemeToggle />
 
-      {showDatabaseBtn && (
-        <Button
-          variant="outline"
-          size="icon"
-          asChild
-          className="relative h-10 w-10 bg-background border-border shadow-sm hover:shadow-md transition-shadow"
-        >
-          <Link href={databasePath} target="_blank">
-            <Database className="h-[1.2rem] w-[1.2rem] transition-transform hover:scale-110" />
-            <span className="sr-only">Database</span>
-          </Link>
-        </Button>
-      )}
+      {/* {showDatabaseBtn && (*/}
+      <Button
+        variant="outline"
+        size="icon"
+        asChild
+        className="relative h-10 w-10 bg-background border-border shadow-sm hover:shadow-md transition-shadow"
+      >
+        <Link href={databasePath} target="_blank">
+          <Database className="h-[1.2rem] w-[1.2rem] transition-transform hover:scale-110" />
+          <span className="sr-only">Database</span>
+        </Link>
+      </Button>
     </div>
   );
 }

@@ -12,10 +12,7 @@ export const metadata = {
 
 export default async function AuthenticationDocPage() {
   // Read the markdown file
-  const markdownFilePath = path.join(
-    process.cwd(),
-    "docs/project-docs/authentication.md"
-  );
+  const markdownFilePath = path.join(process.cwd(), "README.md");
   const markdownContent = fs.readFileSync(markdownFilePath, "utf8");
 
   return (

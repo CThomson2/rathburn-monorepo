@@ -32,18 +32,25 @@ export function useAuth() {
     getUser();
 
     // Subscribe to auth state changes
+    // This sets up a real-time listener for authentication state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // When auth state changes:
+      // 1. Update the user state with the new user or null if signed out
       setUser(session?.user ?? null);
+      // 2. Set loading to false since we've received the auth state
       setLoading(false);
+      // 3. Refresh the router to update UI based on new auth state
       router.refresh();
     });
 
+    // Clean up function that runs when the component unmounts
+    // This prevents memory leaks by removing the subscription
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router]); // Only re-run this effect if router changes
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({

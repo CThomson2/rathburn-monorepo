@@ -929,6 +929,13 @@ export type Database = {
             foreignKeyName: "order_detail_material_code_fkey"
             columns: ["material_code"]
             isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "order_detail_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
             referencedRelation: "vw_stock_history_analysis"
             referencedColumns: ["material_code"]
           },
@@ -1118,6 +1125,13 @@ export type Database = {
             foreignKeyName: "raw_stock_history_material_code_fkey"
             columns: ["material_code"]
             isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "raw_stock_history_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
             referencedRelation: "vw_stock_history_analysis"
             referencedColumns: ["material_code"]
           },
@@ -1210,6 +1224,13 @@ export type Database = {
             foreignKeyName: "ref_product_material_code_fkey"
             columns: ["material_code"]
             isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ref_product_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
             referencedRelation: "vw_stock_history_analysis"
             referencedColumns: ["material_code"]
           },
@@ -1287,6 +1308,13 @@ export type Database = {
             columns: ["material_code"]
             isOneToOne: false
             referencedRelation: "ref_materials"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "supplier_material_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
             referencedColumns: ["code"]
           },
           {
@@ -1436,6 +1464,13 @@ export type Database = {
             foreignKeyName: "stock_activity_material_code_fkey"
             columns: ["material_code"]
             isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "stock_activity_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
             referencedRelation: "vw_stock_history_analysis"
             referencedColumns: ["material_code"]
           },
@@ -1559,6 +1594,13 @@ export type Database = {
             foreignKeyName: "stock_drum_new_material_code_fkey"
             columns: ["material_code"]
             isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "stock_drum_new_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
             referencedRelation: "vw_stock_history_analysis"
             referencedColumns: ["material_code"]
           },
@@ -1629,6 +1671,13 @@ export type Database = {
             foreignKeyName: "stock_history_material_code_fkey"
             columns: ["material_code"]
             isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "stock_history_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
             referencedRelation: "vw_stock_history_analysis"
             referencedColumns: ["material_code"]
           },
@@ -1688,6 +1737,13 @@ export type Database = {
             columns: ["material_code"]
             isOneToOne: false
             referencedRelation: "ref_materials"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "stock_new_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
             referencedColumns: ["code"]
           },
           {
@@ -1784,6 +1840,13 @@ export type Database = {
             columns: ["material_code"]
             isOneToOne: false
             referencedRelation: "ref_materials"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "stock_repro_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
             referencedColumns: ["code"]
           },
           {
@@ -2070,6 +2133,13 @@ export type Database = {
             foreignKeyName: "stock_activity_material_code_fkey"
             columns: ["material_code"]
             isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "stock_activity_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
             referencedRelation: "vw_stock_history_analysis"
             referencedColumns: ["material_code"]
           },
@@ -2079,6 +2149,25 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ref_suppliers"
             referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
+      vw_drum_inventory: {
+        Row: {
+          ch_group: string | null
+          code: string | null
+          raw_drums: number | null
+          repro_drums: number | null
+          threshold: number | null
+          value: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_kind_chemical_group_fkey"
+            columns: ["ch_group"]
+            isOneToOne: false
+            referencedRelation: "chemical_group_kind"
+            referencedColumns: ["value"]
           },
         ]
       }
@@ -2096,6 +2185,13 @@ export type Database = {
             columns: ["material_code"]
             isOneToOne: false
             referencedRelation: "ref_materials"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "stock_history_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
+            referencedRelation: "vw_drum_inventory"
             referencedColumns: ["code"]
           },
           {

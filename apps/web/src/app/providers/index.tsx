@@ -4,15 +4,16 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./theme-provider";
 import { queryConfig } from "@/lib/react-query";
+import { AuthProvider } from "@/context/auth-context";
 
 // Create a client instance outside the component
 const queryClient = new QueryClient({ defaultOptions: queryConfig });
 
 /**
- * The QueryClientProvider wrapper provides the React Query context to its child components, allowing
- * them to use hooks like useQuery and useMutation to manage server state.
- * It initializes a QueryClient instance, which handles caching, background updates,
- * and synchronization of server data.
+ * Providers wrapper that includes:
+ * - QueryClientProvider: For React Query data fetching
+ * - ThemeProvider: For theme management
+ * - AuthProvider: For authentication state management
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -23,7 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

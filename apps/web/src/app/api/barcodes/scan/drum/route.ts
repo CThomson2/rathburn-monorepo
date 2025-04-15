@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { drumEvents } from "@/lib/events";
 import { z } from "zod";
 import { executeDbOperation } from "@/lib/database";
+import { createClient } from "@/lib/supabase/server";
 // import { sendOrderCompleteNotification } from "@/lib/email/orderNotifications";
 
 // Force dynamic rendering and no caching for this database-dependent route
@@ -10,12 +11,16 @@ export const fetchCache = "force-no-store";
 
 /**
  * Zod schema for the barcode data format
- * e.g. "52-H1024" or "52-H1024 2024/01/22 08:31:59"
+ * Barcode format: <material_code>-<drum_id>
+ * Data may be transmitted with or without a timestamp
+ * e.g. "HEX-18342" or "HEX-18342 2024/01/22 08:31:59"
  */
 const barcodeSchema = z.object({
   barcode: z
     .string()
-    .regex(/^(\d+)-H(\d+)(?:\s+\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})?$/),
+    .regex(
+      /^(\w{3,6})-(\d{4,5})(?:\s+\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})?$/
+    ), // for new drum labels
   timestamp: z.string(),
 });
 
@@ -31,10 +36,16 @@ async function validateDrumStatus(
   drumId: number,
   expectedStatus: string
 ): Promise<boolean> {
-  return withDatabase(async (db) => {
-    const drum = await db.stock_drum.findUnique({
-      where: { drum_id: drumId },
-    });
+  return executeDbOperation(async (client) => {
+    const { data: drum, error: drumError } = await client
+      .from("stock_drum")
+      .select("*")
+      .eq("drum_id", drumId)
+      .maybeSingle();
+
+    if (drumError) {
+      console.error(`Error fetching drum: ${drumError.message}`);
+    }
     return drum?.status === expectedStatus;
   });
 }
@@ -73,7 +84,7 @@ async function validateDrumStatus(
  *   "timestamp": "2024-01-22T08:31:59Z"
  * }
  *
- * @example Success Response (Pending -> Available):
+ * @example Success Response (Pending -> in_stock):
  * {
  *   "success": true,
  *   "data": {
@@ -95,6 +106,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
 
+    // Get user from Supabase server-side authentication
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error("Authentication error:", authError);
+      return NextResponse.json(
+        { message: "Authentication required to process scans" },
+        { status: 401 }
+      );
+    }
+
+    // We need to convert user.id to a number for the database
+    const userId = parseInt(user.id, 10);
+    if (isNaN(userId)) {
+      console.error("Failed to parse user ID as number:", user.id);
+      return NextResponse.json(
+        { message: "Invalid user ID format" },
+        { status: 500 }
+      );
+    }
+
     // Parse and validate incoming data
     const data = await req.json();
     console.log("\nParsed request data:", JSON.stringify(data, null, 2));
@@ -113,8 +149,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
       }
 
-      // Extract order_id and drum_id from the barcode string
-      const match = data.barcode.match(/^(\d+)-H(\d+)/);
+      // Extract material_code and drum_id from the barcode string
+      const match = data.barcode.match(/^(\w{3,6})-(\d{4,5})$/);
       console.log("\nBarcode regex match result:", match);
       if (!match) {
         console.error("Invalid barcode format:", data.barcode);
@@ -123,62 +159,45 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           { status: 400 }
         );
       }
-      const [, orderIdStr, drumIdStr] = match;
-      const orderId = parseInt(orderIdStr, 10);
+      const [, materialCode, drumIdStr] = match;
       const drumId = parseInt(drumIdStr, 10);
 
-      console.log("\nExtracted IDs:", { orderId, drumId });
+      console.log("\nExtracted data:", { materialCode, drumId });
 
       // Check the last scan time
-      const { data: lastScanData, error: lastScanError } = await client
-        .from("transactions")
+      const { data: scanData, error: scanError } = await client
+        .from("log_drum_scan")
         .select("*")
         .eq("drum_id", drumId)
-        .order("updated_at", { ascending: false })
+        .order("scanned_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (lastScanError) {
-        console.error("Error fetching last scan:", lastScanError);
+      if (scanError) {
+        console.error("Error fetching last scan:", scanError);
         return NextResponse.json(
           { message: "Database error when checking scan history" },
           { status: 500 }
         );
       }
 
-      const { data: orderData, error: orderError } = await client
-        .from("stock_order")
-        .select("*")
-        .eq("order_id", orderId)
-        .maybeSingle();
-
-      if (orderError) {
-        console.error("Error fetching order:", orderError);
-        return NextResponse.json(
-          { message: "Database error when checking order" },
-          { status: 500 }
-        );
-      }
-
-      // Use a default material label since we don't know the exact field
-      const material = orderData ? `Material for Order #${orderId}` : "";
-
       const now = new Date();
-      if (lastScanData) {
+      if (scanData && scanData.scanned_at) {
         const timeSinceLastScan = Math.floor(
-          (now.getTime() - new Date(lastScanData.updated_at).getTime()) / 60000
+          (now.getTime() - new Date(scanData.scanned_at).getTime()) / 60000
         );
 
         if (timeSinceLastScan < 60) {
           // Insert a "cancelled" transaction
           const { error: insertError } = await client
-            .from("transactions")
+            .from("log_drum_scan")
             .insert({
-              tx_type: "cancelled",
-              material: material,
               drum_id: drumId,
-              order_id: orderId,
-              tx_notes: `Scanned ${timeSinceLastScan} minutes after most recent scan`,
+              user_id: userId,
+              scan_type: "error",
+              scan_status: "failed",
+              error_message: `Scanned ${timeSinceLastScan} minutes after most recent scan`,
+              scanned_at: now.toISOString(),
             });
 
           if (insertError) {
@@ -221,6 +240,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       if (!existingDrum) {
         console.error("No drum found with ID:", drumId);
+
+        // Log the failed scan attempt
+        const { error: insertError } = await client
+          .from("log_drum_scan")
+          .insert({
+            drum_id: drumId,
+            user_id: userId,
+            scan_type: "error",
+            scan_status: "failed",
+            error_message: `Drum ID ${drumId} not found in database`,
+            scanned_at: now.toISOString(),
+          });
+
+        if (insertError) {
+          console.error("Error logging failed scan:", insertError);
+        }
+
         return NextResponse.json(
           { message: `Drum ID ${drumId} not found in database` },
           { status: 404 }
@@ -238,14 +274,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         case "pending":
           console.log("Creating import transaction for drum:", drumId);
 
+          // Validate drum status is still pending
+          const isPending = await validateDrumStatus(drumId, "en_route");
+          if (!isPending) {
+            console.error("Drum status has changed since validation");
+            return NextResponse.json(
+              { message: "Drum status has changed since validation" },
+              { status: 409 }
+            );
+          }
+
           const { error: intakeError } = await client
-            .from("transactions")
+            .from("log_drum_scan")
             .insert({
-              tx_type: "intake",
-              material: material,
               drum_id: drumId,
-              order_id: orderId,
-              tx_notes: "Scanned into inventory",
+              user_id: userId,
+              scan_type: "intake",
+              scan_status: "success",
+              scanned_at: now.toISOString(),
             });
 
           if (intakeError) {
@@ -258,7 +304,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
           console.log("Created import transaction");
 
-          // Check if status was updated by trigger
+          // Update the drum status
+          // TODO: This would typically be handled by a trigger
+          const { error: updateError } = await client
+            .from("stock_drum")
+            .update({ status: "in_stock" })
+            .eq("drum_id", drumId);
+
+          if (updateError) {
+            console.error("Error updating drum status:", updateError);
+            return NextResponse.json(
+              { message: "Database error when updating drum status" },
+              { status: 500 }
+            );
+          }
+
+          // Check if status was updated
           console.log("Verifying drum status update...");
 
           const { data: updatedDrum, error: verifyError } = await client
@@ -275,27 +336,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             );
           }
 
-          if (updatedDrum?.status !== "available") {
-            console.error("Failed to update drum status to 'available'");
+          if (updatedDrum?.status !== "in_stock") {
+            console.error("Failed to update drum status to 'in_stock'");
             return NextResponse.json(
               {
                 success: false,
                 data: {
                   drum_id: drumId,
                   old_status: "pending",
-                  message: "Failed to update drum status via database trigger",
+                  message: "Failed to update drum status",
                 },
               },
               { status: 500 }
             );
           }
 
-          // Emit both events with logging
+          // Emit status change event
           console.log("Emitting drumStatus event for drum:", drumId);
-          drumEvents.emit("drumStatus", drumId, "available");
-
-          console.log("Emitting orderUpdate event for order:", orderId);
-          drumEvents.emit("orderUpdate", orderId, drumId, 1);
+          drumEvents.emit("drumStatus", drumId, "in_stock");
 
           console.log("Events emitted successfully");
 
@@ -304,27 +362,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               success: true,
               data: {
                 drum_id: drumId,
-                order_id: orderId,
                 old_status: "pending",
+                new_status: "in_stock",
                 message:
-                  "Import transaction created; DB triggers will finalize updates.",
+                  "Import transaction created and drum status updated to in_stock.",
               },
             },
             { status: 200 }
           );
 
         /* Scanning out of inventory */
-        case "available":
+        case "in_stock":
           console.log("Creating processing transaction for drum:", drumId);
 
+          // Validate drum status is still in_stock
+          const isInStock = await validateDrumStatus(drumId, "in_stock");
+          if (!isInStock) {
+            console.error("Drum status has changed since validation");
+            return NextResponse.json(
+              { message: "Drum status has changed since validation" },
+              { status: 409 }
+            );
+          }
+
           const { error: processError } = await client
-            .from("transactions")
+            .from("log_drum_scan")
             .insert({
-              tx_type: "processing",
-              material: material,
-              tx_date: now,
               drum_id: drumId,
-              tx_notes: "Scanned out of inventory - staged for production",
+              user_id: userId,
+              scan_type: "processing",
+              scan_status: "success",
+              scanned_at: now.toISOString(),
             });
 
           if (processError) {
@@ -340,7 +408,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
           console.log("Created processing transaction");
 
-          // Check if status was updated by trigger
+          // Update the drum status (this would typically be handled by a trigger)
+          const { error: processingUpdateError } = await client
+            .from("stock_drum")
+            .update({ status: "processed" })
+            .eq("drum_id", drumId);
+
+          if (processingUpdateError) {
+            console.error("Error updating drum status:", processingUpdateError);
+            return NextResponse.json(
+              { message: "Database error when updating drum status" },
+              { status: 500 }
+            );
+          }
+
+          // Check if status was updated
           console.log("Verifying drum status update...");
 
           const { data: processedDrum, error: processVerifyError } =
@@ -365,15 +447,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 success: false,
                 data: {
                   drum_id: drumId,
-                  old_status: "available",
-                  message: "Failed to update drum status via database trigger",
+                  old_status: "in_stock",
+                  message: "Failed to update drum status",
                 },
               },
               { status: 500 }
             );
           }
 
-          // Emit status change event for available -> processed transition
+          // Emit status change event for in_stock -> processed transition
           console.log("Emitting drumStatus event for drum:", "#" + drumId);
           drumEvents.emit("drumStatus", drumId, "processed");
 
@@ -382,7 +464,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               success: true,
               data: {
                 drum_id: drumId,
-                old_status: "available",
+                old_status: "in_stock",
                 new_status: "processed",
                 message: "Drum status updated to 'processed'",
               },
@@ -392,6 +474,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         default:
           console.error("Unexpected drum status:", existingDrum.status);
+
+          // Log the scan attempt for an unhandled status
+          const { error: insertError } = await client
+            .from("log_drum_scan")
+            .insert({
+              drum_id: drumId,
+              user_id: userId,
+              scan_type: "error",
+              scan_status: "failed",
+              error_message: `Invalid or unhandled drum status for scanning: ${existingDrum.status}`,
+              scanned_at: now.toISOString(),
+            });
+
+          if (insertError) {
+            console.error("Error logging failed scan:", insertError);
+          }
+
           return NextResponse.json(
             {
               message: `Invalid or unhandled drum status for scanning: ${existingDrum.status}`,
@@ -420,6 +519,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 // 3. Extract the logic for checking the last scan time into a separate function.
 // 4. Extract the logic for looking up the existing drum record into a separate function.
 // 5. Extract the logic for handling the "pending" status into a separate function.
-// 6. Extract the logic for handling the "available" status into a separate function.
+// 6. Extract the logic for handling the "in_stock" status into a separate function.
 // 7. Extract the logic for emitting events into a separate function.
 // 8. Extract the logic for checking if the order is complete into a separate function.

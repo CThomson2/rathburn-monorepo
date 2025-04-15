@@ -17,8 +17,8 @@ export async function GET(request: Request) {
 
   if (redirectTo) {
     // Ensure the redirect path is valid
-    const validRedirectPaths = ["/reset-password", "/inventory/orders/new"];
-    const defaultRedirect = "/inventory/orders/new";
+    const validRedirectPaths = ["/reset-password", "/orders/new"];
+    const defaultRedirect = "/orders/new";
 
     // Check if the redirectTo path is in our valid paths, otherwise use default
     const isValidPath = validRedirectPaths.some((path) =>
@@ -30,5 +30,5 @@ export async function GET(request: Request) {
   }
 
   // Default redirect after sign in/up
-  return NextResponse.redirect(`${origin}/inventory/orders/new`);
+  return NextResponse.redirect(`${origin}/orders/new`);
 }

@@ -27,11 +27,25 @@ export type PrismaBatches = Prisma.BatchPayload;
 // New Supabase-based types that should be used for new development
 // These provide a cleaner way to access table types
 
+type DBObject = "Table" | "View" | "Function";
 /**
  * Type helper for checking if a table exists in the Database type
  */
 type TableExists<T extends string> =
   T extends keyof Database["public"]["Tables"] ? T : never;
+
+/**
+ * Type helper for checking if a view exists in the Database type
+ */
+type ViewExists<T extends string> = T extends keyof Database["public"]["Views"]
+  ? T
+  : never;
+
+/**
+ * Type helper for checking if a function exists in the Database type
+ */
+type FunctionExists<T extends string> =
+  T extends keyof Database["public"]["Functions"] ? T : never;
 
 /**
  * Type helper for getting a table's row type from Supabase
@@ -41,6 +55,15 @@ type TableExists<T extends string> =
  */
 export type TableType<T extends string> =
   T extends TableExists<T> ? Tables<T> : Record<string, any>; // Fallback type for tables that don't exist yet
+
+/**
+ * Type helper for getting a view's row type from Supabase
+ * Safely handles views that might not exist yet during migration
+ * @example
+ * type User = ViewType<'users'>
+ */
+export type ViewType<T extends string> =
+  T extends ViewExists<T> ? Tables<T> : Record<string, any>; // Fallback type for views that don't exist yet
 
 /**
  * Type helper for getting a table's insert data type from Supabase

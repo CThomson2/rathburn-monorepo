@@ -2,10 +2,16 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { ChevronRight } from "lucide-react";
 
-import { getDb } from "@/lib/prisma-client";
+import { executeDbOperation } from "@/lib/database";
 import dynamic from "next/dynamic";
 
 // Dynamically import the client component with no SSR
+// This is necessary because this component likely:
+// 1. Uses browser-specific APIs (like printing functionality)
+// 2. May interact with the DOM directly
+// 3. Could use libraries incompatible with server-side rendering
+// Setting ssr:false ensures the component only loads in the browser,
+// preventing hydration errors or issues with missing browser APIs during SSR
 const StockLabelsGenerator = dynamic(
   () => import("./_components/stock-labels-generator"),
   {
@@ -26,24 +32,52 @@ interface DrumSectionProps {
 }
 
 async function getDrumCounts() {
-  const db = getDb();
-  const result = {
-    drumCount: await db.stock_new.aggregate({
-      _sum: {
-        quantity: true,
-      },
-    }),
-    reproDrumCount: await db.stock_repro.aggregate({
-      _sum: {
-        quantity: true,
-      },
-    }),
-  };
+  return executeDbOperation(async (client) => {
+    try {
+      // Get new drum count
+      const { data: newDrumData, error: newDrumError } = await client
+        .from("stock_new")
+        .select("quantity")
+        .not("quantity", "is", null);
 
-  return {
-    drumCount: result.drumCount._sum.quantity || 0,
-    reproDrumCount: result.reproDrumCount._sum.quantity || 0,
-  };
+      // Get repro drum count
+      const { data: reproDrumData, error: reproDrumError } = await client
+        .from("stock_repro")
+        .select("quantity")
+        .not("quantity", "is", null);
+
+      // Handle any errors
+      if (newDrumError || reproDrumError) {
+        console.error(
+          `Error fetching drum counts: ${newDrumError?.message || reproDrumError?.message}`
+        );
+        return { drumCount: 0, reproDrumCount: 0 };
+      }
+
+      // Calculate totals
+      const drumCount =
+        newDrumData?.reduce(
+          (sum, item) =>
+            sum + (typeof item.quantity === "number" ? item.quantity : 0),
+          0
+        ) || 0;
+
+      const reproDrumCount =
+        reproDrumData?.reduce(
+          (sum, item) =>
+            sum + (typeof item.quantity === "number" ? item.quantity : 0),
+          0
+        ) || 0;
+
+      return {
+        drumCount,
+        reproDrumCount,
+      };
+    } catch (error) {
+      console.error("Failed to get drum counts:", error);
+      return { drumCount: 0, reproDrumCount: 0 };
+    }
+  });
 }
 
 async function DrumSection({
@@ -74,6 +108,17 @@ async function DrumSection({
     </Link>
   );
 }
+/**
+ * The DrumsPage component renders a page with sections for managing different
+ * types of drums, including new drums and repro drums. It also includes a section
+ * for generating drum labels.
+ *
+ * The page fetches the current drum counts from the database and passes them as
+ * props to the `DrumSection` components, which are then used to conditionally
+ * render the sections.
+ *
+ * @returns The DrumsPage component
+ */
 
 export default async function DrumsPage() {
   const { drumCount, reproDrumCount } = await getDrumCounts();

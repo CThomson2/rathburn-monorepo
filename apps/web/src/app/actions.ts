@@ -32,8 +32,8 @@ import { redirect } from "next/navigation";
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
-  const supabase = await createClient();
-  const origin = (await headers()).get("origin");
+  const supabase = createClient();
+  const origin = headers().get("origin");
 
   if (!email || !password) {
     return encodedRedirect(
@@ -71,7 +71,7 @@ export const signUpAction = async (formData: FormData) => {
 export const signInAction = async (formData: FormData) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -93,8 +93,8 @@ export const signInAction = async (formData: FormData) => {
  */
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
-  const supabase = await createClient();
-  const origin = (await headers()).get("origin");
+  const supabase = createClient();
+  const origin = headers().get("origin");
   const callbackUrl = formData.get("callbackUrl")?.toString();
 
   if (!email) {
@@ -131,7 +131,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
  * @returns Redirect with success or error message
  */
 export const resetPasswordAction = async (formData: FormData) => {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
@@ -172,7 +172,7 @@ export const resetPasswordAction = async (formData: FormData) => {
  * @returns Redirect to sign-in page
  */
 export const signOutAction = async () => {
-  const supabase = await createClient();
+  const supabase = createClient();
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };

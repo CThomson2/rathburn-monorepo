@@ -1,6 +1,19 @@
-import { User } from "@/types/api/auth";
-import { prisma } from "@/lib/prisma-client";
+/**
+ * DEPRECATED: This file contains legacy user authentication code that used Prisma.
+ * 
+ * The application now uses Supabase authentication.
+ * 
+ * For auth functionality, use:
+ * - Server-side: Import createClient from "@/lib/supabase/server"
+ * - Client-side: Import useAuth from "@/hooks/use-auth"
+ * 
+ * @see /src/lib/supabase/client-auth.ts - Core client auth functionality
+ * @see /src/hooks/use-auth.ts - React hook for authentication
+ * @see /src/app/actions.ts - Server actions for auth flows
+ */
 
+// This file is kept as a placeholder to document the migration
+// and prevent import errors in case there are references we missed.
 export type UserInput = {
   email: string;
   firstName: string;
@@ -9,312 +22,67 @@ export type UserInput = {
   role?: string;
 };
 
-export type UserWithoutPassword = Omit<User, "password">;
-
+// Empty implementation to avoid runtime errors if this is still referenced
 export const queries = {
-  /**
-   * Gets a user by email or id
-   */
-  getUser: async ({
-    email,
-    id,
-  }: {
-    email?: string;
-    id?: string;
-  } & ({ email: string } | { id: string })): Promise<User | null> => {
-    return withDatabase(async (db) => {
-      const user = email
-        ? await db.users.findUnique({
-            where: { email },
-          })
-        : await db.users.findUnique({
-            where: { id },
-          });
-
-      if (!user) return null;
-
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role as "ADMIN" | "USER",
-        createdAt: user.created_at.getTime(),
-      };
-    });
-  },
-
-  /**
-   * Finds a user by email
-   */
-  findUserByEmail: async ({
-    email,
-  }: {
-    email: string;
-  }): Promise<UserWithoutPassword | null> => {
-    return withDatabase(async (db) => {
-      const user = await db.users.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          role: true,
-          created_at: true,
-          updated_at: true,
-        },
-      });
-
-      if (!user) return null;
-
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role as "ADMIN" | "USER",
-        createdAt: user.created_at.getTime(),
-      };
-    });
-  },
-
-  /**
-   * Finds a user by ID
-   */
-  findUserById: async ({
-    id,
-  }: {
-    id: string;
-  }): Promise<UserWithoutPassword | null> => {
-    return withDatabase(async (db) => {
-      const user = await db.users.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          role: true,
-          created_at: true,
-          updated_at: true,
-        },
-      });
-
-      if (!user) return null;
-
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role as "ADMIN" | "USER",
-        createdAt: user.created_at?.getTime() ?? null,
-      };
-    });
-  },
-
-  /**
-   * Finds a user with password by email
-   */
-  findUserWithPasswordByEmail: async (
-    email: string
-  ): Promise<{
-    id: string;
-    email: string;
-    password_hash: string;
-    role: string;
-  } | null> => {
-    return withDatabase(async (db) => {
-      const user = await db.users.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          email: true,
-          password_hash: true,
-          role: true,
-        },
-      });
-
-      if (!user) return null;
-
-      return {
-        id: user.id,
-        email: user.email,
-        password_hash: user.password_hash,
-        role: user.role,
-      };
-    });
-  },
-
-  /**
-   * Creates a new user
-   */
-  createUser: async (userData: UserInput): Promise<UserWithoutPassword> => {
-    return withDatabase(async (db) => {
-      const user = await db.users.create({
-        data: {
-          email: userData.email,
-          first_name: userData.firstName,
-          last_name: userData.lastName,
-          password_hash: userData.passwordHash,
-          role: userData.role || "USER",
-        },
-        select: {
-          id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          role: true,
-          created_at: true,
-        },
-      });
-
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role as "ADMIN" | "USER",
-        createdAt: user.created_at.getTime(),
-      };
-    });
-  },
-
-  /**
-   * Counts total users
-   */
-  getUserCount: async (): Promise<number> => {
-    return withDatabase(async (db) => {
-      return db.users.count();
-    });
-  },
-
-  /**
-   * Creates a new session
-   */
-  createSession: async (
-    userId: string,
-    token: string,
-    userAgent?: string,
-    ipAddress?: string
-  ): Promise<void> => {
-    return withDatabase(async (db) => {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-
-      await db.sessions.create({
-        data: {
-          user_id: userId,
-          token,
-          expires_at: expiresAt,
-          user_agent: userAgent,
-          ip_address: ipAddress,
-        },
-      });
-    });
-  },
-
-  /**
-   * Invalidates a session by token
-   */
-  invalidateSession: async (token: string): Promise<void> => {
-    return withDatabase(async (db) => {
-      await db.sessions.deleteMany({
-        where: { token },
-      });
-    });
-  },
-
-  /**
-   * Finds a session by token
-   */
-  findSessionByToken: async (
-    token: string
-  ): Promise<{ user_id: string; expires_at: Date } | null> => {
-    return withDatabase(async (db) => {
-      const session = await db.sessions.findFirst({
-        where: {
-          token,
-          expires_at: { gt: new Date() }, // Only return non-expired sessions
-        },
-        select: {
-          user_id: true,
-          expires_at: true,
-        },
-      });
-
-      return session;
-    });
-  },
-
-  /**
-   * Cleans up expired sessions
-   */
-  cleanupExpiredSessions: async (): Promise<number> => {
-    return withDatabase(async (db) => {
-      const result = await db.sessions.deleteMany({
-        where: {
-          expires_at: { lt: new Date() },
-        },
-      });
-
-      return result.count;
-    });
-  },
+  getUser: async () => null,
+  findUserByEmail: async () => null,
+  findUserById: async () => null,
+  findUserWithPasswordByEmail: async () => null,
+  createUser: async () => ({ 
+    id: "", 
+    email: "", 
+    firstName: "", 
+    lastName: "", 
+    role: "USER", 
+    createdAt: Date.now() 
+  }),
+  getUserCount: async () => 0,
+  createSession: async () => {},
+  invalidateSession: async () => {},
+  findSessionByToken: async () => null,
+  cleanupExpiredSessions: async () => 0,
 };
 
-// Export functions that use the queries
-export async function findUserByEmail(
-  email: string
-): Promise<UserWithoutPassword | null> {
-  return queries.findUserByEmail({ email });
+// Export empty functions that use the queries
+export async function findUserByEmail() {
+  return null;
 }
 
-export async function findUserById(
-  id: string
-): Promise<UserWithoutPassword | null> {
-  return queries.findUserById({ id });
+export async function findUserById() {
+  return null;
 }
 
-export async function findUserWithPasswordByEmail(email: string): Promise<{
-  id: string;
-  email: string;
-  password_hash: string;
-  role: string;
-} | null> {
-  return queries.findUserWithPasswordByEmail(email);
+export async function findUserWithPasswordByEmail() {
+  return null;
 }
 
-export async function createUser(
-  userData: UserInput
-): Promise<UserWithoutPassword> {
-  return queries.createUser(userData);
+export async function createUser() {
+  return { 
+    id: "", 
+    email: "", 
+    firstName: "", 
+    lastName: "", 
+    role: "USER", 
+    createdAt: Date.now() 
+  };
 }
 
-export async function getUserCount(): Promise<number> {
-  return queries.getUserCount();
+export async function getUserCount() {
+  return 0;
 }
 
-export async function createSession(
-  userId: string,
-  token: string,
-  userAgent?: string,
-  ipAddress?: string
-): Promise<void> {
-  return queries.createSession(userId, token, userAgent, ipAddress);
+export async function createSession() {
+  return;
 }
 
-export async function invalidateSession(token: string): Promise<void> {
-  return queries.invalidateSession(token);
+export async function invalidateSession() {
+  return;
 }
 
-export async function findSessionByToken(
-  token: string
-): Promise<{ user_id: string; expires_at: Date } | null> {
-  return queries.findSessionByToken(token);
+export async function findSessionByToken() {
+  return null;
 }
 
-export async function cleanupExpiredSessions(): Promise<number> {
-  return queries.cleanupExpiredSessions();
+export async function cleanupExpiredSessions() {
+  return 0;
 }

@@ -52,7 +52,8 @@ export default function RootLayout({
         className={cn(
           inter.className,
           alfaSlabOne.variable,
-          isAuth ? "overflow-hidden" : "overflow-auto"
+          isAuth ? "overflow-hidden" : "overflow-auto",
+          "antialiased bg-background text-foreground"
         )}
       >
         <Providers>

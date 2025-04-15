@@ -9,10 +9,11 @@ export const dynamic = "force-dynamic";
  * /api/dashboard/inventory-categories
  * This endpoint returns counts of stock drums grouped by chemical_group
  * from raw_materials table.
+ * TODO: Relocate this API route, and try to combine it in another API route for better organisation (use query params or request body)
  */
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
 
     // Direct query using raw SQL for more control
     const { data, error } = await supabase.rpc(
