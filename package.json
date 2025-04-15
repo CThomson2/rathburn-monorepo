@@ -5,6 +5,8 @@
     "build": "turbo run build",
     "build:web": "turbo run build --filter=@rathburn/web",
     "start:web": "turbo run start --filter=@rathburn/web",
+    "build:mobile": "turbo run build --filter=@rathburn/mobile",
+    "start:mobile": "turbo run start --filter=@rathburn/mobile",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
