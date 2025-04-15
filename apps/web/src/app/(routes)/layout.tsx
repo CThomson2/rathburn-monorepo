@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import DashboardLayout from "@/components/desktop/layout/dashboard-layout";
 
 import "@/styles/globals.css";
 
@@ -16,9 +15,5 @@ export default function RoutesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div>
-      <DashboardLayout>{children}</DashboardLayout>
-    </div>
-  );
+  return <>{children}</>;
 }

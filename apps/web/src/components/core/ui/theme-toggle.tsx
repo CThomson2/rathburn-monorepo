@@ -12,6 +12,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/core/ui/dropdown-menu";
 
+/**
+ * ThemeToggle Component
+ *
+ * This component provides a dropdown menu for toggling between light, dark, and system themes.
+ * It uses the `useTheme` hook from `next-themes` to access and modify the current theme.
+ * The component displays a button with sun and moon icons that animate based on the active theme.
+ * When the button is clicked, a dropdown menu appears with options to select the desired theme.
+ *
+ * The available themes are:
+ * - Light: Sets the theme to light mode.
+ * - Dark: Sets the theme to dark mode.
+ * - System: Follows the system's theme preference.
+ *
+ * Accessibility: The button includes a screen reader-only label "Toggle theme" for accessibility.
+ */
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 

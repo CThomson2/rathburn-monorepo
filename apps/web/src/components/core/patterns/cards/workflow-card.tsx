@@ -29,6 +29,19 @@ const roleColors = {
   all: "bg-green-100 text-green-800 border-green-200",
 };
 
+/**
+ * A component that renders a workflow card with a title, description, icon, and role-based styling.
+ * It displays a badge indicating the role, and optionally a lock icon if access is restricted.
+ * The card is clickable and links to a specified path.
+ *
+ * @param {string} title - The title of the workflow.
+ * @param {string} description - A brief description of the workflow.
+ * @param {React.ReactNode} icon - An icon representing the workflow.
+ * @param {WorkflowRole} role - The role associated with the workflow (e.g., admin, operator).
+ * @param {React.ReactNode} [roleIcon] - An optional icon representing the role.
+ * @param {string} path - The URL path to navigate to when the card is clicked.
+ * @param {boolean} [restricted=false] - Flag indicating if the workflow is restricted.
+ */
 export function WorkflowCard({
   title,
   description,

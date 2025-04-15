@@ -28,13 +28,19 @@ export function DatabaseBtn({
       variant="ghost"
       size="sm"
       asChild
-      className={cn("group gap-2 hover:bg-transparent", className)}
+      className={cn(
+        "group hover:bg-transparent dark:hover:bg-transparent overflow-hidden transition-all duration-300 ease-in-out",
+        className
+      )}
     >
-      <Link href={`${databasePath}`} target="_blank">
-        <Database className="h-4 w-4 transition-transform group-hover:scale-110" />
-        <span className="relative">
-          Database
-          <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-foreground transition-all duration-300 group-hover:w-full" />
+      <Link
+        href={`${databasePath}`}
+        target="_blank"
+        className="flex items-center justify-center group-hover:justify-between gap-2 w-full px-3 transition-all duration-300 ease-in-out"
+      >
+        <Database className="h-4 w-4 text-foreground dark:text-slate-200 transition-transform group-hover:scale-110" />
+        <span className="w-0 opacity-0 group-hover:w-auto group-hover:opacity-100 text-foreground dark:text-slate-200 transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden">
+          DATABASE
         </span>
       </Link>
     </Button>

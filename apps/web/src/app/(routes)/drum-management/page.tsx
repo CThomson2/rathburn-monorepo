@@ -10,7 +10,6 @@ import {
   Calendar,
   AlertCircle,
 } from "lucide-react";
-import DashboardLayout from "@/components/desktop/layout/dashboard-layout";
 import { Button } from "@/components/core/ui/button";
 import { Input } from "@/components/core/ui/input";
 import {
@@ -126,207 +125,202 @@ export default function DrumManagementPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="p-4 md:p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Drum Management</h1>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsFilterOpen(true)}>
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-            <Button>
-              <Calendar className="h-4 w-4 mr-2" />
-              Schedule
-            </Button>
+    <div className="p-4 md:p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Drum Management</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsFilterOpen(true)}>
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+          <Button>
+            <Calendar className="h-4 w-4 mr-2" />
+            Schedule
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm mb-6">
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Search drums by ID, material, supplier..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="p-4 border-b">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search drums by ID, material, supplier..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
+        {isLoading ? (
+          <div className="p-12 text-center">Loading drums...</div>
+        ) : error ? (
+          <div className="p-12 text-center text-red-500 flex flex-col items-center">
+            <AlertCircle className="h-10 w-10 mb-2" />
+            <p>Error loading drums. Please try again later.</p>
           </div>
-
-          {isLoading ? (
-            <div className="p-12 text-center">Loading drums...</div>
-          ) : error ? (
-            <div className="p-12 text-center text-red-500 flex flex-col items-center">
-              <AlertCircle className="h-10 w-10 mb-2" />
-              <p>Error loading drums. Please try again later.</p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Drum ID</TableHead>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Batch Code</TableHead>
-                      <TableHead>Fill Level (L)</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedDrums.map((drum) => (
-                      <TableRow
-                        key={drum.id}
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleRowClick(drum)}
-                      >
-                        <TableCell className="font-medium">{drum.id}</TableCell>
-                        <TableCell>{drum.material}</TableCell>
-                        <TableCell>{drum.supplier}</TableCell>
-                        <TableCell>{drum.batch_code}</TableCell>
-                        <TableCell>{drum.fill_level} L</TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              statusColors[drum.status as string] ||
-                              "bg-gray-100"
-                            }
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Drum ID</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Batch Code</TableHead>
+                    <TableHead>Fill Level (L)</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedDrums.map((drum) => (
+                    <TableRow
+                      key={drum.id}
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleRowClick(drum)}
+                    >
+                      <TableCell className="font-medium">{drum.id}</TableCell>
+                      <TableCell>{drum.material}</TableCell>
+                      <TableCell>{drum.supplier}</TableCell>
+                      <TableCell>{drum.batch_code}</TableCell>
+                      <TableCell>{drum.fill_level} L</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            statusColors[drum.status as string] || "bg-gray-100"
+                          }
+                        >
+                          {drum.status.replace("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(drum.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadLabel(drum.id);
+                            }}
                           >
-                            {drum.status.replace("_", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(drum.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadLabel(drum.id);
-                              }}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48" align="end">
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start"
+                                  size="sm"
+                                >
+                                  Mark as Lost
                                 </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-48" align="end">
-                                <div className="flex flex-col gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    className="justify-start"
-                                    size="sm"
-                                  >
-                                    Mark as Lost
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    className="justify-start"
-                                    size="sm"
-                                  >
-                                    Decommission
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    className="justify-start"
-                                    size="sm"
-                                  >
-                                    Transfer Contents
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    className="justify-start"
-                                    size="sm"
-                                  >
-                                    Request Info
-                                  </Button>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start"
+                                  size="sm"
+                                >
+                                  Decommission
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start"
+                                  size="sm"
+                                >
+                                  Transfer Contents
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start"
+                                  size="sm"
+                                >
+                                  Request Info
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-              <div className="p-4 border-t">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() =>
-                          handlePageChange(Math.max(1, currentPage - 1))
-                        }
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-
-                    {Array.from({ length: Math.min(5, totalPages) }).map(
-                      (_, i) => {
-                        // Display a window of 5 pages centered on current page
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-
-                        return (
-                          <PaginationItem key={i}>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pageNum)}
-                              isActive={currentPage === pageNum}
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
+            <div className="p-4 border-t">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() =>
+                        handlePageChange(Math.max(1, currentPage - 1))
                       }
-                    )}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
 
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() =>
-                          handlePageChange(
-                            Math.min(totalPages, currentPage + 1)
-                          )
-                        }
-                        className={
-                          currentPage === totalPages
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </>
-          )}
-        </div>
+                  {Array.from({ length: Math.min(5, totalPages) }).map(
+                    (_, i) => {
+                      // Display a window of 5 pages centered on current page
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <PaginationItem key={i}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={currentPage === pageNum}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                  )}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() =>
+                        handlePageChange(Math.min(totalPages, currentPage + 1))
+                      }
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Drum Details Modal */}
@@ -343,6 +337,6 @@ export default function DrumManagementPage() {
         open={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
       />
-    </DashboardLayout>
+    </div>
   );
 }

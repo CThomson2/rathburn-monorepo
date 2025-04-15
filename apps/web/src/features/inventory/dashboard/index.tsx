@@ -20,6 +20,16 @@ import { selectFromTable } from "@/lib/database";
 import { ViewType } from "@/types/models/base";
 import { DrumInventory } from "../types";
 
+/**
+ * ChemicalInventoryDashboard is a React component that renders an interactive
+ * dashboard for managing chemical solvent inventory. It fetches data from
+ * a database, allows searching, sorting, and filtering of inventory items,
+ * and displays a bar chart visualization of the stock levels. The component
+ * also provides summary statistics and handles loading and error states.
+ * Users can view detailed information about individual inventory items
+ * through a conditional detail panel.
+ */
+
 export default function ChemicalInventoryDashboard() {
   const [inventory, setInventory] = useState<DrumInventory[]>([]);
   const [filteredInventory, setFilteredInventory] = useState<DrumInventory[]>(
@@ -50,6 +60,10 @@ export default function ChemicalInventoryDashboard() {
   ).length;
 
   useEffect(() => {
+    /**
+     * Fetches inventory data from the database, transforms it for visualization,
+     * and sets component state accordingly. Handles loading and error states.
+     */
     async function fetchInventory() {
       try {
         setLoading(true);
@@ -255,13 +269,16 @@ export default function ChemicalInventoryDashboard() {
             No matching inventory items found.
           </div>
         ) : (
-          <div className="h-[75vh]">
+          <div className="h-[200vh]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 layout="vertical"
                 data={filteredInventory}
                 margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                 barSize={15}
+                onClick={(data) =>
+                  data && handleBarClick(data.activePayload?.[0]?.payload)
+                }
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
@@ -310,6 +327,7 @@ export default function ChemicalInventoryDashboard() {
                   fill="#3b82f6"
                   name="New Drums"
                   onClick={(data: DrumInventory) => handleBarClick(data)}
+                  minPointSize={1}
                 />
                 <Bar
                   dataKey="reproStock"
@@ -317,6 +335,7 @@ export default function ChemicalInventoryDashboard() {
                   fill="#10b981"
                   name="Repro Drums"
                   onClick={(data: DrumInventory) => handleBarClick(data)}
+                  minPointSize={1}
                 />
               </BarChart>
             </ResponsiveContainer>
