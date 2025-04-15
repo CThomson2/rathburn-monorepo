@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma-client";
+import { executeDbOperation } from "@/lib/database";
 
 // Force dynamic rendering and no caching for this database-dependent route
 export const dynamic = "force-dynamic";
@@ -12,26 +12,25 @@ export async function GET() {
   let testQueryResult = "Query not executed";
   let connectionSuccess = false;
 
-  try {
-    // Test database connection
-    try {
-      const test = await prisma.$queryRaw<{ test: number }[]>`
-        SELECT MAX(product_id) as test
-        FROM public.products
-    `;
-      testQueryResult = `Test query result: ${test[0]?.test ?? "N/A"}`;
-      connectionSuccess = true;
-      console.log(testQueryResult);
-    } catch (error) {
-      console.error("Database connection error:", error);
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      testQueryResult = `Error: ${error.message}`;
-    } else {
-      testQueryResult = "An unknown error occurred";
-    }
-  }
+  // try {
+  //   // Test database connection
+  //   try {
+  //     const test = await executeDbOperation<{ test: number }[]>(async (client) => {
+  //       return await client.from("ref_product").select("MAX(product_id) as test");
+  //     });
+  //     testQueryResult = `Test query result: ${test[0]?.test ?? "N/A"}`;
+  //     connectionSuccess = true;
+  //     console.log(testQueryResult);
+  //   } catch (error) {
+  //     console.error("Database connection error:", error);
+  //   }
+  // } catch (error) {
+  //   if (error instanceof Error) {
+  //     testQueryResult = `Error: ${error.message}`;
+  //   } else {
+  //     testQueryResult = "An unknown error occurred";
+  //   }
+  // }
 
   // Only include non-sensitive environment variables
   const envVariables = {
