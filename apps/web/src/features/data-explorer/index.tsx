@@ -21,61 +21,55 @@ import {
   AlertTitle,
 } from "@/components/core/ui/alert";
 
-// Development feature flag
-const isDevelopment = process.env.NODE_ENV === "development";
+// Feature flag - enable in all environments unless explicitly disabled
+const isFeatureEnabled = process.env.EXCLUDE_DATA_EXPLORER !== "true";
 
 type ViewMode = "spreadsheet" | "query-builder";
 
 // Dynamic imports with error handling
-const SpreadsheetView = isDevelopment
-  ? dynamic(
-      () =>
-        import("./components/spreadsheet-view").catch(() => () => (
+const SpreadsheetView = dynamic(
+  () =>
+    import("./components/spreadsheet-view")
+      .then((mod) => mod.default)
+      .catch(() => {
+        return () => (
           <FallbackComponent
             title="Spreadsheet View Unavailable"
             message="This feature is currently being built and may not work correctly."
           />
-        )),
-      {
-        loading: () => (
-          <div className="flex items-center justify-center p-8">
-            Loading spreadsheet view...
-          </div>
-        ),
-        ssr: false,
-      }
-    )
-  : () => (
-      <FallbackComponent
-        title="Feature Unavailable"
-        message="This feature is only available in development mode."
-      />
-    );
+        );
+      }),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        Loading spreadsheet view...
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
-const QueryBuilderView = isDevelopment
-  ? dynamic(
-      () =>
-        import("./components/query-builder-view").catch(() => () => (
+const QueryBuilderView = dynamic(
+  () =>
+    import("./components/query-builder-view")
+      .then((mod) => mod.default)
+      .catch(() => {
+        return () => (
           <FallbackComponent
             title="Query Builder Unavailable"
             message="This feature is currently being built and may not work correctly."
           />
-        )),
-      {
-        loading: () => (
-          <div className="flex items-center justify-center p-8">
-            Loading query builder...
-          </div>
-        ),
-        ssr: false,
-      }
-    )
-  : () => (
-      <FallbackComponent
-        title="Feature Unavailable"
-        message="This feature is only available in development mode."
-      />
-    );
+        );
+      }),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        Loading query builder...
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 // Fallback component for when imports fail
 function FallbackComponent({
@@ -94,9 +88,19 @@ function FallbackComponent({
   );
 }
 
-export default function DataExplorerPage() {
-  // If not in development mode, show a message that the feature is only available in development
-  if (!isDevelopment) {
+/**
+ * Page component for the data explorer feature.
+ *
+ * If the feature is disabled, show a message.
+ * Otherwise, render a tabbed interface with two views:
+ * - Spreadsheet View: a table with data from the database.
+ * - Query Builder: an interactive query builder.
+ *
+ * @returns JSX.Element
+ */
+function DataExplorerPage() {
+  // If feature is disabled, show a message
+  if (!isFeatureEnabled) {
     return (
       <div className="flex flex-col gap-6">
         <div className="flex justify-between items-center">
@@ -109,9 +113,10 @@ export default function DataExplorerPage() {
         </div>
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Development Feature</AlertTitle>
+          <AlertTitle>Feature Disabled</AlertTitle>
           <AlertDescription>
-            This feature is currently only available in development mode.
+            This feature is currently disabled. Please check your environment
+            configuration.
           </AlertDescription>
         </Alert>
       </div>
@@ -177,3 +182,5 @@ export default function DataExplorerPage() {
     </div>
   );
 }
+
+export default DataExplorerPage;

@@ -23,25 +23,26 @@ const nextConfig = {
 
     // Check if we need to exclude data explorer components
     // Can be controlled via environment variable
+    // if (process.env.EXCLUDE_DATA_EXPLORER === "true") {
+    //   // Add null-loader for the problematic components
+    //   config.module.rules.push({
+    //     test: /\/(query-builder-view|spreadsheet-view)\.tsx$/,
+    //     loader: "null-loader",
+    //   });
+    // }
+
+    // Only exclude data-explorer if environment variable is set
     if (process.env.EXCLUDE_DATA_EXPLORER === "true") {
-      // Add null-loader for the problematic components
-      config.module.rules.push({
-        test: /\/(query-builder-view|spreadsheet-view)\.tsx$/,
-        loader: "null-loader",
-      });
+      // config.module.rules.push({
+      //   test: /features\/data-explorer\/.*\.tsx$/,
+      //   loader: "null-loader",
+      // });
+      // // Also exclude the shared query-builder component if data-explorer is excluded
+      // config.module.rules.push({
+      //   test: /components\/shared\/query-builder\.tsx$/,
+      //   loader: "null-loader",
+      // });
     }
-
-    // Always exclude data-explorer feature regardless of environment variable
-    config.module.rules.push({
-      test: /features\/data-explorer\/.*\.tsx$/,
-      loader: "null-loader",
-    });
-
-    // Also exclude the shared query-builder component if it's only used by data-explorer
-    config.module.rules.push({
-      test: /components\/shared\/query-builder\.tsx$/,
-      loader: "null-loader",
-    });
 
     // Exclude drums page and components
     config.module.rules.push({
@@ -61,25 +62,19 @@ const nextConfig = {
     //   loader: "null-loader",
     // });
 
-    // Exclude problematic API route causing build errors
-    config.module.rules.push({
-      test: /api\/materials\/groups\/route\.ts$/,
-      loader: "null-loader",
-    });
-
     return config;
   },
   // Exclude specific paths from the build
   // distDir: "build",
   // Create a custom .nextignore file at project root to exclude paths
-  eslint: {
-    // Add custom dirs to exclude from linting
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // You can ignore type checking errors during production builds
-    ignoreBuildErrors: true,
-  },
+  // eslint: {
+  //   // Add custom dirs to exclude from linting
+  //   ignoreDuringBuilds: true,
+  // },
+  // typescript: {
+  //   // You can ignore type checking errors during production builds
+  //   ignoreBuildErrors: true,
+  // },
   // Ignore specific paths during build
   poweredByHeader: false,
   transpilePackages: [],

@@ -225,7 +225,7 @@ const SQLQueryBuilder: React.FC = () => {
     value: string
   ) => {
     const newConditions = [...whereConditions];
-    if (!index || !newConditions[index]) return;
+    if (index < 0 || index >= newConditions.length) return;
     newConditions[index] = {
       ...newConditions[index],
       [field]: value as string,

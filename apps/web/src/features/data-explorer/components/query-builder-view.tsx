@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/core/ui/button";
 import { Input } from "@/components/core/ui/input";
 import { Checkbox } from "@/components/core/ui/checkbox";
@@ -163,7 +163,8 @@ export default function QueryBuilderView() {
   const exportResultsToCSV = () => {
     if (queryResults.length === 0) return;
 
-    const columns = getSelectedColumns();
+    const columns = getSelectedColumns ? getSelectedColumns() : [];
+    if (!columns || columns.length === 0) return;
 
     // Create CSV content
     const headers = columns.join(",");
@@ -193,17 +194,14 @@ export default function QueryBuilderView() {
       setError(null);
 
       // Get the list of selected columns
-      const selectedColumns = getSelectedColumns();
+      const selectedColumns = getSelectedColumns ? getSelectedColumns() : [];
 
-      if (selectedColumns.length === 0) {
+      if (!selectedColumns || selectedColumns.length === 0) {
         setError(new Error("Please select at least one column"));
         return;
       }
 
-      const supabase = createBrowserClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      const supabase = createClient();
 
       // Use the buildQuery utility from tables
       const query = buildQuery(selectedTable, {
@@ -616,7 +614,7 @@ export default function QueryBuilderView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {getSelectedColumns().map((column) => (
+                    {(getSelectedColumns ? getSelectedColumns() : []).map((column) => (
                       <TableHead key={column} className="whitespace-nowrap">
                         {column}
                       </TableHead>
@@ -627,7 +625,7 @@ export default function QueryBuilderView() {
                   {queryResults.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={getSelectedColumns().length}
+                        colSpan={(getSelectedColumns ? getSelectedColumns() : []).length}
                         className="text-center py-8"
                       >
                         No results found
@@ -636,7 +634,7 @@ export default function QueryBuilderView() {
                   ) : (
                     queryResults.map((row, rowIndex) => (
                       <TableRow key={rowIndex}>
-                        {getSelectedColumns().map((column) => (
+                        {(getSelectedColumns ? getSelectedColumns() : []).map((column) => (
                           <TableCell key={column} className="whitespace-nowrap">
                             {row[column]?.toString() || ""}
                           </TableCell>

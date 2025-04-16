@@ -81,11 +81,11 @@ export default function SpreadsheetView() {
 
     // Create filter conditions for search query
     const getFilterConditions = (): FilterCondition[] => {
-      if (!searchQuery.trim()) return [];
+      if (!searchQuery.trim() || !columns || columns.length === 0) return [];
 
       // Create a filter condition for each column
       return columns
-        .filter((col) => col.selected)
+        .filter((col) => col && col.selected)
         .map((col, index) => ({
           id: `search-${index}`,
           column: col.name,
@@ -114,8 +114,14 @@ export default function SpreadsheetView() {
           setError(null);
 
           // Get the selected column names
+          if (!columns || columns.length === 0) {
+            setData([]);
+            setTotalRows(0);
+            return;
+          }
+          
           const selectedColumns = columns
-            .filter((col) => col.selected)
+            .filter((col) => col && col.selected)
             .map((col) => col.name)
             .join(", ");
 
@@ -133,9 +139,9 @@ export default function SpreadsheetView() {
 
           // Use the centralized buildQuery utility
           let query = buildQuery(selectedTable, {
-            columns: columns
-              .filter((col) => col.selected)
-              .map((col) => col.name),
+            columns: columns && columns.length > 0
+              ? columns.filter((col) => col && col.selected).map((col) => col.name)
+              : [],
             filters: filters.length === 1 ? filters : undefined,
             sorts: sorts,
             pagination: {
@@ -216,9 +222,9 @@ export default function SpreadsheetView() {
     const totalPages = Math.ceil(totalRows / pageSize);
 
     // Get visible column names
-    const visibleColumns = columns
-      .filter((col) => col.selected)
-      .map((col) => col.name);
+    const visibleColumns = columns && columns.length > 0
+      ? columns.filter((col) => col && col.selected).map((col) => col.name)
+      : [];
 
     return (
       <div className="flex flex-col gap-4">

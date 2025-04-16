@@ -10,8 +10,9 @@ import {
 
 // Dynamically import the DataExplorerPage component with error handling in a client component
 const DataExplorerPage = dynamic(
-  () =>
-    import("@/features/data-explorer").catch(() => () => (
+  () => import("@/features/data-explorer").then(mod => mod.default).catch((error) => {
+    console.error("Error loading Data Explorer:", error);
+    return () => (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Data Explorer Unavailable</AlertTitle>
@@ -20,7 +21,8 @@ const DataExplorerPage = dynamic(
           Please check back later.
         </AlertDescription>
       </Alert>
-    )),
+    );
+  }),
   {
     loading: () => (
       <div className="p-8 text-center">Loading Data Explorer...</div>
