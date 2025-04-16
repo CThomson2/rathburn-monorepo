@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
+# Rathburn Documentation Portal
+
+A centralized documentation site for the Rathburn Ops monorepo, built with [Docusaurus](https://docusaurus.io/).
+
+## Project Overview
+
+This project aims to organize scattered markdown documentation from across the monorepo into a structured, browsable web interface using Docusaurus and a custom file tree navigation component.
+
+## Features
+
+- **Centralized Documentation**: Consolidates all documentation from the monorepo in one place
+- **File Tree Navigation**: Intuitive file tree interface for browsing documentation
+- **Categorized Content**: Documents organized by type (user guides, development, architecture, deployment)
+- **Search Functionality**: Full-text search across all documentation
+- **Responsive Design**: Mobile-friendly interface
+
+## Development Roadmap
+
+### Phase 1: Setup & Configuration (Completed)
+
+- [x] Initialize Docusaurus project
+- [x] Configure project settings
+- [x] Implement Tailwind CSS integration
+- [x] Implement file tree component
+- [x] Create script to find markdown files
+
+### Phase 2: Content Migration (In Progress)
+
+- [ ] Scan monorepo for markdown files
+- [ ] Categorize documentation
+- [ ] Create logical folder structure
+- [ ] Migrate content with proper front matter
+- [ ] Create landing pages for each category
+
+### Phase 3: UI Refinement
+
+- [ ] Enhance file tree styling and functionality
+- [ ] Implement light/dark mode
+- [ ] Improve responsive design
+- [ ] Add search functionality
+- [ ] Create custom theme that aligns with Rathburn branding
+
+### Phase 4: Integration & Deployment
+
+- [ ] Setup CI/CD pipeline
+- [ ] Configure automatic documentation updates
+- [ ] Set up versioning
+- [ ] Deploy to production environment
+
+## File Organization Structure
+
+```
+docs/
+├── user-guides/    # End-user documentation
+├── development/    # Developer documentation
+│   ├── components/ # Component documentation
+│   ├── api/        # API documentation
+│   └── hooks/      # Hooks documentation
+├── architecture/   # System architecture documentation
+└── deployment/     # Deployment and infrastructure documentation
+```
 
 ## Getting Started
 
-First, run the development server:
+### Installation
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+$ cd apps/docs
+$ npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Local Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+$ npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load Inter, a custom Google Font.
+This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
-## Learn More
+### Build
 
-To learn more about Next.js, take a look at the following resources:
+```
+$ npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Documentation Migration
 
-## Deploy on Vercel
+A utility script is provided to help find and organize markdown files from the monorepo:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+$ node scripts/find-markdown.js
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This script:
+
+1. Finds all markdown files in the monorepo
+2. Categorizes them based on content and location
+3. Creates appropriate documentation directories
+4. Prepares files for copying (when enabled)
+
+To actually copy the files, uncomment the `copyFiles(categorized)` line in the script.
+
+## Contributing
+
+Guidelines for contributing to the documentation:
+
+1. Place new documentation in the appropriate category folder
+2. Use front matter to specify title and sidebar label
+3. Follow markdown best practices
+4. Include links to related documentation when relevant
+
+## License
+
+This project is licensed under the terms of the MIT license.
