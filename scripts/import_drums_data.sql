@@ -614,6 +614,7 @@ COMMIT;
 -- WARNING: The following old_id values appear multiple times in the data:
 -- 20F03FB, 20M16FA, R1234, R3190, R3253, R3273, R3294, R3354, R3375, R3387, R3388, R3392, R3423, R3436, R3443, R3448, R3477, R3478, R3481, R3511, R3529, R3534, R3535, R3559, R3571, R3573, R3608, R3624, R3638, R3648, R3794, R3797, R3831, R3845, R3848, R3854, R3866, R3898, R3899, R3935
 -- You may want to resolve these duplicates manually.
+-- Do not attempt to handle business data manually - use scripts to update the data.
 
 -- NOTE: Some rows had missing values that were defaulted:
 -- * 50 rows had no site (defaulted to 'new')
