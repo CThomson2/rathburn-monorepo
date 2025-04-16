@@ -40,7 +40,18 @@ export interface DrumInventory {
   threshold: number;
   total: number; // calculated from newStock + reproStock
   category: string; // maps to ch_group
+  groupColour: {
+    new: string;
+    repro: string;
+  };
 }
+
+// export interface DrumInventoryWithColour extends DrumInventory {
+//   groupColour: {
+//     new: string;
+//     repro: string;
+//   };
+// }
 
 /**
  * DrumStock table will combine properties from PrismaNewDrums and PrismaOrders

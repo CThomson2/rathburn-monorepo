@@ -19,7 +19,7 @@ import {
 // import { CountdownTimer } from "@/features/countdown-timer";
 // import DashboardLayout from "@/components/desktop/layout/dashboard-layout";
 // import { BarcodeGenerator } from "@/features/dashboards/inventory/components/barcode-generator";
-import ChemicalInventoryDashboard from "@/features/inventory/dashboard";
+// ChemicalInventoryDashboard is now moved to SSR implementation
 
 // Metadata needs to be defined in a separate layout or specific metadata file for client components
 // as they cannot use the metadata export directly
@@ -146,7 +146,7 @@ export default function HomePage() {
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-6">
             Workflow Dashboard
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {workflowCards.map((card, index) => (
               <WorkflowCard
                 key={index}
@@ -163,7 +163,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <ChemicalInventoryDashboard />
+      {/* Chemical Inventory Dashboard is now rendered with SSR in /inventory-dashboard page */}
     </div>
   );
 }

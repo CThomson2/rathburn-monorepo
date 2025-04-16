@@ -158,8 +158,8 @@ jobs:
             # Set environment variables
             echo "Setting environment variables..."
             cat > deploy-latest/.env <<EOF
-            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
             SMTP_API_KEY=${{ secrets.SMTP_API_KEY }}
