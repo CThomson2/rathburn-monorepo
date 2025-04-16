@@ -89,7 +89,7 @@ jobs:
             Host github.com
               HostName github.com
               User git
-              IdentityFile ~/.ssh/github_deploy_key
+              IdentityFile ~/.ssh/git/rathburn-monorepo/deploy_key
               IdentitiesOnly yes
             EOF
             # Add GitHub to known hosts to avoid prompts
@@ -106,71 +106,25 @@ jobs:
           port: 22
           command_timeout: "20m"
           script: |
-            # Create deployment directory
-            mkdir -p /home/ec2-user/app
-            echo "Deployment directory created"
-
-      # Copy the deployment package to EC2
-      - name: Copy deployment package to EC2
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.RB_EC2_KEY }}
-          port: 22
-          source: "apps/web/deploy/deploy-*.zip"
-          target: "/home/ec2-user/app"
-          overwrite: true
-
-      # Extract and run the application on EC2
-      - name: Extract and run application
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.RB_EC2_KEY }}
-          port: 22
-          command_timeout: "10m"
-          script: |
             # Navigate to app directory
-            cd /home/ec2-user/app
+            cd /home/ec2-user/rathburn-monorepo
 
-            # Get the latest deployment package
-            LATEST_PACKAGE=$(ls -t deploy-*.zip | head -1)
-            echo "Latest deployment package: $LATEST_PACKAGE"
+            # Pull latest changes from main branch
+            # Using empty string for passphrase
+            echo "" | git pull origin main
 
-            # Stop the running application if it exists
-            echo "Stopping any running application..."
-            pm2 stop nextjs-app || true
+            # Install dependencies
+            pnpm install
 
-            # Create a clean deployment directory
-            echo "Preparing deployment directory..."
-            rm -rf deploy-latest
-            mkdir -p deploy-latest
+            # Build the app
+            pnpm build:web
 
-            # Extract the deployment package
-            echo "Extracting deployment package..."
-            unzip -o "$LATEST_PACKAGE" -d deploy-latest
+            # Restart PM2 applications
+            cd /home/ec2-user/rathburn-monorepo
+            pm2 restart ecosystem.config.js
 
-            # Make the run script executable
-            chmod +x deploy-latest/run.sh
-
-            # Set environment variables
-            echo "Setting environment variables..."
-            cat > deploy-latest/.env <<EOF
-            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
-            SMTP_API_KEY=${{ secrets.SMTP_API_KEY }}
-            NODE_ENV=production
-            PORT=3000
-            EOF
-
-            # Start the application with PM2
-            echo "Starting application with PM2..."
-            cd deploy-latest
-            pm2 start server.js --name nextjs-app
+            # Restart PM2 applications
+            pm2 save
 
             echo "Deployment completed successfully!"
 
