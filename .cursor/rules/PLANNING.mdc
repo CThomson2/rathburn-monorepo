@@ -1,0 +1,471 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Product Requirements Document (PRD)
+
+## Rathburn Online: Comprehensive Spreadsheet-style Data Explorer & Modular Query Builder
+
+### Document Information
+**Project:** Rathburn Online - Inventory Management System  
+**Feature:** Comprehensive Spreadsheet-style Data Explorer & Modular Query Builder  
+**Issue #:** 33  
+**Author:** Conrad Thomson  
+**Last Updated:** April 16, 2025  
+
+---
+
+## 1. Executive Summary
+
+The Data Explorer feature will provide a comprehensive spreadsheet-style interface for exploring and manipulating data across the Rathburn Online system. It will include a modular query builder that enables non-technical users to create complex database queries through an intuitive drag-and-drop interface. This feature aims to empower users to gain deeper insights from their data without requiring SQL knowledge or developer intervention.
+
+### 1.1 Business Objectives
+
+- Reduce developer workload by enabling users to create their own data views and reports
+- Improve decision-making through better data accessibility and visualization
+- Increase user satisfaction by providing more flexible ways to interact with system data
+- Streamline operations by allowing custom views of inventory, orders, and production data
+- Reduce training costs by providing intuitive interfaces for data exploration
+
+### 1.2 Success Metrics
+
+- 80% of users can successfully create a custom view within 10 minutes of their first use
+- 50% reduction in ad-hoc data export/report requests to the development team
+- 90% of common data exploration tasks can be completed without leaving the Data Explorer
+- User satisfaction score of 8/10 or higher for the Data Explorer feature
+
+---
+
+## 2. Background and Strategic Fit
+
+The Rathburn Online system currently provides structured views for inventory management, orders, drum tracking, and production. However, users need more flexibility to explore relationships between data, create custom views, and perform ad-hoc analysis. The Data Explorer will complement existing features by providing unrestricted access to underlying data while maintaining appropriate security controls.
+
+### 2.1 Current Limitations
+
+- Users are limited to predefined views and reports
+- Complex data analysis requires SQL knowledge or developer intervention
+- Cross-table relationships are not easily explored
+- Custom filtering and sorting options are limited
+- Data exports require manual processing for further analysis
+
+### 2.2 Strategic Alignment
+
+This feature aligns with the overall system goals by:
+- Supporting data-driven decision making
+- Promoting user autonomy and reducing IT dependency
+- Building on the existing foundation of inventory management
+- Providing a platform for future analytical capabilities
+
+---
+
+## 3. User Personas
+
+### 3.1 Inventory Manager
+- **Primary Goals**: Track inventory levels, monitor usage trends, identify reordering needs
+- **Technical Proficiency**: Moderate, comfortable with spreadsheet software
+- **Usage Pattern**: Daily use for inventory reconciliation and planning
+
+### 3.2 Production Supervisor
+- **Primary Goals**: Schedule production runs, allocate resources, track efficiency
+- **Technical Proficiency**: Low to moderate, prefers visual interfaces
+- **Usage Pattern**: Multiple times daily for production planning and monitoring
+
+### 3.3 Quality Control Specialist
+- **Primary Goals**: Track quality metrics, identify trends, generate compliance reports
+- **Technical Proficiency**: Moderate, familiar with data analysis tools
+- **Usage Pattern**: Regular use for quality reporting and analysis
+
+### 3.4 Operations Manager
+- **Primary Goals**: Monitor overall process efficiency, resource allocation, cost management
+- **Technical Proficiency**: Moderate, comfortable with business intelligence tools
+- **Usage Pattern**: Weekly use for performance review and strategic planning
+
+---
+
+## 4. User Stories and Requirements
+
+### 4.1 Core Data Explorer Features
+
+#### 4.1.1 Data Grid View
+- As a user, I want to view data in a spreadsheet-like grid so I can easily scan and navigate large datasets.
+- As a user, I want to sort columns by clicking on headers so I can quickly organize data.
+- As a user, I want to resize and reorder columns so I can customize my view for better readability.
+- As a user, I want to freeze columns so I can keep important information visible while scrolling.
+- As a user, I want to paginate through large datasets so the system remains responsive.
+- As a user, I want to adjust the number of rows displayed per page so I can balance detail and performance.
+
+#### 4.1.2 Data Selection and Filtering
+- As a user, I want to select multiple rows and columns so I can perform bulk operations.
+- As a user, I want to filter data using simple operators (equals, contains, greater than, etc.) so I can focus on relevant information.
+- As a user, I want to combine multiple filter conditions so I can create precise data views.
+- As a user, I want to save filter configurations so I can reuse them in the future.
+- As a user, I want to search across all columns so I can quickly find specific information.
+
+#### 4.1.3 Data Manipulation
+- As a user, I want to edit cell values directly in the grid so I can make quick corrections.
+- As a user, I want to add new rows so I can enter new data records.
+- As a user, I want to delete selected rows so I can remove obsolete data.
+- As a user, I want to copy and paste multiple cells so I can efficiently duplicate information.
+- As a user, I want to bulk update selected cells so I can apply consistent changes.
+
+#### 4.1.4 Data Visualization
+- As a user, I want to highlight cells based on conditions so I can visually identify important data.
+- As a user, I want to create simple charts from selected data so I can visualize trends.
+- As a user, I want to apply color coding to numeric ranges so I can quickly assess values.
+- As a user, I want to generate pivot tables so I can summarize complex datasets.
+
+#### 4.1.5 Data Export and Sharing
+- As a user, I want to export data to CSV/Excel so I can use it in other applications.
+- As a user, I want to share my current view configuration with colleagues so we can collaborate.
+- As a user, I want to save my current view as a report so I can access it later.
+- As a user, I want to schedule automated exports so I can receive regular updates.
+
+### 4.2 Query Builder Features
+
+#### 4.2.1 Table Selection
+- As a user, I want to select from available database tables so I can access their data.
+- As a user, I want to see table relationships so I can understand how data connects.
+- As a user, I want to join multiple tables so I can create comprehensive views.
+- As a user, I want to select specific columns from tables so I can focus on relevant fields.
+
+#### 4.2.2 Visual Query Construction
+- As a user, I want to build queries using drag-and-drop so I don't need to write SQL.
+- As a user, I want to add filter conditions to my query so I can refine results.
+- As a user, I want to create calculated fields so I can derive new insights.
+- As a user, I want to group and aggregate data so I can generate summaries.
+- As a user, I want to sort results by multiple criteria so I can organize output logically.
+
+#### 4.2.3 Query Management
+- As a user, I want to save queries so I can reuse them in the future.
+- As a user, I want to share queries with colleagues so we can collaborate on analysis.
+- As a user, I want to view the generated SQL so I can learn and make advanced modifications.
+- As a user, I want to clone and modify existing queries so I can iterate on my analysis.
+
+#### 4.2.4 Query Execution and Results
+- As a user, I want to execute queries and see results in real-time so I can quickly analyze data.
+- As a user, I want to see query execution statistics so I can optimize performance.
+- As a user, I want to export query results so I can use them in other applications.
+- As a user, I want to save query results as views so I can reference them later.
+
+### 4.3 User Experience Requirements
+
+#### 4.3.1 Interface Design
+- The interface should follow the existing Rathburn Online design language for consistency.
+- The layout should adapt to different screen sizes while maintaining usability.
+- Controls should be intuitive and follow established patterns for spreadsheet interfaces.
+- Visual feedback should be provided for all user actions.
+
+#### 4.3.2 Performance
+- The data grid should load initial data within 2 seconds.
+- Sorting and filtering operations should complete within 1 second for datasets under 10,000 rows.
+- The interface should remain responsive during data loading operations.
+- Large operations should display progress indicators.
+
+#### 4.3.3 Accessibility
+- The interface should be keyboard navigable for efficient data entry.
+- Color coding should include alternative indicators for color-blind users.
+- All interface elements should have appropriate ARIA labels.
+- Font sizes should be adjustable to accommodate different visual needs.
+
+---
+
+## 5. Technical Requirements
+
+### 5.1 Data Access Layer
+
+#### 5.1.1 Database Connectivity
+- Integrate with existing Supabase project (Project ID: ppnulxweiiczciuxcypn)
+- Limit access to the public schema as per existing permissions
+- Implement efficient query mechanisms to handle large datasets
+- Ensure security controls prevent unauthorized data access
+
+#### 5.1.2 Data Models
+- Create appropriate interfaces for all database tables
+- Implement view models that represent joined data across tables
+- Define validation rules for data entry and modification
+- Support calculated fields and virtual columns
+
+### 5.2 Frontend Implementation
+
+#### 5.2.1 Data Grid Component
+- Implement using a high-performance grid library compatible with React/Next.js
+- Support virtualization for efficient rendering of large datasets
+- Provide theming options to match existing UI
+- Ensure keyboard navigation and accessibility compliance
+
+#### 5.2.2 Query Builder Interface
+- Create modular components for each query element (tables, joins, filters, etc.)
+- Implement drag-and-drop interactions for query construction
+- Provide visual cues for valid and invalid query elements
+- Design an intuitive interface for complex query operations
+
+#### 5.2.3 State Management
+- Implement efficient state management for grid configuration
+- Cache query results appropriately to improve performance
+- Persist user preferences and saved queries
+- Handle optimistic updates for data modifications
+
+### 5.3 Backend Services
+
+#### 5.3.1 Query Processing
+- Develop middleware to translate visual queries to SQL
+- Implement query validation to prevent performance issues
+- Create parameterized queries to prevent SQL injection
+- Support transaction management for data modifications
+
+#### 5.3.2 Security and Permissions
+- Respect existing row-level security policies in Supabase
+- Implement column-level security for sensitive data
+- Log all data modification operations for audit purposes
+- Validate all operations against user permissions
+
+#### 5.3.3 Performance Optimization
+- Implement connection pooling for database access
+- Cache frequently used query results
+- Use pagination and lazy loading for large datasets
+- Optimize generated SQL for performance
+
+---
+
+## 6. Integration Points
+
+### 6.1 Internal System Integration
+
+#### 6.1.1 User Authentication and Authorization
+- Integrate with existing authentication system
+- Apply role-based permissions to data access
+- Respect existing data access controls
+
+#### 6.1.2 Navigation and Discoverability
+- Add Data Explorer to main navigation menu
+- Provide contextual links from other system areas
+- Implement deep linking to specific queries or views
+
+#### 6.1.3 Notification System
+- Send alerts for long-running queries
+- Notify users when shared queries are modified
+- Alert on query execution errors
+
+### 6.2 External System Integration
+
+#### 6.2.1 Data Export
+- Support export to common formats (CSV, Excel, JSON)
+- Provide API endpoints for external system access
+- Enable scheduled exports to cloud storage
+
+#### 6.2.2 Reporting Tools
+- Generate formatted reports from query results
+- Support export to PDF for formal reporting
+- Enable embedding of charts and tables in other interfaces
+
+---
+
+## 7. Feature Phases and Prioritization
+
+### 7.1 Phase 1: Core Data Explorer (MVP - 4 weeks)
+- Basic data grid with sorting and filtering
+- Simple query capabilities for single tables
+- Column customization and basic exports
+- Integration with existing navigation and authentication
+
+**Success Criteria:**
+- Users can view and filter any single table in the system
+- Basic data export functionality works reliably
+- Interface is responsive and matches design standards
+- Simple queries can be saved for future use
+
+### 7.2 Phase 2: Advanced Query Builder (3 weeks)
+- Multi-table join capabilities
+- Visual query builder interface
+- Query saving and sharing
+- Advanced filtering and aggregation options
+
+**Success Criteria:**
+- Users can create and save complex queries involving multiple tables
+- Visual query builder correctly generates SQL for all supported operations
+- Query performance meets response time requirements
+- Queries can be shared between users
+
+### 7.3 Phase 3: Data Visualization and Manipulation (3 weeks)
+- Inline data editing capabilities
+- Conditional formatting and highlighting
+- Basic charting and visualization
+- Bulk update operations
+
+**Success Criteria:**
+- Users can safely edit data through the interface
+- Conditional formatting applies correctly to data
+- Simple charts render accurately from selected data
+- Bulk operations work correctly and provide appropriate feedback
+
+### 7.4 Phase 4: Advanced Features and Optimization (2 weeks)
+- Pivot table functionality
+- Advanced visualization options
+- Performance optimizations for large datasets
+- Extended export and reporting capabilities
+
+**Success Criteria:**
+- Pivot tables correctly summarize complex data
+- Advanced charts provide useful insights
+- System remains responsive with maximum expected data volumes
+- Export and reporting features meet all business requirements
+
+---
+
+## 8. Technical Architecture
+
+### 8.1 Frontend Architecture
+
+#### 8.1.1 Component Structure
+- DataExplorer (container component)
+  - DataGrid (virtualized data display)
+  - QueryBuilder (visual query construction)
+  - ToolbarControls (actions and operations)
+  - FilterPanel (query filtering interface)
+  - VisualizationPanel (charts and graphs)
+
+#### 8.1.2 State Management
+- Use React context for shared state
+- Implement local component state for UI elements
+- Utilize SWR or React Query for data fetching
+- Store persistent settings in local storage or database
+
+#### 8.1.3 UI Framework
+- Continue using Tailwind CSS for styling
+- Leverage Shadcn UI components for consistency
+- Implement responsive design patterns
+- Ensure theme compatibility
+
+### 8.2 Backend Architecture
+
+#### 8.2.1 API Endpoints
+- /api/data-explorer/tables - List available tables
+- /api/data-explorer/query - Execute custom queries
+- /api/data-explorer/save - Save query configurations
+- /api/data-explorer/export - Generate export files
+
+#### 8.2.2 Query Processing
+- Implement query builder to SQL translator
+- Create query validation and security checks
+- Develop query optimization layer
+- Implement results caching mechanism
+
+#### 8.2.3 Data Access Pattern
+- Use Prisma ORM for structured queries
+- Implement raw SQL capability for complex operations
+- Create middleware for security and validation
+- Develop transaction management for data modifications
+
+---
+
+## 9. Security Considerations
+
+### 9.1 Data Security
+- Ensure all data access respects existing permissions
+- Implement input validation for all query parameters
+- Prevent SQL injection through parameterized queries
+- Log all data modification operations
+
+### 9.2 User Security
+- Validate user permissions before executing queries
+- Apply column-level security for sensitive data
+- Implement rate limiting for query execution
+- Ensure secure storage of saved queries
+
+### 9.3 Operational Security
+- Monitor query performance and resource usage
+- Implement timeout mechanisms for long-running queries
+- Create alerting for unusual query patterns
+- Provide audit trails for data modifications
+
+---
+
+## 10. Testing Requirements
+
+### 10.1 Unit Testing
+- Test individual components in isolation
+- Validate query building logic
+- Verify data transformation functions
+- Ensure security controls function correctly
+
+### 10.2 Integration Testing
+- Test data flow between components
+- Verify API endpoint functionality
+- Validate database interaction
+- Confirm authentication integration
+
+### 10.3 Performance Testing
+- Benchmark query execution times
+- Test with large datasets (50,000+ rows)
+- Validate UI responsiveness under load
+- Measure resource utilization
+
+### 10.4 User Acceptance Testing
+- Create test scenarios for each user persona
+- Validate workflows meet user expectations
+- Confirm usability across different devices
+- Verify accessibility compliance
+
+---
+
+## 11. Deployment and Operations
+
+### 11.1 Deployment Strategy
+- Implement feature behind feature flag for gradual rollout
+- Deploy in phases according to priority schedule
+- Provide beta access to selected users for feedback
+- Include rollback plan for critical issues
+
+### 11.2 Monitoring and Metrics
+- Track query performance and execution times
+- Monitor error rates and types
+- Measure feature usage and adoption
+- Collect user feedback and satisfaction metrics
+
+### 11.3 Documentation
+- Create user guide for Data Explorer functions
+- Provide examples of common query scenarios
+- Document API endpoints for integration
+- Maintain technical documentation for developers
+
+---
+
+## 12. Future Considerations
+
+### 12.1 Feature Expansion
+- Natural language query interface
+- Advanced predictive analytics
+- Machine learning recommendations
+- Mobile-optimized interface
+
+### 12.2 Integration Opportunities
+- Integration with external BI tools
+- API access for third-party applications
+- Automated reporting engine
+- Data pipeline integration
+
+---
+
+## 13. Appendix
+
+### 13.1 Glossary
+- **Data Explorer**: The spreadsheet-style interface for viewing and manipulating data
+- **Query Builder**: The visual tool for creating database queries without SQL
+- **View**: A saved configuration of the Data Explorer
+- **Grid**: The tabular display of data in rows and columns
+- **Filter**: A condition that limits which data is displayed
+- **Aggregation**: A calculation performed on grouped data (sum, average, etc.)
+
+### 13.2 Reference Documentation
+- NextJS Documentation
+- Prisma ORM Documentation
+- Supabase Documentation
+- React Query/SWR Documentation
+- Tailwind CSS and Shadcn UI Documentation
+
+### 13.3 Technical Constraints
+- Limited to the public schema in Supabase
+- Must adhere to existing authentication model
+- Should maintain performance standards with large datasets
+- Must integrate with existing UI/UX patterns

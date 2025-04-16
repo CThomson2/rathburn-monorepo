@@ -1,0 +1,831 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Technical Implementation Plan
+
+## Rathburn Online: Data Explorer & Query Builder
+
+This document outlines the technical approach, component architecture, and implementation strategy for building the Data Explorer and Query Builder feature.
+
+## 1. Technology Stack
+
+### 1.1 Frontend
+
+- **Framework**: Next.js (with React 19)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Component Library**: Shadcn UI
+- **Data Grid**: TanStack Table (React Table v8)
+- **State Management**: React Context + SWR/React Query
+- **Form Handling**: React Hook Form
+- **Validation**: Zod
+- **Charts/Visualization**: Recharts
+
+### 1.2 Backend
+
+- **ORM**: Prisma
+- **Database**: PostgreSQL (via Supabase)
+- **API**: Next.js API Routes + Server Actions
+- **Authentication**: Supabase Auth
+- **Caching**: SWR/React Query + Server-side caching
+
+## 2. Component Architecture
+
+### 2.1 Page Structure
+
+```
+/app/(dashboard)/data-explorer/
+├── page.tsx             # Main page container (SSR)
+├── layout.tsx           # Layout wrapper
+├── [query]/             # Dynamic route for saved queries
+│   └── page.tsx         # Loads saved query configuration
+├── new/                 # Route for creating new queries
+│   └── page.tsx         # Empty query builder
+└── _components/         # Local components
+```
+
+### 2.2 Component Hierarchy
+
+```
+<DataExplorerPage>
+  <QueryBuilderProvider>    # Context provider for query state
+    <QueryBuilderToolbar>   # Actions, save controls, query execution
+    <QueryBuilderCanvas>    # Visual query builder area
+      <TableSelector>       # Pick source tables
+      <JoinConfigurator>    # Configure table relationships
+      <ColumnSelector>      # Select columns to display
+      <FilterBuilder>       # Set filter conditions
+      <GroupingSelector>    # Configure grouping
+      <SortingConfigurator> # Set sorting order
+    </QueryBuilderCanvas>
+    <DataGridContainer>     # Results display area
+      <DataGridToolbar>     # Grid-specific actions
+      <DataGrid>            # Virtualized data display
+      <Pagination>          # Control results pages
+    </DataGridContainer>
+    <VisualizationPanel>    # Optional charting panel
+  </QueryBuilderProvider>
+</DataExplorerPage>
+```
+
+## 3. Data Structures
+
+### 3.1 Query Configuration Model
+
+```typescript
+interface QueryConfiguration {
+  id?: string; // Unique identifier (for saved queries)
+  name: string; // User-friendly name
+  description?: string; // Optional description
+  tables: {
+    // Tables included in query
+    id: string; // Table identifier
+    alias?: string; // Optional table alias
+    isMain: boolean; // Is this the primary table?
+  }[];
+  joins: {
+    // Relationships between tables
+    leftTable: string; // Left table ID
+    leftColumn: string; // Left table column
+    rightTable: string; // Right table ID
+    rightColumn: string; // Right table column
+    type: "INNER" | "LEFT" | "RIGHT" | "FULL"; // Join type
+  }[];
+  columns: {
+    // Columns to display
+    tableId: string; // Source table
+    column: string; // Column name
+    alias?: string; // Display alias
+    aggregate?: "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" | null;
+  }[];
+  filters: {
+    // Filter conditions
+    id: string; // Filter ID
+    tableId: string; // Source table
+    column: string; // Column name
+    operator:
+      | "eq"
+      | "neq"
+      | "gt"
+      | "gte"
+      | "lt"
+      | "lte"
+      | "contains"
+      | "startsWith"
+      | "endsWith"
+      | "in"
+      | "between";
+    value: any; // Filter value(s)
+    logicalOperator?: "AND" | "OR"; // Connection to next filter
+  }[];
+  groupBy: {
+    // Grouping configuration
+    tableId: string; // Source table
+    column: string; // Column name
+  }[];
+  sortBy: {
+    // Sorting configuration
+    tableId: string; // Source table
+    column: string; // Column name
+    direction: "asc" | "desc"; // Sort direction
+    priority: number; // Sort priority
+  }[];
+  limit?: number; // Results limit
+  offset?: number; // Results offset
+  createdBy?: string; // User who created this query
+  isPublic?: boolean; // Is this query shared?
+  createdAt?: Date; // Creation timestamp
+  updatedAt?: Date; // Last update timestamp
+}
+```
+
+### 3.2 Data Grid Configuration
+
+```typescript
+interface DataGridConfiguration {
+  columns: {              // Column display settings
+    id: string;           // Column identifier (table.column)
+    label: string;        // Display label
+    width?: number;       // Column width
+    pinned?: boolean;     // Is column frozen?
+    hidden?: boolean;     // Is column hidden?
+    format?: {            // Value formatting
+      type: 'number' | 'currency' | 'date' | 'percent' | 'text';
+      precision?: number; // Decimal precision
+      locale?: string;    // Locale for formatting
+    };
+
+// Filter Builder - for creating query filters
+const FilterBuilder: React.FC<{
+  tables: any[];
+  filters: any[];
+  onFiltersChange: (filters: any[]) => void;
+}> = ({ tables, filters, onFiltersChange }) => {
+  const addFilter = () => {
+    // Default to first table and column if available
+    const defaultTable = tables[0]?.id || '';
+    const defaultColumn = '';
+
+    onFiltersChange([
+      ...filters,
+      {
+        id: crypto.randomUUID(),
+        tableId: defaultTable,
+        column: defaultColumn,
+        operator: 'eq',
+        value: '',
+        logicalOperator: filters.length > 0 ? 'AND' : undefined,
+      },
+    ]);
+  };
+
+  const updateFilter = (index: number, key: string, value: any) => {
+    const updatedFilters = [...filters];
+    updatedFilters[index] = {
+      ...updatedFilters[index],
+      [key]: value,
+    };
+    onFiltersChange(updatedFilters);
+  };
+
+  const removeFilter = (index: number) => {
+    const updatedFilters = filters.filter((_, i) => i !== index);
+    onFiltersChange(updatedFilters);
+  };
+
+  return (
+    <div className="space-y-4">
+      {filters.length === 0 ? (
+        <div className="text-center py-4 text-muted-foreground">
+          <p>No filters defined</p>
+          <p className="text-sm">Add filters to limit the data returned by your query</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filters.map((filter, index) => (
+            <div
+              key={filter.id}
+              className="flex items-center gap-2 p-2 rounded-md border"
+            >
+              {index > 0 && (
+                <Select
+                  value={filter.logicalOperator}
+                  onValueChange={(value) => updateFilter(index, 'logicalOperator', value)}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AND">AND</SelectItem>
+                    <SelectItem value="OR">OR</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Select
+                value={filter.tableId}
+                onValueChange={(value) => updateFilter(index, 'tableId', value)}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Table" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tables.map(table => (
+                    <SelectItem key={table.id} value={table.id}>
+                      {table.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={filter.column}
+                onValueChange={(value) => updateFilter(index, 'column', value)}
+                disabled={!filter.tableId}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Column" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tables
+                    .find(t => t.id === filter.tableId)
+                    ?.columns.map(column => (
+                      <SelectItem key
+    conditionalStyles?: { // Visual formatting rules
+      condition: string;  // Condition expression
+      style: {            // Applied styles
+        backgroundColor?: string;
+        textColor?: string;
+        fontWeight?: string;
+      };
+    }[];
+  }[];
+  pagination: {           // Pagination settings
+    pageSize: number;     // Rows per page
+    page: number;         // Current page
+  };
+  sorting: {              // Client-side sorting
+    columnId: string;     // Column identifier
+    direction: 'asc' | 'desc'; // Sort direction
+  }[];
+}
+```
+
+## 4. API Endpoints
+
+### 4.1 Schema Discovery
+
+```
+GET /api/data-explorer/schema
+- Returns available tables, columns, and relationships
+- Used to populate table selector and provide metadata
+
+GET /api/data-explorer/schema/:tableName
+- Returns detailed information about a specific table
+- Includes column types, constraints, and relationships
+```
+
+### 4.2 Query Execution
+
+```
+POST /api/data-explorer/query
+- Accepts QueryConfiguration object
+- Returns query results and metadata
+- Handles pagination, sorting, and filtering
+
+GET /api/data-explorer/query/:queryId
+- Loads a saved query by ID
+- Returns both configuration and results
+```
+
+### 4.3 Query Management
+
+```
+POST /api/data-explorer/queries
+- Saves a new query configuration
+- Returns the query ID and metadata
+
+PUT /api/data-explorer/queries/:queryId
+- Updates an existing query configuration
+- Returns the updated metadata
+
+DELETE /api/data-explorer/queries/:queryId
+- Deletes a saved query
+- Returns success confirmation
+```
+
+### 4.4 Data Operations
+
+```
+PUT /api/data-explorer/data/:tableName
+- Updates records in a table
+- Accepts array of record IDs and field updates
+- Returns success/failure for each record
+
+POST /api/data-explorer/data/:tableName
+- Inserts new records in a table
+- Accepts array of new records
+- Returns created records with IDs
+
+DELETE /api/data-explorer/data/:tableName
+- Deletes records from a table
+- Accepts array of record IDs
+- Returns success/failure for each record
+```
+
+### 4.5 Export Operations
+
+```
+POST /api/data-explorer/export
+- Accepts QueryConfiguration and export format
+- Returns downloadable file or download URL
+- Supports CSV, Excel, and JSON formats
+```
+
+## 5. Server-Side Implementation
+
+### 5.1 Query Translation Service
+
+```typescript
+// Pseudo-code for query translator service
+class QueryTranslator {
+  constructor(private prisma: PrismaClient) {}
+
+  // Translate QueryConfiguration to Prisma query
+  async executePrismaQuery(config: QueryConfiguration): Promise<QueryResult> {
+    // Build query components
+    const select = this.buildSelect(config);
+    const where = this.buildWhere(config);
+    const orderBy = this.buildOrderBy(config);
+    const groupBy = this.buildGroupBy(config);
+
+    // Determine main table
+    const mainTable = this.getMainTable(config);
+
+    // Execute query using Prisma dynamic API
+    const results = await this.prisma[mainTable].findMany({
+      select,
+      where,
+      orderBy,
+      skip: config.offset || 0,
+      take: config.limit || 50,
+      ...this.buildJoins(config),
+    });
+
+    // Get total count for pagination
+    const count = await this.getResultCount(config);
+
+    return {
+      data: results,
+      pagination: {
+        total: count,
+        page: Math.floor((config.offset || 0) / (config.limit || 50)) + 1,
+        pageSize: config.limit || 50,
+        pages: Math.ceil(count / (config.limit || 50)),
+      },
+      metadata: {
+        executionTime: new Date(),
+        columns: this.getResultColumns(results),
+      },
+    };
+  }
+
+  // Translate to raw SQL for complex scenarios
+  async executeRawSQL(config: QueryConfiguration): Promise<QueryResult> {
+    const sql = this.buildSQLQuery(config);
+    const countSql = this.buildCountQuery(config);
+
+    const results = await this.prisma.$queryRawUnsafe(sql);
+    const [{ count }] = await this.prisma.$queryRawUnsafe(countSql);
+
+    return {
+      data: results,
+      pagination: {
+        total: Number(count),
+        page: Math.floor((config.offset || 0) / (config.limit || 50)) + 1,
+        pageSize: config.limit || 50,
+        pages: Math.ceil(Number(count) / (config.limit || 50)),
+      },
+      metadata: {
+        executionTime: new Date(),
+        columns: this.getResultColumns(results),
+      },
+    };
+  }
+
+  // Helper methods for building query components
+  private buildSelect(config: QueryConfiguration) {
+    /* ... */
+  }
+  private buildWhere(config: QueryConfiguration) {
+    /* ... */
+  }
+  private buildOrderBy(config: QueryConfiguration) {
+    /* ... */
+  }
+  private buildGroupBy(config: QueryConfiguration) {
+    /* ... */
+  }
+  private buildJoins(config: QueryConfiguration) {
+    /* ... */
+  }
+  private getMainTable(config: QueryConfiguration) {
+    /* ... */
+  }
+  private getResultCount(config: QueryConfiguration) {
+    /* ... */
+  }
+  private getResultColumns(results: any[]) {
+    /* ... */
+  }
+  private buildSQLQuery(config: QueryConfiguration) {
+    /* ... */
+  }
+  private buildCountQuery(config: QueryConfiguration) {
+    /* ... */
+  }
+}
+```
+
+### 5.2 Security Middleware
+
+```typescript
+// Role-based access control middleware
+export async function withTablePermissions(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  handler: NextApiHandler
+) {
+  const session = await getSession(req, res);
+
+  if (!session) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { user } = session;
+  const requestedTables = extractTablesFromRequest(req);
+
+  // Check permissions for each requested table
+  const hasPermission = await checkTablePermissions(user.id, requestedTables);
+
+  if (!hasPermission) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
+  // Check column-level permissions if needed
+  const requestedColumns = extractColumnsFromRequest(req);
+  const hasColumnPermissions = await checkColumnPermissions(
+    user.id,
+    requestedColumns
+  );
+
+  if (!hasColumnPermissions) {
+    return res.status(403).json({ error: "Insufficient column permissions" });
+  }
+
+  return handler(req, res);
+}
+```
+
+## 6. Frontend Implementation
+
+### 6.1 Data Context and Hooks
+
+```tsx
+// DataExplorerContext.tsx
+import { createContext, useContext, useState, useCallback } from "react";
+import { QueryConfiguration } from "@/types/data-explorer";
+
+interface DataExplorerContextProps {
+  query: QueryConfiguration;
+  queryResults: any[] | null;
+  isLoading: boolean;
+  error: Error | null;
+  updateQuery: (key: keyof QueryConfiguration, value: any) => void;
+  executeQuery: (config: QueryConfiguration) => Promise<void>;
+  saveQuery: (name: string, description?: string) => Promise<string>;
+  loadQuery: (id: string) => Promise<void>;
+}
+
+const defaultQuery: QueryConfiguration = {
+  name: "New Query",
+  tables: [],
+  joins: [],
+  columns: [],
+  filters: [],
+  groupBy: [],
+  sortBy: [],
+};
+
+const DataExplorerContext = createContext<DataExplorerContextProps | undefined>(
+  undefined
+);
+
+export const DataExplorerProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [query, setQuery] = useState<QueryConfiguration>(defaultQuery);
+  const [queryResults, setQueryResults] = useState<any[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const updateQuery = useCallback(
+    (key: keyof QueryConfiguration, value: any) => {
+      setQuery((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  const executeQuery = useCallback(async (config: QueryConfiguration) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/data-explorer/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Query execution failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setQueryResults(result.data);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+      setQueryResults(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const saveQuery = useCallback(
+    async (name: string, description?: string) => {
+      const queryToSave = {
+        ...query,
+        name,
+        description,
+      };
+
+      const response = await fetch("/api/data-explorer/queries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(queryToSave),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save query: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.id;
+    },
+    [query]
+  );
+
+  const loadQuery = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/data-explorer/query/${id}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load query: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setQuery(result.configuration);
+      setQueryResults(result.data);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return (
+    <DataExplorerContext.Provider
+      value={{
+        query,
+        queryResults,
+        isLoading,
+        error,
+        updateQuery,
+        executeQuery,
+        saveQuery,
+        loadQuery,
+      }}
+    >
+      {children}
+    </DataExplorerContext.Provider>
+  );
+};
+
+export const useDataExplorer = () => {
+  const context = useContext(DataExplorerContext);
+  if (!context) {
+    throw new Error(
+      "useDataExplorer must be used within a DataExplorerProvider"
+    );
+  }
+  return context;
+};
+
+// Hook for table schema information
+export const useTableSchema = (tableName?: string) => {
+  const [schema, setSchema] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!tableName) return;
+
+    const fetchSchema = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/data-explorer/schema/${tableName}`);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch schema: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setSchema(data);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSchema();
+  }, [tableName]);
+
+  return { schema, isLoading, error };
+};
+
+// Hook for fetching all available tables
+export const useAvailableTables = () => {
+  const [tables, setTables] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchTables = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/data-explorer/schema");
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch tables: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setTables(data.tables || []);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTables();
+  }, []);
+
+  return { tables, isLoading, error };
+};
+```
+
+### 6.2 Query Builder Component
+
+The Query Builder is the visual interface for constructing database queries. It allows users to:
+
+- Select source tables
+- Define relationships between tables
+- Choose columns to display
+- Set filter conditions
+- Configure sorting and grouping
+- Execute queries and view results
+
+Key features:
+
+- Drag-and-drop interface for visual query building
+- Auto-discovery of table relationships
+- Real-time validation of query structure
+- Query saving and sharing
+
+```tsx
+// QueryBuilderCanvas.tsx (simplified)
+const QueryBuilderCanvas: React.FC = () => {
+  const { query, updateQuery, executeQuery } = useQueryBuilder();
+
+  return (
+    <div className="flex flex-col gap-4 p-4 bg-gray-50 rounded-lg">
+      <Card>
+        <CardHeader>
+          <CardTitle>Data Sources</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TableSelector
+            selectedTables={query.tables}
+            onTableSelect={(table) =>
+              updateQuery("tables", [...query.tables, table])
+            }
+            onTableRemove={(tableId) =>
+              updateQuery(
+                "tables",
+                query.tables.filter((t) => t.id !== tableId)
+              )
+            }
+          />
+        </CardContent>
+      </Card>
+
+      {query.tables.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Table Relationships</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <JoinConfigurator
+              tables={query.tables}
+              joins={query.joins}
+              onJoinChange={(joins) => updateQuery("joins", joins)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Columns</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ColumnSelector
+            tables={query.tables}
+            selectedColumns={query.columns}
+            onColumnsChange={(columns) => updateQuery("columns", columns)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FilterBuilder
+            tables={query.tables}
+            filters={query.filters}
+            onFiltersChange={(filters) => updateQuery("filters", filters)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sorting & Grouping</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium mb-2">Sort By</h4>
+              <SortingConfigurator
+                columns={query.columns}
+                sortBy={query.sortBy}
+                onSortChange={(sortBy) => updateQuery("sortBy", sortBy)}
+              />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-2">Group By</h4>
+              <GroupingSelector
+                columns={query.columns}
+                groupBy={query.groupBy}
+                onGroupChange={(groupBy) => updateQuery("groupBy", groupBy)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end mt-4">
+        <Button
+          onClick={() => executeQuery(query)}
+          disabled={!query.tables.length || !query.columns.length}
+        >
+          Run Query
+        </Button>
+      </div>
+    </div>
+  );
+};
+```
