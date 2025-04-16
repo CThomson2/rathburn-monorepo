@@ -176,3 +176,61 @@ export const signOutAction = async () => {
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
+
+/**
+ * Updates the user's phone number
+ * @param formData Form data containing phone number
+ * @returns Redirect with success or error message
+ */
+export const updatePhoneAction = async (formData: FormData) => {
+  const supabase = createClient();
+
+  // Get phone input and remove all spaces
+  let phone = formData.get("phone")?.toString().replace(/\s+/g, "");
+
+  if (!phone) {
+    return encodedRedirect("error", "/protected", "Phone number is required");
+  }
+
+  // Validate UK phone number format (07xxx, 7xxx, +44xxx, or 44xxx)
+  const ukPhoneRegex = /^(07\d{9}|7\d{9}|\+?44\d{10})$/;
+  if (!ukPhoneRegex.test(phone)) {
+    return encodedRedirect(
+      "error",
+      "/protected",
+      "Please enter a valid UK mobile number"
+    );
+  }
+
+  // Convert to E.164 format (+44...)
+  if (phone.startsWith("07")) {
+    // Convert 07xxx to +447xxx
+    phone = "+44" + phone.substring(1);
+  } else if (phone.startsWith("7")) {
+    // Convert 7xxx to +447xxx
+    phone = "+44" + phone;
+  } else if (phone.startsWith("44") && !phone.startsWith("+44")) {
+    // Convert 44xxx to +44xxx
+    phone = "+" + phone;
+  }
+
+  // Final E.164 format validation
+  const e164Regex = /^\+[1-9]\d{1,14}$/;
+  if (!e164Regex.test(phone)) {
+    return encodedRedirect(
+      "error",
+      "/protected",
+      "Phone number conversion to E.164 format failed"
+    );
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    phone,
+  });
+
+  if (error) {
+    return encodedRedirect("error", "/protected", error.message);
+  }
+
+  return encodedRedirect("success", "/protected", "Phone number updated");
+};

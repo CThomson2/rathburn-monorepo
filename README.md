@@ -1,84 +1,73 @@
-# Turborepo starter
+# Rathburn Operations Monorepo
 
-This Turborepo starter is maintained by the Turborepo core team.
+This monorepo contains the applications used for Rathburn's inventory and operations management.
 
-## Using this example
+## Applications
 
-Run the following command:
+### Web Application (https://rathburn.app)
 
-```sh
-npx create-turbo@latest
+The main operations dashboard for managing inventory, tracking drums, processing orders, and monitoring stock levels. Built with Next.js and Supabase for real-time data management.
+
+Key features:
+
+- Inventory management dashboard
+- Drum tracking and assignment
+- Order processing
+- Stock history visualization
+- Real-time activity monitoring
+
+### Mobile Application (https://mobile.rathburn.app)
+
+A companion mobile application optimized for warehouse operations, primarily focused on barcode scanning and inventory updates. Built with React and integrated with barcode scanning hardware.
+
+Key features:
+
+- Barcode scanning integration
+- Real-time inventory updates
+- Mobile-optimized interface
+- Offline capability with sync
+
+## Development
+
+### Getting Started
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development servers for all applications
+pnpm dev
+
+# Or start a specific app
+pnpm dev --filter=web
+pnpm dev --filter=mobile
 ```
-
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
 
 ### Build
 
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
+```bash
+# Build all applications
 pnpm build
+
+# Build specific application
+pnpm build --filter=web
+pnpm build --filter=mobile
 ```
 
-### Develop
+## Project Structure
 
-To develop all apps and packages, run the following command:
+- `apps/web`: Main Next.js web application
+- `apps/mobile`: React mobile application
+- `apps/docs`: Documentation site
+- `packages/`: Shared libraries and utilities
 
-```
-cd my-turborepo
-pnpm dev
-```
+## Deployment
 
-### Remote Caching
+Automated deployments are handled through CI/CD pipelines. See `deployment.md` for detailed deployment procedures.
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+## Documentation
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+Application-specific documentation can be found in the respective app directories:
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turbo.build/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/docs/reference/command-line-reference)
+- Web app: `apps/web/docs/`
+- Mobile app: `apps/mobile/docs/`

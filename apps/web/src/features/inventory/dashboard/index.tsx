@@ -15,6 +15,8 @@ import {
   Search,
   AlertTriangle,
   Package,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { selectFromTable } from "@/lib/database";
 import { ViewType } from "@/types/models/base";
@@ -30,6 +32,31 @@ import { DrumInventory } from "../types";
  * through a conditional detail panel.
  */
 
+// Chemical group type
+type ChemicalGroup = "Hydrocarbons" | "Gen Solvents" | "Aromatics";
+
+// Color mappings for different chemical groups
+const newStockColors: Record<ChemicalGroup, string> = {
+  Hydrocarbons: "#3b82f6", // blue
+  "Gen Solvents": "#6366f1", // indigo
+  Aromatics: "#8b5cf6", // purple
+};
+
+const reproStockColors: Record<ChemicalGroup, string> = {
+  Hydrocarbons: "#10b981", // emerald
+  "Gen Solvents": "#06b6d4", // cyan
+  Aromatics: "#14b8a6", // teal
+};
+
+// Helper function to determine bar color based on chemical group
+const getBarColor = (chemGroup: string, isRepro: boolean): string => {
+  const group = (chemGroup as ChemicalGroup) || "Gen Solvents";
+  return isRepro
+    ? reproStockColors[group as ChemicalGroup] ||
+        reproStockColors["Gen Solvents"]
+    : newStockColors[group as ChemicalGroup] || newStockColors["Gen Solvents"];
+};
+
 export default function ChemicalInventoryDashboard() {
   const [inventory, setInventory] = useState<DrumInventory[]>([]);
   const [filteredInventory, setFilteredInventory] = useState<DrumInventory[]>(
@@ -44,6 +71,30 @@ export default function ChemicalInventoryDashboard() {
   });
   const [selectedItem, setSelectedItem] = useState<DrumInventory | null>(null);
   const [showLowStock, setShowLowStock] = useState(false);
+  const [isChartExpanded, setIsChartExpanded] = useState(false);
+
+  // Calculate dynamic chart height based on number of items
+  const calculateChartHeight = () => {
+    // Base height per item (adjust as needed for your design)
+    const heightPerItem = 3; // vh units
+
+    // Minimum height to ensure the chart is always visible
+    const minHeight = 75; // vh
+
+    // Calculate based on number of filtered items
+    const calculatedHeight = Math.max(
+      minHeight,
+      filteredInventory.length * heightPerItem
+    );
+
+    return calculatedHeight;
+  };
+
+  // Get the calculated height
+  const dynamicChartHeight = calculateChartHeight();
+
+  // Fixed height value for each bar section
+  const barSectionHeight = "30px";
 
   // Summary statistics
   const totalNew = filteredInventory.reduce(
@@ -114,6 +165,10 @@ export default function ChemicalInventoryDashboard() {
           (item.category &&
             item.category.toLowerCase().includes(searchTerm.toLowerCase()))
       );
+
+      setIsChartExpanded(true);
+    } else {
+      setIsChartExpanded(false);
     }
 
     if (showLowStock) {
@@ -152,7 +207,8 @@ export default function ChemicalInventoryDashboard() {
     setSortConfig((prevConfig) => ({
       key,
       direction:
-        prevConfig.key === key && prevConfig.direction === "asc"
+        (prevConfig.key === key && prevConfig.direction === "asc") ||
+        (key === "total" && prevConfig.key !== "total")
           ? "desc"
           : "asc",
     }));
@@ -257,6 +313,23 @@ export default function ChemicalInventoryDashboard() {
             <Filter size={16} className="mr-1.5 text-gray-500" />
             {showLowStock ? "All Items" : "Below Threshold"}
           </button>
+
+          <button
+            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
+            onClick={() => setIsChartExpanded(!isChartExpanded)}
+          >
+            {isChartExpanded ? (
+              <>
+                <Minimize2 size={16} className="mr-1.5 text-gray-500" />
+                Collapse Chart
+              </>
+            ) : (
+              <>
+                <Maximize2 size={16} className="mr-1.5 text-gray-500" />
+                Expand Chart
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -269,76 +342,162 @@ export default function ChemicalInventoryDashboard() {
             No matching inventory items found.
           </div>
         ) : (
-          <div className="h-[200vh]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                layout="vertical"
-                data={filteredInventory}
-                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                barSize={15}
-                onClick={(data) =>
-                  data && handleBarClick(data.activePayload?.[0]?.payload)
-                }
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  type="number"
-                  label={{
-                    value: "Number of Drums",
-                    position: "insideBottom",
-                    offset: -5,
-                  }}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value: string) => {
-                    const item = filteredInventory.find(
-                      (item) => item.name === value
-                    );
-                    return item ? item.code : value;
-                  }}
-                  width={70}
-                />
-                <Tooltip
-                  formatter={(value: string, name: string) => [
-                    value,
-                    name === "newStock" ? "New Drums" : "Repro Drums",
-                  ]}
-                  labelFormatter={(label: string) => {
-                    const item = filteredInventory.find(
-                      (item) => item.name === label
-                    );
-                    return item
-                      ? `${item.code} - ${label} (${item.category})`
-                      : label;
-                  }}
-                />
-                <Legend
-                  payload={[
-                    { value: "New Drums", type: "square", color: "#3b82f6" },
-                    { value: "Repro Drums", type: "square", color: "#10b981" },
-                  ]}
-                />
-                <Bar
-                  dataKey="newStock"
-                  stackId="a"
-                  fill="#3b82f6"
-                  name="New Drums"
-                  onClick={(data: DrumInventory) => handleBarClick(data)}
-                  minPointSize={1}
-                />
-                <Bar
-                  dataKey="reproStock"
-                  stackId="a"
-                  fill="#10b981"
-                  name="Repro Drums"
-                  onClick={(data: DrumInventory) => handleBarClick(data)}
-                  minPointSize={1}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div
+            className={
+              isChartExpanded ? "" : "h-[75vh] overflow-y-auto relative"
+            }
+          >
+            <div
+              style={{
+                height: `${isChartExpanded ? dynamicChartHeight : 200}vh`,
+              }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={filteredInventory}
+                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                  barSize={15}
+                  barCategoryGap={1}
+                  onClick={(data) =>
+                    data && handleBarClick(data.activePayload?.[0]?.payload)
+                  }
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    type="number"
+                    label={{
+                      value: "Number of Drums",
+                      position: "insideBottom",
+                      offset: -5,
+                    }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 12, dy: 0 }}
+                    tickFormatter={(value: string) => {
+                      const item = filteredInventory.find(
+                        (item) => item.name === value
+                      );
+                      return item ? value : value;
+                    }}
+                    width={70}
+                    interval={0}
+                    tickSize={3}
+                  />
+                  <Tooltip
+                    formatter={(value: string, name: string) => [
+                      value, // TODO: Fix logic. `name` is the chemical name, not the stack name. Each bar should have two bars (one from the right for repro)
+                      name === "newStock" ? "New Drums" : "Repro Drums",
+                    ]}
+                    labelFormatter={(label: string) => {
+                      const item = filteredInventory.find(
+                        (item) => item.name === label
+                      );
+                      return item
+                        ? `${item.code} - ${label} (${item.category})`
+                        : label;
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      paddingTop: 15,
+                      marginTop: 15,
+                      borderTop: "1px solid #f0f0f0",
+                    }}
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    payload={[
+                      // Hydrocarbons
+                      {
+                        value: "New Hydrocarbons",
+                        type: "square",
+                        color: newStockColors["Hydrocarbons"],
+                        id: "newHydrocarbons",
+                      },
+                      {
+                        value: "Repro Hydrocarbons",
+                        type: "square",
+                        color: reproStockColors["Hydrocarbons"],
+                        id: "reproHydrocarbons",
+                      },
+                      // Gen Solvents
+                      {
+                        value: "New Gen Solvents",
+                        type: "square",
+                        color: newStockColors["Gen Solvents"],
+                        id: "newGeneralSolvents",
+                      },
+                      {
+                        value: "Repro Gen Solvents",
+                        type: "square",
+                        color: reproStockColors["Gen Solvents"],
+                        id: "reproGeneralSolvents",
+                      },
+                      // Aromatics
+                      {
+                        value: "New Aromatics",
+                        type: "square",
+                        color: newStockColors["Aromatics"],
+                        id: "newAromatics",
+                      },
+                      {
+                        value: "Repro Aromatics",
+                        type: "square",
+                        color: reproStockColors["Aromatics"],
+                        id: "reproAromatics",
+                      },
+                    ]}
+                  />
+                  <Bar
+                    dataKey="newStock"
+                    stackId="a"
+                    name="New Drums"
+                    onClick={(data: DrumInventory) => handleBarClick(data)}
+                    minPointSize={1}
+                    isAnimationActive={true}
+                  >
+                    {filteredInventory.map((entry, index) => (
+                      <rect
+                        key={`new-${index}`}
+                        x={0}
+                        y={0}
+                        width={0}
+                        height={0}
+                        fill={getBarColor(
+                          entry.chGroup || "Gen Solvents",
+                          false
+                        )}
+                      />
+                    ))}
+                  </Bar>
+                  <Bar
+                    dataKey="reproStock"
+                    stackId="a"
+                    name="Repro Drums"
+                    onClick={(data: DrumInventory) => handleBarClick(data)}
+                    minPointSize={1}
+                    isAnimationActive={true}
+                  >
+                    {filteredInventory.map((entry, index) => (
+                      <rect
+                        key={`repro-${index}`}
+                        x={0}
+                        y={0}
+                        width={0}
+                        height={0}
+                        fill={getBarColor(
+                          entry.chGroup || "Gen Solvents",
+                          true
+                        )}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

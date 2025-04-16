@@ -46,9 +46,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/rc-logo-b.png" sizes="any" />
-      </head>
+      <link rel="icon" href="/logo-square-bw.png" sizes="any" />
       <body
         className={cn(
           inter.className,
