@@ -40,6 +40,10 @@ export interface DrumInventory {
   threshold: number;
   total: number; // calculated from newStock + reproStock
   category: string; // maps to ch_group
+  groupColour: {
+    new: string;
+    repro: string;
+  };
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 import {
   ArrowUpDown,
@@ -19,7 +20,6 @@ import {
   Minimize2,
 } from "lucide-react";
 import { selectFromTable } from "@/lib/database";
-import { ViewType } from "@/types/models/base";
 import { DrumInventory } from "../types";
 
 /**
@@ -37,15 +37,16 @@ type ChemicalGroup = "Hydrocarbons" | "Gen Solvents" | "Aromatics";
 
 // Color mappings for different chemical groups
 const newStockColors: Record<ChemicalGroup, string> = {
-  Hydrocarbons: "#3b82f6", // blue
-  "Gen Solvents": "#6366f1", // indigo
-  Aromatics: "#8b5cf6", // purple
+  Hydrocarbons: "#3f88c5", // blue
+  "Gen Solvents": "#f40000", // indigo
+  Aromatics: "#2e294e", // teal
 };
 
 const reproStockColors: Record<ChemicalGroup, string> = {
-  Hydrocarbons: "#10b981", // emerald
-  "Gen Solvents": "#06b6d4", // cyan
-  Aromatics: "#14b8a6", // teal
+  Hydrocarbons: "#033270", // emerald
+  // Hydrocarbons: "#65010c", // emerald
+  "Gen Solvents": "#f24333", // cyan
+  Aromatics: "#613f75", // purple
 };
 
 // Helper function to determine bar color based on chemical group
@@ -57,6 +58,26 @@ const getBarColor = (chemGroup: string, isRepro: boolean): string => {
     : newStockColors[group as ChemicalGroup] || newStockColors["Gen Solvents"];
 };
 
+// TODO:
+// - Fix bar height discrepancies:
+// Expand/collapse should not affect the height of the bars/bar sections
+// Filtering should automatically set state to expanded (this works),
+//    but when the filter is cleared, the chart should not shrink
+// Use SSR for initial data fetching, not a useEffect hook!
+// Insert repro drum data into the database
+// Status toggle for drums in stock, on order, or scheduled for production
+// Status filter for thbe three chemical groups
+// Repro drum bars to be rendered on the right end of each bar, with a second colour
+
+/**
+ * ChemicalInventoryDashboard is a React component that renders an interactive
+ * dashboard for managing chemical solvent inventory. It fetches data from
+ * a database, allows searching, sorting, and filtering of inventory items,
+ * and displays a bar chart visualization of the stock levels. The component
+ * also provides summary statistics and handles loading and error states.
+ * Users can view detailed information about individual inventory items
+ * through a conditional detail panel.
+ */
 export default function ChemicalInventoryDashboard() {
   const [inventory, setInventory] = useState<DrumInventory[]>([]);
   const [filteredInventory, setFilteredInventory] = useState<DrumInventory[]>(
@@ -87,14 +108,29 @@ export default function ChemicalInventoryDashboard() {
       filteredInventory.length * heightPerItem
     );
 
+    console.log("Dynamic chart height calculation:", {
+      filteredItems: filteredInventory.length,
+      heightPerItem,
+      calculatedHeight,
+    });
+
     return calculatedHeight;
   };
 
   // Get the calculated height
   const dynamicChartHeight = calculateChartHeight();
 
-  // Fixed height value for each bar section
-  const barSectionHeight = "30px";
+  // Fixed height value for each bar section - now actually used
+  const barSectionHeight = 30; // pixels
+
+  // Log height changes when expanded state changes
+  useEffect(() => {
+    console.log("Chart expanded state changed:", {
+      isExpanded: isChartExpanded,
+      dynamicHeight: dynamicChartHeight,
+      itemCount: filteredInventory.length,
+    });
+  }, [isChartExpanded, dynamicChartHeight, filteredInventory.length]);
 
   // Summary statistics
   const totalNew = filteredInventory.reduce(
@@ -136,6 +172,10 @@ export default function ChemicalInventoryDashboard() {
           chGroup: item.ch_group,
           threshold: item.threshold || 10,
           total: (item.raw_drums || 0) + (item.repro_drums || 0),
+          groupColour: {
+            new: getBarColor(item.ch_group, false), // TODO: Add repro colour somewhere in the logic. Each row here is a material type, with both repro
+            repro: getBarColor(item.ch_group, true),
+          },
         }));
 
         setInventory(transformedData);
@@ -347,18 +387,16 @@ export default function ChemicalInventoryDashboard() {
               isChartExpanded ? "" : "h-[75vh] overflow-y-auto relative"
             }
           >
-            <div
-              style={{
-                height: `${isChartExpanded ? dynamicChartHeight : 200}vh`,
-              }}
-            >
+            {/* Use fixed height regardless of expanded/collapsed state */}
+            <div className="h-[200vh]" style={{ transition: "none" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   layout="vertical"
                   data={filteredInventory}
-                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                  barSize={15}
-                  barCategoryGap={1}
+                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                  barSize={barSectionHeight}
+                  barCategoryGap={3}
+                  barGap={0}
                   onClick={(data) =>
                     data && handleBarClick(data.activePayload?.[0]?.payload)
                   }
@@ -375,14 +413,21 @@ export default function ChemicalInventoryDashboard() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={{ fontSize: 12, dy: 0 }}
+                    tick={{
+                      fontSize: 12,
+                      dy: 0,
+                      textAnchor: "end",
+                    }}
                     tickFormatter={(value: string) => {
                       const item = filteredInventory.find(
                         (item) => item.name === value
                       );
-                      return item ? value : value;
+                      // Return just the code to avoid line breaks
+                      // return item ? item.code : value;
+                      return value.toUpperCase().replace(/\s/g, "\u00A0");
+                      // ? `${item.code}-${item.name.replace(/" "/g, "_")}`
                     }}
-                    width={70}
+                    width={120}
                     interval={0}
                     tickSize={3}
                   />
@@ -412,43 +457,43 @@ export default function ChemicalInventoryDashboard() {
                     payload={[
                       // Hydrocarbons
                       {
-                        value: "New Hydrocarbons",
+                        value: "Hydrocarbons",
                         type: "square",
                         color: newStockColors["Hydrocarbons"],
                         id: "newHydrocarbons",
                       },
-                      {
-                        value: "Repro Hydrocarbons",
-                        type: "square",
-                        color: reproStockColors["Hydrocarbons"],
-                        id: "reproHydrocarbons",
-                      },
+                      // {
+                      //   value: "Repro Hydrocarbons",
+                      //   type: "square",
+                      //   color: reproStockColors["Hydrocarbons"],
+                      //   id: "reproHydrocarbons",
+                      // },
                       // Gen Solvents
                       {
-                        value: "New Gen Solvents",
+                        value: "General Solvents",
                         type: "square",
                         color: newStockColors["Gen Solvents"],
                         id: "newGeneralSolvents",
                       },
-                      {
-                        value: "Repro Gen Solvents",
-                        type: "square",
-                        color: reproStockColors["Gen Solvents"],
-                        id: "reproGeneralSolvents",
-                      },
+                      // {
+                      //   value: "Repro Gen Solvents",
+                      //   type: "square",
+                      //   color: reproStockColors["Gen Solvents"],
+                      //   id: "reproGeneralSolvents",
+                      // },
                       // Aromatics
                       {
-                        value: "New Aromatics",
+                        value: "Aromatics",
                         type: "square",
                         color: newStockColors["Aromatics"],
                         id: "newAromatics",
                       },
-                      {
-                        value: "Repro Aromatics",
-                        type: "square",
-                        color: reproStockColors["Aromatics"],
-                        id: "reproAromatics",
-                      },
+                      // {
+                      //   value: "Repro Aromatics",
+                      //   type: "square",
+                      //   color: reproStockColors["Aromatics"],
+                      //   id: "reproAromatics",
+                      // },
                     ]}
                   />
                   <Bar
@@ -457,19 +502,12 @@ export default function ChemicalInventoryDashboard() {
                     name="New Drums"
                     onClick={(data: DrumInventory) => handleBarClick(data)}
                     minPointSize={1}
-                    isAnimationActive={true}
+                    isAnimationActive={false}
                   >
                     {filteredInventory.map((entry, index) => (
-                      <rect
+                      <Cell
                         key={`new-${index}`}
-                        x={0}
-                        y={0}
-                        width={0}
-                        height={0}
-                        fill={getBarColor(
-                          entry.chGroup || "Gen Solvents",
-                          false
-                        )}
+                        fill={entry.groupColour.new || "#f40000"}
                       />
                     ))}
                   </Bar>
@@ -479,19 +517,12 @@ export default function ChemicalInventoryDashboard() {
                     name="Repro Drums"
                     onClick={(data: DrumInventory) => handleBarClick(data)}
                     minPointSize={1}
-                    isAnimationActive={true}
+                    isAnimationActive={false}
                   >
                     {filteredInventory.map((entry, index) => (
-                      <rect
+                      <Cell
                         key={`repro-${index}`}
-                        x={0}
-                        y={0}
-                        width={0}
-                        height={0}
-                        fill={getBarColor(
-                          entry.chGroup || "Gen Solvents",
-                          true
-                        )}
+                        fill={entry.groupColour.repro || "#f24333"}
                       />
                     ))}
                   </Bar>
@@ -581,24 +612,25 @@ export default function ChemicalInventoryDashboard() {
                         if (name === "newStock") return [value, "New Drums"];
                         if (name === "reproStock")
                           return [value, "Repro Drums"];
-                        if (name === "threshold") return [value, "Threshold"];
+                        if (name === "threshold")
+                          return [value, "Reorder Point"];
                         return [value, name];
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="newStock" name="New Drums" fill="#3b82f6" />
+                    <Bar dataKey="newStock" name="New Drums" fill="#3f88c5" />
                     <Bar
                       dataKey="reproStock"
                       name="Repro Drums"
-                      fill="#10b981"
+                      fill="#613f75"
                     />
                     {/* Adding a reference line for the threshold */}
                     <Bar
                       dataKey="threshold"
-                      name="Threshold"
+                      name="Reorder Point"
                       fill="transparent"
                       strokeDasharray="5 5"
-                      stroke="#f59e0b"
+                      stroke="#000"
                     />
                   </BarChart>
                 </ResponsiveContainer>
