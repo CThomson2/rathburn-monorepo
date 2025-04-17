@@ -1,0 +1,21 @@
+{
+  "drums": "stock_control.drums",
+  "stock_drum": "stock_drum",
+  "stock_new": "inventory.stock_new",
+  "stock_repro": "inventory.stock_repro",
+  "stock_history": "public.stock_history",
+  "stock_order": "public.stock_order",
+  "order_detail": "public.order_detail",
+  "notification": "logs.notification",
+  "distillation_schedule": "production.distillation_schedule",
+  "distillation_pending_assignment": "inventory.distillation_pending_assignment",
+  "user_profiles": "auth_ext.user_profiles",
+  "worker_passcodes": "auth_ext.worker_passcodes",
+  "active_context": "production.active_context",
+  "ref_materials": "public.ref_materials",
+  "ref_suppliers": "public.ref_suppliers",
+  "ref_supplier_material": "public.ref_supplier_material",
+  "ref_labs": "config.ref_labs",
+  "ref_stills": "config.ref_stills",
+  "product_prices": "config.product_prices"
+}
