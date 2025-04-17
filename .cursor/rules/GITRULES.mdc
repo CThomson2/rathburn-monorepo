@@ -1,0 +1,401 @@
+---
+description: When performing any Git/GitHub actions (commits, branching, diffing, deployment)
+globs: 
+alwaysApply: false
+---
+# Git & Testing Workflow Guide for Cursor IDE Integration
+
+## 1. Automatic Activation
+
+These instructions apply automatically to all development workflows in Cursor IDE for the Rathburn Online project. All available MCP tools (Sequential Thinking, Brave Search, Supabase, etc.) will be utilized proactively based on context and need, without requiring explicit prompting.
+
+## 2. Git Management Workflow
+
+### 2.1 Branch Naming Conventions
+
+All branches must follow these naming conventions to maintain a clean repository:
+
+```
+<type>/<issue-number>-<short-description>
+```
+
+**Branch types:**
+- `feature/` - New functionality or enhancements
+- `bugfix/` - Bug fixes
+- `hotfix/` - Urgent fixes for production
+- `refactor/` - Code improvements without changing functionality
+- `docs/` - Documentation updates
+- `test/` - Adding or improving tests
+- `chore/` - Maintenance tasks, dependencies, etc.
+
+**Examples:**
+- `feature/33-spreadsheet-data-explorer`
+- `bugfix/42-fix-query-builder-filters`
+- `refactor/38-optimize-data-grid-rendering`
+
+### 2.2 Atomic Commit Principles
+
+Each commit should represent a single logical change that:
+- Focuses on one aspect of the implementation
+- Leaves the codebase in a working state
+- Contains a comprehensive but concise message
+- Is small enough to be easily reviewed
+
+### 2.3 Conventional Commit Messages
+
+All commit messages must follow the Conventional Commits format:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Commit types:**
+- `feat:` - New feature or enhancement
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `style:` - Formatting, missing semicolons, etc.
+- `refactor:` - Code changes that neither fix bugs nor add features
+- `perf:` - Performance improvements
+- `test:` - Adding or improving tests
+- `chore:` - Build process, dependency updates, etc.
+
+**Examples:**
+- `feat(query-builder): implement visual join configuration`
+- `fix(data-grid): resolve column resizing issue`
+- `test(api): add test coverage for query execution endpoint`
+
+### 2.4 Pull Request Process
+
+1. Create focused PRs that address a specific issue or feature
+2. Include detailed descriptions of changes and testing performed
+3. Reference related issues using `Closes #XX` or `Relates to #XX`
+4. Ensure all tests pass before requesting review
+5. Address reviewer feedback promptly and thoroughly
+
+## 3. Testing Practices
+
+### 3.1 Unit Testing
+
+Unit tests should be created for:
+- Individual React components
+- Utility functions
+- Hooks and custom state management
+- API handlers and endpoints
+
+**Framework:** Jest + React Testing Library
+
+**File Structure:**
+- Place test files adjacent to implementation files
+- Name test files with `.test.ts` or `.test.tsx` suffix
+
+### 3.2 API Testing
+
+For all data-fetching operations, create tests that:
+- Validate request/response formats
+- Test error handling and edge cases
+- Mock external dependencies
+- Verify security rules and access controls
+
+### 3.3 Integration Testing
+
+For key user flows, create integration tests that:
+- Simulate real user interactions
+- Verify data persistence and retrieval
+- Test component interactions
+- Validate business logic across multiple units
+
+### 3.4 Test-Driven Development
+
+When appropriate, follow TDD principles:
+1. Write failing tests that define expected behavior
+2. Implement minimal code to make tests pass
+3. Refactor while keeping tests green
+
+### 3.5 Test Coverage Requirements
+
+Maintain minimum test coverage:
+- 80% for utility functions and services
+- 70% for React components
+- 90% for critical business logic
+
+## 4. MCP Tool Utilization
+
+### 4.1 Sequential Thinking MCP
+
+**When to use:** For breaking down complex problems or multi-step tasks.
+
+**How Claude will help:**
+- Break feature implementation into logical steps
+- Plan database schema changes and migrations
+- Design component hierarchies and data flows
+- Analyze dependencies and potential impacts
+
+**Example activation:** 
+When starting work on a new feature, Claude will use Sequential Thinking to:
+- Break down the implementation approach
+- Identify technical challenges
+- Plan the most efficient development path
+- Determine which other MCP tools are needed
+
+### 4.2 Brave Search MCP
+
+**When to use:** For researching best practices, documentation, or technical solutions.
+
+**How Claude will help:**
+- Find relevant documentation for libraries and frameworks
+- Research optimal implementation patterns
+- Look up specific API references
+- Discover community solutions to similar problems
+
+**Example activation:**
+When implementing a complex feature that requires specific technical knowledge, Claude will proactively perform searches to gather:
+- Official documentation from Next.js, React, Supabase, and Shadcn UI
+- Community solutions for similar problems
+- Best practices for implementation
+
+### 4.3 Supabase MCP
+
+**When to use:** For database schema design, queries, and data operations.
+
+**How Claude will help:**
+- Create or modify database tables and relationships
+- Design efficient queries and migrations
+- Implement row-level security policies
+- Set up real-time subscriptions
+
+**Example activation:**
+When working on data-related features, Claude will:
+- Analyze existing schema
+- Propose optimized table structures
+- Generate migration scripts
+- Create efficient queries
+
+### 4.4 Memory/Knowledge Graph MCP
+
+**When to use:** For storing project context, design decisions, and implementation patterns.
+
+**How Claude will help:**
+- Maintain consistency across development sessions
+- Remember key architectural decisions
+- Store references to documentation and examples
+- Track project-specific conventions
+
+**Example activation:**
+Claude will automatically:
+- Store important design decisions in the Knowledge Graph
+- Reference previous implementations for consistency
+- Maintain awareness of project architecture
+
+### 4.5 Browser Tools MCP
+
+**When to use:** For testing and debugging frontend code.
+
+**How Claude will help:**
+- Analyze browser console logs
+- Debug runtime issues
+- Inspect network requests
+- Validate component rendering
+
+**Example activation:**
+When testing UI components, Claude will:
+- Check console for errors
+- Analyze network requests
+- Validate proper rendering
+- Identify performance issues
+
+### 4.6 REPL/Analysis MCP
+
+**When to use:** For data processing, calculations, or code verification.
+
+**How Claude will help:**
+- Validate complex algorithms
+- Process and analyze data structures
+- Test utility functions
+- Verify transformations
+
+**Example activation:**
+When implementing complex operations, Claude will:
+- Test code snippets in the REPL
+- Verify data transformations
+- Validate calculations
+- Test edge cases
+
+## 5. Code Generation Practices
+
+### 5.1 Component Generation
+
+For UI components, Claude will:
+- Use Shadcn UI components as building blocks
+- Follow project's component patterns
+- Include proper TypeScript typing
+- Implement responsive design
+- Add accessibility attributes
+
+### 5.2 API Implementation
+
+For server-side code, Claude will:
+- Follow Next.js App Router conventions
+- Implement proper error handling
+- Include validation with Zod
+- Add appropriate security checks
+- Generate comprehensive tests
+
+### 5.3 Database Operations
+
+For database interactions, Claude will:
+- Use Prisma ORM for type-safe operations
+- Follow established SQL conventions
+- Implement optimized queries
+- Include transaction support when needed
+- Add comprehensive error handling
+
+## 6. Implementation Workflow
+
+### 6.1 Feature Implementation Process
+
+1. **Planning and Analysis**
+   - Use Sequential Thinking to break down the task
+   - Research similar implementations with Brave Search
+   - Design component structure and data flow
+
+2. **Testing Setup**
+   - Create test files with initial test cases
+   - Set up test fixtures and mocks
+   - Define expected behavior
+
+3. **Database Schema**
+   - Use Supabase MCP to design or update schema
+   - Create migration scripts
+   - Test migrations and data integrity
+
+4. **API Implementation**
+   - Develop server-side operations
+   - Implement validation and error handling
+   - Write comprehensive tests
+
+5. **UI Implementation**
+   - Build components using Shadcn UI
+   - Implement responsive design
+   - Connect to data sources
+   - Add proper error handling
+
+6. **Integration and Testing**
+   - Verify all components work together
+   - Run comprehensive test suite
+   - Use Browser Tools MCP to debug issues
+   - Document edge cases and limitations
+
+7. **Commit and Pull Request**
+   - Create atomic commits with conventional messages
+   - Generate comprehensive PR description
+   - Ensure test coverage meets requirements
+   - Request code review
+
+### 6.2 Bug Fix Process
+
+1. **Reproduce and Analyze**
+   - Use Sequential Thinking to understand the issue
+   - Identify root cause through systematic debugging
+   - Use Browser Tools MCP for frontend issues
+
+2. **Test Creation**
+   - Write a failing test that reproduces the bug
+   - Document expected behavior
+
+3. **Fix Implementation**
+   - Make minimal, focused changes to fix the issue
+   - Ensure tests now pass
+   - Verify no regression in other areas
+
+4. **Documentation**
+   - Update documentation if needed
+   - Add comments explaining complex fixes
+   - Document any workarounds or limitations
+
+5. **Commit and Pull Request**
+   - Create an atomic commit with clear message
+   - Reference the issue number in commit and PR
+   - Include steps to verify the fix
+
+## 7. Specific Claude Instructions
+
+When working in Cursor IDE, Claude will:
+
+1. **Always use Sequential Thinking** for complex tasks to break them into manageable steps
+
+2. **Proactively recommend migrations** when database schema changes are needed
+
+3. **Generate tests automatically** for all new functions and components
+
+4. **Create atomic commits** with conventional commit messages
+
+5. **Provide clear documentation** for complex implementations
+
+6. **Use appropriate MCP tools** based on the task context without requiring explicit prompting
+
+7. **Follow project-specific patterns** and maintain consistency with existing code
+
+8. **Verify code quality** before submitting pull requests
+
+9. **Monitor for performance issues** and suggest optimizations
+
+10. **Keep code DRY** (Don't Repeat Yourself) by reusing existing patterns
+
+## 8. Code Quality Guidelines
+
+Claude will ensure all code meets these quality standards:
+
+1. **Readability**
+   - Clear, descriptive variable and function names
+   - Consistent formatting and style
+   - Well-structured components and functions
+
+2. **Maintainability**
+   - Modular design with clear separation of concerns
+   - Reusable components and utility functions
+   - Comprehensive documentation
+
+3. **Performance**
+   - Optimized rendering for React components
+   - Efficient database queries
+   - Proper data fetching strategies
+
+4. **Security**
+   - Input validation
+   - Protection against common vulnerabilities
+   - Proper authentication and authorization
+
+5. **Accessibility**
+   - Semantic HTML
+   - ARIA attributes where needed
+   - Keyboard navigation support
+
+## 9. Documentation Requirements
+
+Claude will generate these types of documentation:
+
+1. **Code Comments**
+   - Purpose of complex functions
+   - Explanation of non-obvious logic
+   - TODO items for future improvements
+
+2. **Component Documentation**
+   - Props and their types
+   - Usage examples
+   - Edge cases and limitations
+
+3. **API Documentation**
+   - Endpoint descriptions
+   - Request/response formats
+   - Error handling
+
+4. **Database Documentation**
+   - Schema relationships
+   - Constraints and validations
+   - Migration notes
+
+Always document architectural decisions, trade-offs, and the reasoning behind important implementation choices.

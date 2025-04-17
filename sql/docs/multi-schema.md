@@ -378,3 +378,24 @@ GRANT INSERT, UPDATE, DELETE ON inventory.drum TO authenticated;
 5. **Test in Development**: Perform migration in development environment
 6. **Update Application**: Update application code to use new schema references
 7. **Migrate Production**: Execute migration plan in production environment
+
+## Notes
+
+When to use UUID over SERIAL as Primary Key
+
+UUIDs are better when:
+
+- You need globally unique identifiers across systems
+- You're distributing data across multiple databases/shards
+- You want to hide record counts or sequence information
+- You need to generate IDs client-side before insertion
+- You're concerned about security through obscurity
+
+SERIAL is better when:
+
+- Performance is critical (UUIDs are larger and slower to index)
+- Storage space is a concern
+- You need naturally ordered IDs for display or sorting
+- You're working with a single database instance
+
+For your drum scanning system, SERIAL is likely appropriate unless you need to sync data across multiple systems or generate IDs before database insertion
