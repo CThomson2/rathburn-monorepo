@@ -18,6 +18,9 @@ import {
   File,
   Layers,
   Box,
+  DatabaseIcon,
+  DatabaseBackup,
+  DatabaseZap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -65,32 +68,38 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const navItems: NavItem[] = [
     { name: "Dashboard", icon: Home, href: "/", level: 1 },
-    { name: "Overview", icon: BarChart, href: "/overview", level: 1 },
-    {
-      name: "Stock History",
-      icon: BarChart,
-      href: "/stock-history",
-      level: 1,
-    },
     { name: "Orders", icon: Clipboard, href: "/orders", level: 2 },
-    { name: "Drums", icon: Box, href: "/drums", level: 2 },
     {
       name: "Inventory",
       icon: Package,
-      href: "/inventory-dashboard",
+      href: "/inventory",
       level: 2,
+    },
+    { name: "Drums", icon: Database, href: "/drums", level: 3 },
+    {
+      name: "Reprocessing",
+      icon: DatabaseBackup,
+      href: "/reprocessing",
+      level: 3,
+    },
+    { name: "Overview", icon: BarChart, href: "/overview", level: 3 },
+    {
+      name: "Data Explorer",
+      icon: DatabaseZap,
+      href: "/data-explorer",
+      level: 3,
     },
     {
       name: "Documentation",
       icon: File,
       href: "/docs",
-      level: 3,
+      level: 4,
     },
     {
       name: "Account",
       icon: User,
       href: "/protected",
-      level: 3,
+      level: 5,
     },
     // { name: "Orders", icon: Clipboard, href: "/orders" },
   ];
@@ -135,35 +144,42 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
         <nav className="mt-3 px-2">
           <div className="space-y-1">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href));
 
               const Icon = item.icon;
+              const previousItem = index > 0 ? navItems[index - 1] : null;
+              const shouldAddDivider =
+                previousItem && previousItem.level !== item.level;
 
               return (
-                <SafeLink
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
-                    isActive
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50"
+                <div key={item.name}>
+                  {shouldAddDivider && (
+                    <div className="h-px bg-gray-200 dark:bg-gray-700 my-2" />
                   )}
-                >
-                  {/* @ts-ignore - React/TypeScript compatibility issue */}
-                  <Icon
+                  <SafeLink
+                    href={item.href}
                     className={cn(
-                      "mr-3 h-5 w-5",
+                      "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
                       isActive
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-500 dark:text-gray-400"
+                        ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                        : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50"
                     )}
-                  />
-                  {item.name}
-                </SafeLink>
+                  >
+                    {/* @ts-ignore - React/TypeScript compatibility issue */}
+                    <Icon
+                      className={cn(
+                        "mr-3 h-5 w-5",
+                        isActive
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-gray-500 dark:text-gray-400"
+                      )}
+                    />
+                    {item.name}
+                  </SafeLink>
+                </div>
               );
             })}
           </div>

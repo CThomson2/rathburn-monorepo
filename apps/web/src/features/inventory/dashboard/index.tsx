@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -9,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
   Cell,
+  ReferenceLine,
 } from "recharts";
 import {
   ArrowUpDown,
@@ -18,73 +21,41 @@ import {
   Package,
   Maximize2,
   Minimize2,
+  RefreshCw,
+  ChevronRight,
 } from "lucide-react";
-import { selectFromTable } from "@/lib/database";
+import { cn } from "@/lib/utils";
 import { DrumInventory } from "../types";
 
 /**
- * ChemicalInventoryDashboard is a React component that renders an interactive
- * dashboard for managing chemical solvent inventory. It fetches data from
- * a database, allows searching, sorting, and filtering of inventory items,
- * and displays a bar chart visualization of the stock levels. The component
- * also provides summary statistics and handles loading and error states.
- * Users can view detailed information about individual inventory items
- * through a conditional detail panel.
+ * Redesigned ChemicalInventoryDashboard with improved color palette,
+ * better UX, and fixes for the visual glitch when toggling between
+ * expanded and collapsed states.
  */
 
-// Chemical group type
-type ChemicalGroup = "Hydrocarbons" | "Gen Solvents" | "Aromatics";
-
-// Color mappings for different chemical groups
-const newStockColors: Record<ChemicalGroup, string> = {
-  Hydrocarbons: "#3f88c5", // blue
-  "Gen Solvents": "#f40000", // indigo
-  Aromatics: "#2e294e", // teal
-};
-
-const reproStockColors: Record<ChemicalGroup, string> = {
-  Hydrocarbons: "#033270", // emerald
-  // Hydrocarbons: "#65010c", // emerald
-  "Gen Solvents": "#f24333", // cyan
-  Aromatics: "#613f75", // purple
-};
-
-// Helper function to determine bar color based on chemical group
-const getBarColor = (chemGroup: string, isRepro: boolean): string => {
-  const group = (chemGroup as ChemicalGroup) || "Gen Solvents";
-  return isRepro
-    ? reproStockColors[group as ChemicalGroup] ||
-        reproStockColors["Gen Solvents"]
-    : newStockColors[group as ChemicalGroup] || newStockColors["Gen Solvents"];
-};
-
-// TODO:
-// - Fix bar height discrepancies:
-// Expand/collapse should not affect the height of the bars/bar sections
-// Filtering should automatically set state to expanded (this works),
-//    but when the filter is cleared, the chart should not shrink
-// Use SSR for initial data fetching, not a useEffect hook!
-// Insert repro drum data into the database
-// Status toggle for drums in stock, on order, or scheduled for production
-// Status filter for thbe three chemical groups
-// Repro drum bars to be rendered on the right end of each bar, with a second colour
+// Import color utilities
+import { colorPalette, getBarColor } from "../utils/colors";
 
 /**
  * ChemicalInventoryDashboard is a React component that renders an interactive
- * dashboard for managing chemical solvent inventory. It fetches data from
- * a database, allows searching, sorting, and filtering of inventory items,
+ * dashboard for managing chemical solvent inventory. The data is now pre-fetched
+ * server-side and passed as a prop, which allows searching, sorting, and filtering of inventory items,
  * and displays a bar chart visualization of the stock levels. The component
- * also provides summary statistics and handles loading and error states.
+ * also provides summary statistics.
  * Users can view detailed information about individual inventory items
  * through a conditional detail panel.
  */
-export default function ChemicalInventoryDashboard() {
-  const [inventory, setInventory] = useState<DrumInventory[]>([]);
-  const [filteredInventory, setFilteredInventory] = useState<DrumInventory[]>(
-    []
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+interface ChemicalInventoryDashboardProps {
+  initialData: DrumInventory[];
+}
+
+export default function ChemicalInventoryDashboard({
+  initialData,
+}: ChemicalInventoryDashboardProps) {
+  const [inventory] = useState<DrumInventory[]>(initialData);
+  const [filteredInventory, setFilteredInventory] =
+    useState<DrumInventory[]>(initialData);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "name",
@@ -94,43 +65,22 @@ export default function ChemicalInventoryDashboard() {
   const [showLowStock, setShowLowStock] = useState(false);
   const [isChartExpanded, setIsChartExpanded] = useState(false);
 
-  // Calculate dynamic chart height based on number of items
-  const calculateChartHeight = () => {
-    // Base height per item (adjust as needed for your design)
-    const heightPerItem = 3; // vh units
+  // Fixed constants for chart dimensions
+  const CHART_BAR_HEIGHT = 25; // Height of each bar
+  const CHART_BAR_GAP = 5; // Gap between bars
+  const MIN_CHART_HEIGHT = 400; // Minimum chart container height in pixels
 
-    // Minimum height to ensure the chart is always visible
-    const minHeight = 75; // vh
-
-    // Calculate based on number of filtered items
-    const calculatedHeight = Math.max(
-      minHeight,
-      filteredInventory.length * heightPerItem
-    );
-
-    console.log("Dynamic chart height calculation:", {
-      filteredItems: filteredInventory.length,
-      heightPerItem,
-      calculatedHeight,
-    });
-
-    return calculatedHeight;
+  // Calculate chart container height based on number of items
+  const calculateChartContainerHeight = () => {
+    // Each item needs space for the bar plus the gap
+    const itemHeight = CHART_BAR_HEIGHT + CHART_BAR_GAP;
+    // Minimum number of items to show
+    const minItems = Math.ceil(MIN_CHART_HEIGHT / itemHeight);
+    // Get the max between actual items and minimum items
+    const visibleItems = Math.max(filteredInventory.length, minItems);
+    // Add extra space for chart padding, legend, and labels
+    return visibleItems * itemHeight + 100;
   };
-
-  // Get the calculated height
-  const dynamicChartHeight = calculateChartHeight();
-
-  // Fixed height value for each bar section - now actually used
-  const barSectionHeight = 30; // pixels
-
-  // Log height changes when expanded state changes
-  useEffect(() => {
-    console.log("Chart expanded state changed:", {
-      isExpanded: isChartExpanded,
-      dynamicHeight: dynamicChartHeight,
-      itemCount: filteredInventory.length,
-    });
-  }, [isChartExpanded, dynamicChartHeight, filteredInventory.length]);
 
   // Summary statistics
   const totalNew = filteredInventory.reduce(
@@ -146,54 +96,24 @@ export default function ChemicalInventoryDashboard() {
     (item) => item.newStock + item.reproStock < (item.threshold || 0)
   ).length;
 
-  useEffect(() => {
-    /**
-     * Fetches inventory data from the database, transforms it for visualization,
-     * and sets component state accordingly. Handles loading and error states.
-     */
-    async function fetchInventory() {
-      try {
-        setLoading(true);
-
-        // Fetch inventory data from vw_drum_inventory view using our database layer
-        const data =
-          await selectFromTable<"vw_drum_inventory">("vw_drum_inventory");
-
-        if (!data) throw new Error("No data returned from the database");
-
-        // Transform data for visualization
-        const transformedData = data.map((item) => ({
-          id: item.code || "",
-          code: item.code,
-          name: item.value,
-          newStock: item.raw_drums || 0,
-          reproStock: item.repro_drums || 0,
-          category: item.ch_group,
-          chGroup: item.ch_group,
-          threshold: item.threshold || 10,
-          total: (item.raw_drums || 0) + (item.repro_drums || 0),
-          groupColour: {
-            new: getBarColor(item.ch_group, false), // TODO: Add repro colour somewhere in the logic. Each row here is a material type, with both repro
-            repro: getBarColor(item.ch_group, true),
-          },
-        }));
-
-        setInventory(transformedData);
-        setFilteredInventory(transformedData);
-      } catch (err: any) {
-        setError(err.message);
-        console.error("Error fetching inventory:", err);
-      } finally {
-        setLoading(false);
-      }
+  // Pre-calculate colors for the initial data
+  const inventoryWithColors = inventory.map((item) => {
+    if (!item.groupColour) {
+      return {
+        ...item,
+        groupColour: {
+          new: getBarColor(item.chGroup, false),
+          repro: getBarColor(item.chGroup, true),
+        },
+      };
     }
+    return item;
+  });
 
-    fetchInventory();
-  }, []);
-
-  useEffect(() => {
+  // Handle filtering and sorting
+  const applyFiltersAndSort = () => {
     // Apply filters and search
-    let result = [...inventory];
+    let result = [...inventory]; // Colors are already included from server-side
 
     if (searchTerm) {
       result = result.filter(
@@ -206,18 +126,19 @@ export default function ChemicalInventoryDashboard() {
             item.category.toLowerCase().includes(searchTerm.toLowerCase()))
       );
 
+      // Auto-expand chart when searching
       setIsChartExpanded(true);
-    } else {
-      setIsChartExpanded(false);
     }
 
     if (showLowStock) {
       result = result.filter(
         (item) => item.newStock + item.reproStock < (item.threshold || 0)
       );
+      // Auto-expand chart when filtering low stock
+      setIsChartExpanded(true);
     }
 
-    if (!result || result.length === 0) return;
+    if (!result || result.length === 0) return [];
 
     // Apply sorting
     result.sort((a, b) => {
@@ -240,8 +161,14 @@ export default function ChemicalInventoryDashboard() {
       return 0;
     });
 
-    setFilteredInventory(result);
-  }, [inventory, searchTerm, sortConfig, showLowStock]);
+    return result;
+  };
+
+  // Apply filtering and sorting when search/sort/filter changes
+  useEffect(() => {
+    const filteredResult = applyFiltersAndSort();
+    setFilteredInventory(filteredResult);
+  }, [searchTerm, sortConfig, showLowStock]);
 
   const handleSort = (key: string) => {
     setSortConfig((prevConfig) => ({
@@ -258,62 +185,80 @@ export default function ChemicalInventoryDashboard() {
     setSelectedItem(item);
   };
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-64">
-        Loading inventory data...
-      </div>
-    );
-  if (error) return <div className="text-red-500">Error: {error}</div>;
+  // Custom tooltip formatter to show both drum types
+  const tooltipFormatter = (value: any, name: string, props: any) => {
+    if (name === "newStock") return [value, "New Drums"];
+    if (name === "reproStock") return [value, "Repro Drums"];
+    return [value, name];
+  };
+
+  // Custom tooltip label formatter
+  const tooltipLabelFormatter = (label: string) => {
+    const item = filteredInventory.find((item) => item.name === label);
+    if (!item) return label;
+
+    return `${item.code} - ${label} (${item.category})`;
+  };
+
+  // No loading or error states needed since data is pre-fetched server-side
 
   return (
-    <div className="p-3 max-w-full bg-gray-50">
-      {/* <h1 className="text-2xl font-bold mb-3">Inventory Management System</h1> */}
-      <h2 className="text-xl font-semibold mb-4">Chemical Solvent Inventory</h2>
+    <div className="p-3 max-w-full bg-slate-50">
+      <h2 className="text-xl font-semibold mb-4 text-slate-800">
+        Chemical Solvent Inventory
+      </h2>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <div className="bg-white p-3 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm">Total Drums</h3>
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
+          <h3 className="text-slate-500 text-sm">Total Drums</h3>
           <div className="flex items-center">
-            <Package className="mr-2 text-blue-500" size={18} />
-            <span className="text-2xl font-bold">{totalStock}</span>
+            <Package className="mr-2 text-slate-700" size={18} />
+            <span className="text-2xl font-bold text-slate-800">
+              {totalStock}
+            </span>
           </div>
         </div>
 
-        <div className="bg-white p-3 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm">New Drums</h3>
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
+          <h3 className="text-slate-500 text-sm">New Drums</h3>
           <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-2 bg-blue-500"></div>
-            <span className="text-2xl font-bold">{totalNew}</span>
+            <div className="w-4 h-4 rounded mr-2 bg-gradient-to-r from-blue-500 to-blue-600"></div>
+            <span className="text-2xl font-bold text-slate-800">
+              {totalNew}
+            </span>
           </div>
         </div>
 
-        <div className="bg-white p-3 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm">Repro Drums</h3>
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
+          <h3 className="text-slate-500 text-sm">Repro Drums</h3>
           <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-2 bg-green-500"></div>
-            <span className="text-2xl font-bold">{totalRepro}</span>
+            <div className="w-4 h-4 rounded mr-2 bg-gradient-to-r from-blue-700 to-blue-800"></div>
+            <span className="text-2xl font-bold text-slate-800">
+              {totalRepro}
+            </span>
           </div>
         </div>
 
-        <div className="bg-white p-3 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm">Low Stock Alert</h3>
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
+          <h3 className="text-slate-500 text-sm">Low Stock Alert</h3>
           <div className="flex items-center">
             <AlertTriangle className="mr-2 text-amber-500" size={18} />
-            <span className="text-2xl font-bold">{lowStockCount}</span>
+            <span className="text-2xl font-bold text-slate-800">
+              {lowStockCount}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-3 mb-4">
-        <div className="flex items-center bg-white rounded-lg shadow px-3 py-2 flex-grow">
-          <Search className="text-gray-400 mr-2" size={16} />
+        <div className="flex items-center bg-white rounded-lg shadow-sm border border-slate-100 px-3 py-2 flex-grow">
+          <Search className="text-slate-400 mr-2" size={16} />
           <input
             type="text"
             placeholder="Search by name, code or chemical group..."
-            className="flex-grow focus:outline-none text-sm"
+            className="flex-grow focus:outline-none text-sm text-slate-800"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -321,51 +266,65 @@ export default function ChemicalInventoryDashboard() {
 
         <div className="flex gap-2 flex-wrap">
           <button
-            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
+            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
+              sortConfig.key === "name"
+                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                : "bg-white text-slate-700 border border-slate-100"
+            }`}
             onClick={() => handleSort("name")}
           >
-            <ArrowUpDown size={16} className="mr-1.5 text-gray-500" />
+            <ArrowUpDown size={16} className="mr-1.5" />
             Sort by Name
           </button>
 
           <button
-            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
+            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
+              sortConfig.key === "code"
+                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                : "bg-white text-slate-700 border border-slate-100"
+            }`}
             onClick={() => handleSort("code")}
           >
-            <ArrowUpDown size={16} className="mr-1.5 text-gray-500" />
+            <ArrowUpDown size={16} className="mr-1.5" />
             Sort by Code
           </button>
 
           <button
-            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
+            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
+              sortConfig.key === "total"
+                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                : "bg-white text-slate-700 border border-slate-100"
+            }`}
             onClick={() => handleSort("total")}
           >
-            <ArrowUpDown size={16} className="mr-1.5 text-gray-500" />
+            <ArrowUpDown size={16} className="mr-1.5" />
             Sort by Total
           </button>
 
           <button
-            className={`flex items-center rounded-lg shadow px-3 py-1.5 text-sm ${
-              showLowStock ? "bg-amber-100" : "bg-white"
+            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
+              showLowStock
+                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                : "bg-white text-slate-700 border border-slate-100"
             }`}
             onClick={() => setShowLowStock(!showLowStock)}
           >
-            <Filter size={16} className="mr-1.5 text-gray-500" />
+            <Filter size={16} className="mr-1.5" />
             {showLowStock ? "All Items" : "Below Threshold"}
           </button>
 
           <button
-            className="flex items-center bg-white rounded-lg shadow px-3 py-1.5 text-sm"
+            className="flex items-center bg-white rounded-lg shadow-sm px-3 py-1.5 text-sm text-slate-700 border border-slate-100"
             onClick={() => setIsChartExpanded(!isChartExpanded)}
           >
             {isChartExpanded ? (
               <>
-                <Minimize2 size={16} className="mr-1.5 text-gray-500" />
+                <Minimize2 size={16} className="mr-1.5" />
                 Collapse Chart
               </>
             ) : (
               <>
-                <Maximize2 size={16} className="mr-1.5 text-gray-500" />
+                <Maximize2 size={16} className="mr-1.5" />
                 Expand Chart
               </>
             )}
@@ -374,266 +333,392 @@ export default function ChemicalInventoryDashboard() {
       </div>
 
       {/* Main Chart Area */}
-      <div className="bg-white p-4 rounded-lg shadow mb-4">
-        <h2 className="text-lg font-semibold mb-3">Solvent Drum Inventory</h2>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 mb-4">
+        <h2 className="text-lg font-semibold mb-4 text-slate-800">
+          Solvent Drum Inventory
+        </h2>
 
         {filteredInventory.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
+          <div className="text-center py-16 text-slate-500">
             No matching inventory items found.
           </div>
         ) : (
           <div
-            className={
-              isChartExpanded ? "" : "h-[75vh] overflow-y-auto relative"
-            }
+            className={cn(
+              "transition-all duration-300 ease-in-out",
+              isChartExpanded ? "" : "h-[75vh] overflow-y-auto"
+            )}
+            style={{
+              // Fixed size container to prevent layout shift
+              height: isChartExpanded
+                ? `${calculateChartContainerHeight()}px`
+                : "75vh",
+            }}
           >
-            {/* Use fixed height regardless of expanded/collapsed state */}
-            <div className="h-[200vh]" style={{ transition: "none" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  layout="vertical"
-                  data={filteredInventory}
-                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-                  barSize={barSectionHeight}
-                  barCategoryGap={3}
-                  barGap={0}
-                  onClick={(data) =>
-                    data && handleBarClick(data.activePayload?.[0]?.payload)
+            {/* Important: Setting width/height to 100% and avoiding animation makes the chart stable */}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                layout="vertical"
+                data={filteredInventory}
+                margin={{ top: 5, right: 30, left: 120, bottom: 25 }}
+                barSize={CHART_BAR_HEIGHT}
+                barCategoryGap={CHART_BAR_GAP}
+                barGap={0}
+                className="transition-none" // Prevent any transitions on the chart itself
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  type="number"
+                  label={{
+                    value: "Number of Drums",
+                    position: "insideBottom",
+                    offset: -5,
+                    style: { fill: "#64748b", fontWeight: 500 },
+                  }}
+                  stroke="#94a3b8"
+                  tickLine={{ stroke: "#94a3b8" }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{
+                    fontSize: 12,
+                    textAnchor: "end",
+                    fill: "#1e293b",
+                  }}
+                  tickFormatter={(value) =>
+                    value.toUpperCase().replace(/\s/g, "\u00A0")
                   }
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    type="number"
-                    label={{
-                      value: "Number of Drums",
-                      position: "insideBottom",
-                      offset: -5,
-                    }}
-                  />
+                  width={120}
+                  interval={
+                    isChartExpanded
+                      ? 0
+                      : Math.ceil(filteredInventory.length / 15)
+                  }
+                  onClick={(data) => {
+                    // Find the corresponding inventory item by name
+                    const item = filteredInventory.find(
+                      (entry) => entry.name === data
+                    );
+                    if (item) handleBarClick(item);
+                  }}
+                  stroke="#94a3b8"
+                />
+
+                {/* Add a second axis that shows categories in collapsed view */}
+                {!isChartExpanded && (
                   <YAxis
+                    yAxisId="category"
+                    orientation="right"
                     type="category"
-                    dataKey="name"
+                    dataKey={(entry) => {
+                      // Find important breakpoints - highest value items in each category
+                      const isHighValue = entry.total > 50;
+                      const isLowStock = entry.total < entry.threshold;
+                      return isHighValue || isLowStock ? entry.name : "";
+                    }}
                     tick={{
-                      fontSize: 12,
-                      dy: 0,
-                      textAnchor: "end",
+                      fontSize: 10,
+                      textAnchor: "start",
+                      fill: "#64748b",
                     }}
-                    tickFormatter={(value: string) => {
+                    tickFormatter={(value) => {
+                      if (!value) return "";
+                      return value.length > 10
+                        ? value.substring(0, 10) + "..."
+                        : value;
+                    }}
+                    onClick={(data) => {
+                      // Find the corresponding inventory item by name
                       const item = filteredInventory.find(
-                        (item) => item.name === value
+                        (entry) => entry.name === data
                       );
-                      // Return just the code to avoid line breaks
-                      // return item ? item.code : value;
-                      return value.toUpperCase().replace(/\s/g, "\u00A0");
-                      // ? `${item.code}-${item.name.replace(/" "/g, "_")}`
+                      if (item) handleBarClick(item);
                     }}
-                    width={120}
-                    interval={0}
-                    tickSize={3}
+                    width={80}
+                    axisLine={false}
+                    tickLine={false}
                   />
-                  <Tooltip
-                    formatter={(value: string, name: string) => [
-                      value, // TODO: Fix logic. `name` is the chemical name, not the stack name. Each bar should have two bars (one from the right for repro)
-                      name === "newStock" ? "New Drums" : "Repro Drums",
-                    ]}
-                    labelFormatter={(label: string) => {
-                      const item = filteredInventory.find(
-                        (item) => item.name === label
-                      );
-                      return item
-                        ? `${item.code} - ${label} (${item.category})`
-                        : label;
-                    }}
+                )}
+
+                <Tooltip
+                  formatter={tooltipFormatter}
+                  labelFormatter={tooltipLabelFormatter}
+                  contentStyle={{
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{
+                    paddingTop: 15,
+                    paddingBottom: 5,
+                    borderTop: "1px solid #e2e8f0",
+                  }}
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                  iconType="circle"
+                  payload={[
+                    // Hydrocarbons
+                    {
+                      value: "Hydrocarbons",
+                      type: "circle",
+                      color: colorPalette.new.Hydrocarbons,
+                      id: "hydrocarbons",
+                    },
+                    // General Solvents
+                    {
+                      value: "General Solvents",
+                      type: "circle",
+                      color: colorPalette.new["Gen Solvents"],
+                      id: "generalSolvents",
+                    },
+                    // Aromatics
+                    {
+                      value: "Aromatics",
+                      type: "circle",
+                      color: colorPalette.new.Aromatics,
+                      id: "aromatics",
+                    },
+                  ]}
+                />
+
+                {/* New Drums Bar */}
+                <Bar
+                  dataKey="newStock"
+                  name="New Drums"
+                  stackId="a"
+                  minPointSize={3}
+                  isAnimationActive={false}
+                >
+                  {filteredInventory.map((entry, index) => (
+                    <Cell
+                      key={`new-${index}`}
+                      fill={entry.groupColour.new}
+                      onClick={() => handleBarClick(entry)}
+                      style={{ cursor: "pointer" }}
+                    />
+                  ))}
+                </Bar>
+
+                {/* Repro Drums Bar - Rendered second so it's in front */}
+                <Bar
+                  dataKey="reproStock"
+                  name="Repro Drums"
+                  stackId="a"
+                  minPointSize={3}
+                  isAnimationActive={false}
+                >
+                  {filteredInventory.map((entry, index) => (
+                    <Cell
+                      key={`repro-${index}`}
+                      fill={entry.groupColour.repro}
+                      onClick={() => handleBarClick(entry)}
+                      style={{ cursor: "pointer" }}
+                    />
+                  ))}
+                </Bar>
+
+                {/* Add threshold reference lines */}
+                {filteredInventory.map((entry, index) => (
+                  <ReferenceLine
+                    key={`threshold-${index}`}
+                    y={entry.name}
+                    x={entry.threshold}
+                    stroke={colorPalette.ui.threshold}
+                    strokeDasharray="3 3"
+                    strokeWidth={1.5}
+                    ifOverflow="extendDomain"
                   />
-                  <Legend
-                    wrapperStyle={{
-                      paddingTop: 15,
-                      marginTop: 15,
-                      borderTop: "1px solid #f0f0f0",
-                    }}
-                    layout="horizontal"
-                    verticalAlign="bottom"
-                    align="center"
-                    payload={[
-                      // Hydrocarbons
-                      {
-                        value: "Hydrocarbons",
-                        type: "square",
-                        color: newStockColors["Hydrocarbons"],
-                        id: "newHydrocarbons",
-                      },
-                      // {
-                      //   value: "Repro Hydrocarbons",
-                      //   type: "square",
-                      //   color: reproStockColors["Hydrocarbons"],
-                      //   id: "reproHydrocarbons",
-                      // },
-                      // Gen Solvents
-                      {
-                        value: "General Solvents",
-                        type: "square",
-                        color: newStockColors["Gen Solvents"],
-                        id: "newGeneralSolvents",
-                      },
-                      // {
-                      //   value: "Repro Gen Solvents",
-                      //   type: "square",
-                      //   color: reproStockColors["Gen Solvents"],
-                      //   id: "reproGeneralSolvents",
-                      // },
-                      // Aromatics
-                      {
-                        value: "Aromatics",
-                        type: "square",
-                        color: newStockColors["Aromatics"],
-                        id: "newAromatics",
-                      },
-                      // {
-                      //   value: "Repro Aromatics",
-                      //   type: "square",
-                      //   color: reproStockColors["Aromatics"],
-                      //   id: "reproAromatics",
-                      // },
-                    ]}
-                  />
-                  <Bar
-                    dataKey="newStock"
-                    stackId="a"
-                    name="New Drums"
-                    onClick={(data: DrumInventory) => handleBarClick(data)}
-                    minPointSize={1}
-                    isAnimationActive={false}
-                  >
-                    {filteredInventory.map((entry, index) => (
-                      <Cell
-                        key={`new-${index}`}
-                        fill={entry.groupColour.new || "#f40000"}
-                      />
-                    ))}
-                  </Bar>
-                  <Bar
-                    dataKey="reproStock"
-                    stackId="a"
-                    name="Repro Drums"
-                    onClick={(data: DrumInventory) => handleBarClick(data)}
-                    minPointSize={1}
-                    isAnimationActive={false}
-                  >
-                    {filteredInventory.map((entry, index) => (
-                      <Cell
-                        key={`repro-${index}`}
-                        fill={entry.groupColour.repro || "#f24333"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         )}
       </div>
 
       {/* Detail Panel (conditionally rendered) */}
       {selectedItem && (
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex justify-between items-start mb-3">
-            <h2 className="text-lg font-semibold">
-              {selectedItem.code} - {selectedItem.name}
-            </h2>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 transition-all duration-300">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                {selectedItem.code} - {selectedItem.name}
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                {selectedItem.category}
+              </p>
+            </div>
             <button
-              className="text-gray-500 hover:text-gray-700"
+              type="button"
+              title="Close"
+              className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
               onClick={() => setSelectedItem(null)}
             >
-              Close
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-base font-medium mb-2">
-                Inventory Information
-              </h3>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                <dt className="text-gray-500">Material Code:</dt>
-                <dd className="font-medium">{selectedItem.code}</dd>
-                <dt className="text-gray-500">Chemical Group:</dt>
-                <dd>{selectedItem.category}</dd>
-                <dt className="text-gray-500">New Drums:</dt>
-                <dd className="font-semibold">{selectedItem.newStock} drums</dd>
-                <dt className="text-gray-500">Repro Drums:</dt>
-                <dd className="font-semibold">
-                  {selectedItem.reproStock} drums
-                </dd>
-                <dt className="text-gray-500">Total:</dt>
-                <dd className="font-semibold">
-                  {selectedItem.newStock + selectedItem.reproStock} drums
-                </dd>
-                <dt className="text-gray-500">Threshold Level:</dt>
-                <dd
-                  className={
-                    selectedItem.total < (selectedItem.threshold || 0)
-                      ? "text-red-500 font-bold"
-                      : ""
-                  }
-                >
-                  {selectedItem.threshold} drums
-                </dd>
-              </dl>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-base font-medium text-slate-700 flex items-center">
+                  <ChevronRight className="mr-1" size={18} />
+                  Inventory Details
+                </h3>
 
-              {selectedItem.total < (selectedItem.threshold || 0) && (
-                <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-md flex items-center text-sm">
-                  <AlertTriangle className="text-amber-500 mr-2" size={16} />
-                  <span className="text-amber-700">
-                    Stock is below threshold level
-                  </span>
+                <div className="bg-slate-50 rounded-md p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-x-4 text-sm">
+                    <div className="text-slate-500">New Drums:</div>
+                    <div className="font-medium text-slate-800">
+                      {selectedItem.newStock}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 text-sm">
+                    <div className="text-slate-500">Repro Drums:</div>
+                    <div className="font-medium text-slate-800">
+                      {selectedItem.reproStock}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 text-sm border-t border-slate-200 pt-2 mt-2">
+                    <div className="text-slate-500">Total Stock:</div>
+                    <div className="font-medium text-slate-800">
+                      {selectedItem.total}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 text-sm">
+                    <div className="text-slate-500">Threshold Level:</div>
+                    <div
+                      className={`font-medium ${
+                        selectedItem.total < (selectedItem.threshold || 0)
+                          ? "text-amber-600"
+                          : "text-slate-800"
+                      }`}
+                    >
+                      {selectedItem.threshold}
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                {selectedItem.total < (selectedItem.threshold || 0) && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center text-sm">
+                    <AlertTriangle
+                      className="text-amber-500 mr-2 flex-shrink-0"
+                      size={16}
+                    />
+                    <span className="text-amber-700">
+                      This item is below the reorder threshold and may need to
+                      be restocked soon.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-base font-medium text-slate-700 flex items-center">
+                  <ChevronRight className="mr-1" size={18} />
+                  Actions
+                </h3>
+
+                <div className="flex flex-wrap gap-2">
+                  <button className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors">
+                    View History
+                  </button>
+                  <button className="px-3 py-1.5 bg-green-50 text-green-700 rounded-md text-sm font-medium hover:bg-green-100 transition-colors">
+                    Place Order
+                  </button>
+                  <button className="px-3 py-1.5 bg-slate-50 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-100 transition-colors">
+                    Generate Report
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-base font-medium mb-2">Stock Distribution</h3>
-              <div className="h-40">
+            <div className="space-y-2">
+              <h3 className="text-base font-medium text-slate-700 flex items-center">
+                <ChevronRight className="mr-1" size={18} />
+                Stock Distribution
+              </h3>
+
+              <div className="bg-slate-50 rounded-md p-3 h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={[
                       {
                         name: selectedItem.name,
-                        newStock: selectedItem.newStock,
-                        reproStock: selectedItem.reproStock,
-                        threshold: selectedItem.threshold,
+                        New: selectedItem.newStock,
+                        Repro: selectedItem.reproStock,
+                        Threshold: selectedItem.threshold,
                       },
                     ]}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="name" stroke="#64748b" />
+                    <YAxis stroke="#64748b" />
                     <Tooltip
-                      formatter={(value: string, name: string) => {
-                        if (name === "newStock") return [value, "New Drums"];
-                        if (name === "reproStock")
-                          return [value, "Repro Drums"];
-                        if (name === "threshold")
-                          return [value, "Reorder Point"];
-                        return [value, name];
+                      contentStyle={{
+                        borderRadius: "6px",
+                        border: "1px solid #e2e8f0",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                       }}
                     />
-                    <Legend />
-                    <Bar dataKey="newStock" name="New Drums" fill="#3f88c5" />
+                    <Legend verticalAlign="top" height={36} />
                     <Bar
-                      dataKey="reproStock"
-                      name="Repro Drums"
-                      fill="#613f75"
+                      dataKey="New"
+                      name="New Drums"
+                      fill={getBarColor(selectedItem.chGroup, false)}
+                      radius={[4, 4, 0, 0]}
                     />
-                    {/* Adding a reference line for the threshold */}
                     <Bar
-                      dataKey="threshold"
-                      name="Reorder Point"
-                      fill="transparent"
+                      dataKey="Repro"
+                      name="Repro Drums"
+                      fill={getBarColor(selectedItem.chGroup, true)}
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <ReferenceLine
+                      y={selectedItem.threshold}
+                      stroke={colorPalette.ui.threshold}
                       strokeDasharray="5 5"
-                      stroke="#000"
+                      strokeWidth={2}
+                      label={{
+                        value: "Threshold",
+                        position: "right",
+                        fill: "#737373",
+                        fontSize: 12,
+                      }}
                     />
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+                <p className="font-medium mb-1">Inventory Status</p>
+                <p className="text-blue-600">
+                  {selectedItem.total >= (selectedItem.threshold || 0) * 1.5
+                    ? "Stock levels are healthy and well above threshold."
+                    : selectedItem.total >= (selectedItem.threshold || 0)
+                      ? "Stock levels are adequate but approaching threshold."
+                      : "Stock is below threshold and should be reordered soon."}
+                </p>
               </div>
             </div>
           </div>

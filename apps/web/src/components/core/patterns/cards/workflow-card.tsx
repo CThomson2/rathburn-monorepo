@@ -17,22 +17,46 @@ export interface WorkflowCardProps {
   description: string;
   icon: React.ReactNode;
   role: WorkflowRole;
-  roleIcon?: React.ReactNode; // New prop for role icon
+  roleIcon?: React.ReactNode;
   path: string;
   restricted?: boolean;
 }
 
+// Modern color palette with softer, more elegant tones
 const roleColors = {
-  admin: "bg-red-100 text-red-800 border-red-200",
-  operator: "bg-blue-100 text-blue-800 border-blue-200",
-  manager: "bg-purple-100 text-purple-800 border-purple-200",
-  all: "bg-green-100 text-green-800 border-green-200",
+  admin: {
+    bg: "bg-rose-50",
+    border: "border-l-4 border-l-rose-500",
+    text: "text-rose-700",
+    hover: "group-hover:bg-rose-100",
+    icon: "text-rose-500",
+  },
+  operator: {
+    bg: "bg-sky-50",
+    border: "border-l-4 border-l-sky-500",
+    text: "text-sky-700",
+    hover: "group-hover:bg-sky-100",
+    icon: "text-sky-500",
+  },
+  manager: {
+    bg: "bg-violet-50",
+    border: "border-l-4 border-l-violet-500",
+    text: "text-violet-700",
+    hover: "group-hover:bg-violet-100",
+    icon: "text-violet-500",
+  },
+  all: {
+    bg: "bg-emerald-50",
+    border: "border-l-4 border-l-emerald-500",
+    text: "text-emerald-700",
+    hover: "group-hover:bg-emerald-100",
+    icon: "text-emerald-500",
+  },
 };
 
 /**
- * A component that renders a workflow card with a title, description, icon, and role-based styling.
- * It displays a badge indicating the role, and optionally a lock icon if access is restricted.
- * The card is clickable and links to a specified path.
+ * A redesigned workflow card with a longer rectangular layout, improved hover effects,
+ * and a more sophisticated color palette.
  *
  * @param {string} title - The title of the workflow.
  * @param {string} description - A brief description of the workflow.
@@ -51,43 +75,79 @@ export function WorkflowCard({
   path,
   restricted = false,
 }: WorkflowCardProps) {
+  const roleColor = roleColors[role];
+
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md group">
-      <CardHeader className={cn("pb-2", roleColors[role])}>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-          <Badge
-            variant="outline"
-            className="font-normal flex items-center gap-1"
-          >
-            {roleIcon}
-            <span className="text-xs">
-              {role.charAt(0).toUpperCase() + role.slice(1)}
-            </span>
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4 relative">
-        <div className="mb-8 flex justify-center items-center text-muted-foreground">
-          {icon}
-        </div>
-        {restricted && (
-          <div className="absolute top-2 right-2">
-            <Badge variant="secondary">
+    <Card
+      className={cn(
+        "overflow-hidden transition-all duration-300 group h-24",
+        "flex flex-row items-stretch",
+        roleColor.bg,
+        roleColor.border,
+        "hover:shadow-lg transform hover:-translate-y-1"
+      )}
+    >
+      {/* Icon Section */}
+      <div
+        className={cn(
+          "p-4 flex items-center justify-center w-24 transition-colors duration-300",
+          roleColor.icon
+        )}
+      >
+        {icon}
+      </div>
+
+      {/* Content Section */}
+      <div className="flex-1 flex flex-col justify-center py-3 pr-3 relative">
+        <div className="flex justify-between items-center mb-1">
+          <CardTitle className={cn("text-lg font-semibold", roleColor.text)}>
+            {title}
+          </CardTitle>
+
+          {restricted && (
+            <Badge variant="outline" className="font-normal text-xs opacity-80">
               <span className="mr-1">🔒</span> Restricted
             </Badge>
-          </div>
+          )}
+        </div>
+
+        <CardDescription className="text-sm line-clamp-2">
+          {description}
+        </CardDescription>
+      </div>
+
+      {/* Right Section with Role Badge and Arrow */}
+      <div
+        className={cn(
+          "w-12 flex flex-col items-center justify-between py-3 pr-3 transition-colors duration-300",
+          roleColor.hover
         )}
-      </CardContent>
-      <CardFooter className="bg-gray-100 dark:bg-gray-800 p-3 flex justify-between items-center">
-        <CardDescription className="text-xs">{description}</CardDescription>
+      >
+        <Badge
+          variant="outline"
+          className={cn(
+            "font-normal text-xs px-1 py-0.5 flex items-center gap-1",
+            "border border-transparent",
+            roleColor.text
+          )}
+        >
+          {roleIcon && <span className="scale-75">{roleIcon}</span>}
+          {!roleIcon && (
+            <span className="text-[10px]">{role.charAt(0).toUpperCase()}</span>
+          )}
+        </Badge>
+
         <a
           href={path}
-          className="rounded-full bg-background p-1.5 shadow-sm transition-transform group-hover:translate-x-1"
+          className={cn(
+            "rounded-full p-1.5 transition-all duration-300",
+            "opacity-60 group-hover:opacity-100",
+            "group-hover:translate-x-1"
+          )}
         >
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className={cn("h-4 w-4", roleColor.text)} />
         </a>
-      </CardFooter>
+      </div>
     </Card>
   );
 }
