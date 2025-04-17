@@ -17,9 +17,9 @@ export async function GET(req: Request) {
     return executeDbOperation(async (client) => {
       // Use Supabase's ilike for case-insensitive matching
       const { data, error } = await client
-        .from('raw_materials')
-        .select('material_name')
-        .ilike('material_name', `${query}%`)
+        .from("ref_materials")
+        .select("value")
+        .ilike("value", `${query}%`)
         .limit(10);
 
       if (error) {
@@ -27,15 +27,15 @@ export async function GET(req: Request) {
       }
 
       return NextResponse.json({
-        suggestions: data.map((s) => s.material_name),
+        suggestions: data.map((s) => s.value),
       });
     });
   } catch (error) {
     console.error("Error fetching material suggestions:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to fetch suggestions",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );

@@ -7,7 +7,10 @@ type TableNames = keyof (Database["public"]["Tables"] &
   Database["public"]["Views"]);
 
 export const availableTables = [
-  { name: "stock_drum" as const, description: "Current drum inventory" },
+  {
+    name: "stock_drum" as const,
+    description: "Current drum inventory",
+  },
   { name: "ref_materials" as const, description: "Material reference data" },
   { name: "ref_suppliers" as const, description: "Supplier reference data" },
   { name: "stock_order" as const, description: "Stock order records" },
