@@ -28,6 +28,8 @@ import { usePathname } from "next/navigation";
 import { HeaderControls } from "./header-controls";
 import { signOutAction } from "@/app/actions";
 import { Button } from "@/components/core/ui/button";
+import { WorkflowProvider } from "@/context/workflow-context";
+import { WorkflowMenu } from "@/components/core/patterns/workflow/workflow-menu";
 
 // TypeScript workaround for React 18 vs React 19 type compatibility issue
 // @ts-ignore
@@ -113,135 +115,140 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-gray-600 bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-80 z-20 lg:hidden"
-          onClick={closeSidebar}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/30 transform transition-transform duration-300 ease-in-out z-30",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        )}
-      >
-        <div className="flex items-center justify-between h-12 px-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="text-lg font-bold text-[#bc261a] dark:text-red-500 alfa-font">
-            RATHBURN ONLINE
-          </div>
-          <button
-            className="p-1.5 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700 lg:hidden"
+    <WorkflowProvider>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-gray-600 bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-80 z-20 lg:hidden"
             onClick={closeSidebar}
-            aria-label="Close sidebar"
-          >
-            {/* @ts-ignore - React/TypeScript compatibility issue */}
-            <X size={18} />
-          </button>
-        </div>
-        <nav className="mt-3 px-2">
-          <div className="space-y-1">
-            {navItems.map((item, index) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/" && pathname.startsWith(item.href));
+          />
+        )}
 
-              const Icon = item.icon;
-              const previousItem = index > 0 ? navItems[index - 1] : null;
-              const shouldAddDivider =
-                previousItem && previousItem.level !== item.level;
-
-              return (
-                <div key={item.name}>
-                  {shouldAddDivider && (
-                    <div className="h-px bg-gray-200 dark:bg-gray-700 my-2" />
-                  )}
-                  <SafeLink
-                    href={item.href}
-                    className={cn(
-                      "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
-                      isActive
-                        ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                        : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50"
-                    )}
-                  >
-                    {/* @ts-ignore - React/TypeScript compatibility issue */}
-                    <Icon
-                      className={cn(
-                        "mr-3 h-5 w-5",
-                        isActive
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-gray-500 dark:text-gray-400"
-                      )}
-                    />
-                    {item.name}
-                  </SafeLink>
-                </div>
-              );
-            })}
-          </div>
-        </nav>
-        <div className="absolute bottom-0 w-full border-t border-gray-200 dark:border-gray-700">
-          <div className="px-4 py-4">
-            {/* @ts-ignore - Form action type mismatch */}
-            <form action={signOutAction}>
-              <Button
-                variant="outline"
-                type="submit"
-                className="group flex items-center w-full text-sm font-medium rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-              >
-                {/* @ts-ignore - React/TypeScript compatibility issue */}
-                <LogOut className="mr-2 h-5 w-5 text-red-500 dark:text-red-400" />
-                Sign Out
-              </Button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className={cn("lg:pl-64 flex flex-col min-h-screen")}>
-        {/* Top header */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-900/30 z-10">
-          <div className="flex items-center justify-end h-12 px-4 sm:px-6 lg:px-8">
+        {/* Sidebar */}
+        <div
+          className={cn(
+            "fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/30 transform transition-transform duration-300 ease-in-out z-30",
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          )}
+        >
+          <div className="flex items-center justify-between h-12 px-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="text-lg font-bold text-[#bc261a] dark:text-red-500 alfa-font">
+              RATHBURN ONLINE
+            </div>
             <button
               className="p-1.5 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700 lg:hidden"
-              onClick={openSidebar}
-              aria-label="Open sidebar"
+              onClick={closeSidebar}
+              aria-label="Close sidebar"
             >
               {/* @ts-ignore - React/TypeScript compatibility issue */}
-              <Menu size={18} />
+              <X size={18} />
             </button>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <button
-                  className="inline-flex items-center justify-center p-1 rounded-full text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700"
-                  aria-label="Notifications"
+          </div>
+          <nav className="mt-3 px-2">
+            <div className="space-y-1">
+              {navItems.map((item, index) => {
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== "/" && pathname.startsWith(item.href));
+
+                const Icon = item.icon;
+                const previousItem = index > 0 ? navItems[index - 1] : null;
+                const shouldAddDivider =
+                  previousItem && previousItem.level !== item.level;
+
+                return (
+                  <div key={item.name}>
+                    {shouldAddDivider && (
+                      <div className="h-px bg-gray-200 dark:bg-gray-700 my-2" />
+                    )}
+                    <SafeLink
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
+                        isActive
+                          ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50"
+                      )}
+                    >
+                      {/* @ts-ignore - React/TypeScript compatibility issue */}
+                      <Icon
+                        className={cn(
+                          "mr-3 h-5 w-5",
+                          isActive
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-500 dark:text-gray-400"
+                        )}
+                      />
+                      {item.name}
+                    </SafeLink>
+                  </div>
+                );
+              })}
+            </div>
+          </nav>
+          <div className="absolute bottom-0 w-full border-t border-gray-200 dark:border-gray-700">
+            <div className="px-4 py-4">
+              {/* @ts-ignore - Form action type mismatch */}
+              <form action={signOutAction}>
+                <Button
+                  variant="outline"
+                  type="submit"
+                  className="group flex items-center w-full text-sm font-medium rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   {/* @ts-ignore - React/TypeScript compatibility issue */}
-                  <Bell size={18} />
-                </button>
-                <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 dark:bg-blue-700 text-white">
-                  {/* @ts-ignore - React/TypeScript compatibility issue */}
-                  <User size={16} />
+                  <LogOut className="mr-2 h-5 w-5 text-red-500 dark:text-red-400" />
+                  Sign Out
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className={cn("lg:pl-64 flex flex-col min-h-screen")}>
+          {/* Top header */}
+          <header className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-900/30 z-10">
+            <div className="flex items-center justify-end h-12 px-4 sm:px-6 lg:px-8">
+              <button
+                className="p-1.5 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700 lg:hidden"
+                onClick={openSidebar}
+                aria-label="Open sidebar"
+              >
+                {/* @ts-ignore - React/TypeScript compatibility issue */}
+                <Menu size={18} />
+              </button>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <button
+                    className="inline-flex items-center justify-center p-1 rounded-full text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                    aria-label="Notifications"
+                  >
+                    {/* @ts-ignore - React/TypeScript compatibility issue */}
+                    <Bell size={18} />
+                  </button>
+                  <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 dark:bg-blue-700 text-white">
+                    {/* @ts-ignore - React/TypeScript compatibility issue */}
+                    <User size={16} />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Floating header controls */}
-        <HeaderControls
-          databasePath={`${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL}`}
-        />
+          {/* Floating header controls */}
+          <HeaderControls
+            databasePath={`${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL}`}
+          />
 
-        {/* Page content */}
-        <main className="flex-1 pt-2">{children}</main>
+          {/* Workflow Menu - available on all pages */}
+          <WorkflowMenu />
+
+          {/* Page content */}
+          <main className="flex-1 pt-2">{children}</main>
+        </div>
       </div>
-    </div>
+    </WorkflowProvider>
   );
 };
 

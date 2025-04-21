@@ -27,12 +27,19 @@ export const metadata: Metadata = {
 };
 
 function isAuthPage(pathname: string) {
-  return (
+  // Check for auth routes
+  const isAuth =
     pathname.startsWith("/sign-in") ||
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password")
-  );
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/auth/callback") ||
+    pathname.includes("(auth-pages)");
+
+  // For server-side debugging only
+  console.log(`[LAYOUT DEBUG] Pathname: ${pathname}, isAuth: ${isAuth}`);
+
+  return isAuth;
 }
 
 export default function RootLayout({
@@ -56,17 +63,14 @@ export default function RootLayout({
         )}
       >
         <Providers>
-          <DashboardLayout>
-            {/* Show Hero and controls only on non-auth pages */}
-            {!isAuth && (
-              <>
-                <RouteAwareControls />
-              </>
-            )}
-
-            {/* Main content */}
-            <main>{children}</main>
-          </DashboardLayout>
+          {isAuth ? (
+            <>{children}</>
+          ) : (
+            <DashboardLayout>
+              <RouteAwareControls />
+              <main>{children}</main>
+            </DashboardLayout>
+          )}
         </Providers>
       </body>
     </html>

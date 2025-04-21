@@ -11,14 +11,14 @@ export async function GET(request: Request) {
   const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
 
   if (code) {
-    const supabase = await createClient();
+    const supabase = createClient();
     await supabase.auth.exchangeCodeForSession(code);
   }
 
   if (redirectTo) {
     // Ensure the redirect path is valid
-    const validRedirectPaths = ["/reset-password", "/orders"];
-    const defaultRedirect = "/orders";
+    const validRedirectPaths = ["/reset-password", "/", "/inventory", "/orders"];
+    const defaultRedirect = "/inventory";
 
     // Check if the redirectTo path is in our valid paths, otherwise use default
     const isValidPath = validRedirectPaths.some((path) =>
@@ -30,5 +30,5 @@ export async function GET(request: Request) {
   }
 
   // Default redirect after sign in/up
-  return NextResponse.redirect(`${origin}/orders`);
+  return NextResponse.redirect(`${origin}/inventory`);
 }
