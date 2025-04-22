@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase/client";
+import { createNewClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 
 // Create a single instance of the Supabase client
-export const supabase = createClient();
+export const supabase = createNewClient();
 
 /**
  * Hook for managing client-side authentication state and actions

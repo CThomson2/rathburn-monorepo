@@ -12,6 +12,13 @@ export const createClient = () => {
   );
 };
 
+export const createNewClient = () => {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
+  );
+};
+
 /**
  * Type definition for a Supabase operation callback function
  */
@@ -29,9 +36,10 @@ export type SupabaseOperationCallback<T> = (
  * });
  */
 export const withSupabaseClient = async <T>(
-  operation: SupabaseOperationCallback<T>
+  operation: SupabaseOperationCallback<T>,
+  useNewClient: boolean = false
 ): Promise<T> => {
-  const db = createClient();
+  const db = useNewClient ? createNewClient() : createClient();
   try {
     // Execute the provided operation with the SupabaseClient instance
     return await operation(db);
