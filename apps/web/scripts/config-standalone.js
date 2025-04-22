@@ -74,7 +74,10 @@ if (fs.existsSync(path.join(appDir, ".next/static"))) {
 // Copy public assets
 console.log("📁 Copying public assets...");
 if (fs.existsSync(path.join(appDir, "public"))) {
-  runCommand(`cp -r public .next/standalone/`, "Failed to copy public folder");
+  runCommand(
+    `cp -r public .next/standalone/apps/web/`,
+    "Failed to copy public folder"
+  );
 } else {
   console.log("ℹ️ No public folder found, skipping...");
 }
