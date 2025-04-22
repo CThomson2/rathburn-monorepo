@@ -48,12 +48,6 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
 
-CREATE SCHEMA IF NOT EXISTS "temp";
-
-
-ALTER SCHEMA "temp" OWNER TO "postgres";
-
-
 CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
 
 
@@ -101,21 +95,6 @@ CREATE EXTENSION IF NOT EXISTS "wrappers" WITH SCHEMA "extensions";
 
 
 
-
-
-CREATE TYPE "inventory"."drum_status" AS ENUM (
-    'en_route',
-    'in_stock',
-    'pending_allocation',
-    'allocated',
-    'rescheduled',
-    'decommissioned',
-    'empty',
-    'lost'
-);
-
-
-ALTER TYPE "inventory"."drum_status" OWNER TO "postgres";
 
 
 CREATE FOREIGN DATA WRAPPER "s3_wrapper" HANDLER "extensions"."s3_fdw_handler" VALIDATOR "extensions"."s3_fdw_validator";
@@ -200,26 +179,6 @@ CREATE TABLE IF NOT EXISTS "auth_ext"."worker_passcodes" (
 
 
 ALTER TABLE "auth_ext"."worker_passcodes" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "temp"."temp_data" (
-    "old_id" "text",
-    "material_name" "text",
-    "quantity" integer,
-    "supplier" "text",
-    "batch" "text",
-    "order_date" "date",
-    "site" "text",
-    "int_column" "text",
-    "clerk_column" "text",
-    "processed_date" "text",
-    "material_id" integer,
-    "supplier_id" integer,
-    "new_id" integer
-);
-
-
-ALTER TABLE "temp"."temp_data" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "auth_ext"."user_profiles"
@@ -394,7 +353,6 @@ GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
-GRANT ALL ON SCHEMA "public" TO "prisma";
 
 
 
@@ -716,35 +674,30 @@ GRANT ALL ON SCHEMA "public" TO "prisma";
 GRANT ALL ON TABLE "auth_ext"."session_settings" TO "anon";
 GRANT ALL ON TABLE "auth_ext"."session_settings" TO "authenticated";
 GRANT ALL ON TABLE "auth_ext"."session_settings" TO "service_role";
-GRANT ALL ON TABLE "auth_ext"."session_settings" TO "prisma";
 
 
 
 GRANT ALL ON TABLE "auth_ext"."user_profiles" TO "anon";
 GRANT ALL ON TABLE "auth_ext"."user_profiles" TO "authenticated";
 GRANT ALL ON TABLE "auth_ext"."user_profiles" TO "service_role";
-GRANT ALL ON TABLE "auth_ext"."user_profiles" TO "prisma";
 
 
 
 GRANT ALL ON TABLE "auth_ext"."user_queries" TO "anon";
 GRANT ALL ON TABLE "auth_ext"."user_queries" TO "authenticated";
 GRANT ALL ON TABLE "auth_ext"."user_queries" TO "service_role";
-GRANT ALL ON TABLE "auth_ext"."user_queries" TO "prisma";
 
 
 
 GRANT ALL ON TABLE "auth_ext"."user_roles" TO "anon";
 GRANT ALL ON TABLE "auth_ext"."user_roles" TO "authenticated";
 GRANT ALL ON TABLE "auth_ext"."user_roles" TO "service_role";
-GRANT ALL ON TABLE "auth_ext"."user_roles" TO "prisma";
 
 
 
 GRANT ALL ON TABLE "auth_ext"."worker_passcodes" TO "anon";
 GRANT ALL ON TABLE "auth_ext"."worker_passcodes" TO "authenticated";
 GRANT ALL ON TABLE "auth_ext"."worker_passcodes" TO "service_role";
-GRANT ALL ON TABLE "auth_ext"."worker_passcodes" TO "prisma";
 
 
 
@@ -769,12 +722,6 @@ GRANT ALL ON TABLE "auth_ext"."worker_passcodes" TO "prisma";
 
 
 
-
-
-
-GRANT ALL ON TABLE "temp"."temp_data" TO "anon";
-GRANT ALL ON TABLE "temp"."temp_data" TO "authenticated";
-GRANT ALL ON TABLE "temp"."temp_data" TO "service_role";
 
 
 
@@ -800,7 +747,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQ
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES  TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES  TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES  TO "service_role";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES  TO "prisma";
 
 
 
@@ -811,7 +757,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "service_role";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "prisma";
 
 
 
@@ -822,8 +767,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "service_role";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "prisma";
-
 
 
 
