@@ -87,6 +87,29 @@ export const signInAction = async (formData: FormData) => {
 };
 
 /**
+ * Handles the sign in with MS Azure AD
+ * @returns Redirect to the Microsoft sign-in page
+ */
+export const signInWithMicrosoftAction = async () => {
+  const origin = headers().get("origin");
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "azure",
+    options: {
+      scopes: "offline_access",
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    return encodedRedirect("error", "/sign-in", error.message);
+  }
+
+  return redirect(data.url);
+  
+};
+
+/**
  * Initiates password reset flow
  * @param formData Form data containing email
  * @returns Redirect with success or error message

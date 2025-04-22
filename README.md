@@ -26,6 +26,7 @@ Key features:
 - Real-time inventory updates
 - Mobile-optimized interface
 - Offline capability with sync
+- Gamification for workers
 
 ## Development
 
