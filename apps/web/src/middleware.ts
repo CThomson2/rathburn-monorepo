@@ -31,7 +31,28 @@ type UpdateSessionResult = {
 export async function middleware(request: NextRequest) {
   // Get the response and session from updateSession
   const result = (await updateSession(request)) as UpdateSessionResult;
-  const { response, session } = result;
+  const { response, session } = result || { response: null, session: null };
+
+  // Check if response exists before using it
+  if (!response) {
+    // Create a fallback response
+    const fallbackResponse = NextResponse.next();
+    
+    // Continue with your auth logic using the fallback response
+    const pathname = request.nextUrl.pathname;
+    
+    const isAuthRoute = publicRoutes.some(
+      (route) => pathname === route || pathname.startsWith(route)
+    );
+
+    if (!isAuthRoute && !session) {
+      const redirectUrl = new URL("/sign-in", request.url);
+      redirectUrl.searchParams.set("redirectedFrom", pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    return fallbackResponse;
+  }
 
   const pathname = request.nextUrl.pathname;
   

@@ -9,6 +9,7 @@ import {
   deleteFromTable,
   getById,
 } from "@/lib/database";
+import { createClient } from "@/lib/supabase/server";
 
 // Force dynamic rendering and no caching for this database-dependent route
 export const dynamic = "force-dynamic";
@@ -97,12 +98,25 @@ export async function GET(req: Request) {
 
 /**
  * POST handler for creating a new order
+ * TODO: Convert into server action
  *
  * @param req - The incoming request
  * @returns JSON response with the created order or error
  */
 export async function POST(req: Request) {
   try {
+    // Check if user is authenticated
+    // const { data: { session } } = await supabase.auth.getSession();
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.log("Unauthorized");
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // Parse request body
     const body: StockOrderFormValues = await req.json();
     const { supplier, po_number, date_ordered, order_details } = body;

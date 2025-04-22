@@ -21,15 +21,15 @@ export function useAuth() {
 
   useEffect(() => {
     // Get initial user state
-    const getUser = async () => {
+    const getSession = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
       setLoading(false);
     };
 
-    getUser();
+    getSession();
 
     // Subscribe to auth state changes
     // This sets up a real-time listener for authentication state changes
