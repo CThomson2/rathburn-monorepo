@@ -1,62 +1,84 @@
-// App.tsx
+// pages/Index.tsx
 import { useState } from "react";
 import BarcodeScannerInput from "../components/BarcodeScannerInput";
 import ScanView from "../views/Scan";
-// import HistoryView from "./views/HistoryView";
-// import InventoryView from "./views/InventoryView";
-// import "./App.css";
+import { useBarcodeScannerHistory } from "@/hooks/use-barcode-scanner";
+import { toast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { Scan, Clock, Package } from "lucide-react";
 
 /**
- * The Index component is the main entry point of the application, managing
- * the active tab state and rendering the appropriate view based on the selected tab.
- *
- * - It provides a barcode scanning functionality through the BarcodeScannerInput component,
- *   where the scanned barcode is processed by the handleBarcodeScan function.
- * - The component includes a tab navigation system allowing the user to switch
- *   between different views: Scan, History, and Inventory.
- *
- * Note: The HistoryView and InventoryView components are currently commented out,
- * indicating they may be under development or not needed for the current release.
+ * The Index component is the main entry point of the application, combining
+ * barcode scanning functionality with navigation to other app features.
  */
-
 function Index() {
   const [activeTab, setActiveTab] = useState("scan");
+  const { addScan } = useBarcodeScannerHistory();
+  const navigate = useNavigate();
 
   const handleBarcodeScan = (barcode: string) => {
     console.log("Barcode scanned:", barcode);
-    // Process the barcode data here
-    // This could include API calls to Supabase
+    addScan(barcode);
+    toast({
+      title: "Barcode Scanned",
+      description: barcode,
+      duration: 3000,
+    });
   };
 
   return (
-    <div className="app-container">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      {/* Always active barcode scanner input */}
       <BarcodeScannerInput onScan={handleBarcodeScan} />
 
-      <main className="content">
-        {activeTab === "scan" && <ScanView />}
-        {/* {activeTab === "history" && <HistoryView />} */}
-        {/* {activeTab === "inventory" && <InventoryView />} */}
+      {/* Header */}
+      <header className="bg-blue-600 text-white p-4 shadow-md">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-bold">DistilliTrace</h1>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/production")}
+            className="bg-white text-blue-600 hover:bg-blue-50"
+          >
+            Production Dashboard
+          </Button>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="flex-1">
+        <ScanView />
       </main>
 
-      <nav className="tab-navigation">
-        <button
-          className={activeTab === "scan" ? "active" : ""}
-          onClick={() => setActiveTab("scan")}
-        >
-          Scan
-        </button>
-        <button
-          className={activeTab === "history" ? "active" : ""}
-          onClick={() => setActiveTab("history")}
-        >
-          History
-        </button>
-        <button
-          className={activeTab === "inventory" ? "active" : ""}
-          onClick={() => setActiveTab("inventory")}
-        >
-          Inventory
-        </button>
+      {/* Tab navigation */}
+      <nav className="bg-white border-t border-gray-200 p-2">
+        <div className="flex justify-around">
+          <Button
+            variant={activeTab === "scan" ? "default" : "ghost"}
+            className="flex-1 flex flex-col items-center py-2"
+            onClick={() => setActiveTab("scan")}
+          >
+            <Scan className="h-5 w-5 mb-1" />
+            <span className="text-sm">Scan</span>
+          </Button>
+          <Button
+            variant={activeTab === "history" ? "default" : "ghost"}
+            className="flex-1 flex flex-col items-center py-2"
+            onClick={() => setActiveTab("history")}
+          >
+            <Clock className="h-5 w-5 mb-1" />
+            <span className="text-sm">History</span>
+          </Button>
+          <Button
+            variant={activeTab === "inventory" ? "default" : "ghost"}
+            className="flex-1 flex flex-col items-center py-2"
+            onClick={() => navigate("/production")}
+          >
+            <Package className="h-5 w-5 mb-1" />
+            <span className="text-sm">Production</span>
+          </Button>
+        </div>
       </nav>
     </div>
   );
