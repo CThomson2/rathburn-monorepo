@@ -70,7 +70,7 @@ export async function middleware(request: NextRequest) {
 
   // If on auth route and logged in, redirect to dashboard
   if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/inventory", request.url));
   }
 
   // If on protected route and not logged in, redirect to sign-in

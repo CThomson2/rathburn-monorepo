@@ -1,4 +1,5 @@
-import { signInAction } from "@/app/actions";
+import MicrosoftSvg from "@/assets/svg/microsoft.svg";
+import { signInAction, signInWithMicrosoftAction } from "@/app/actions";
 import {
   FormMessage,
   Message,
@@ -7,6 +8,7 @@ import { SubmitButton } from "@/components/desktop/layout/auth/submit-button";
 import { Input } from "@/components/core/ui/input";
 import { Label } from "@/components/core/ui/label";
 import Link from "next/link";
+import Image from "next/image";
 
 // Debug component to show layout detection
 function LayoutDebug() {
@@ -53,6 +55,14 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
           />
           <SubmitButton pendingText="Signing In..." formAction={signInAction}>
             Sign in
+          </SubmitButton>
+          <SubmitButton
+            pendingText="Connecting..."
+            formAction={signInWithMicrosoftAction}
+            className="bg-white text-black border border-gray-600 hover:border-black hover:bg-gray-300"
+          >
+            <Image src={MicrosoftSvg} alt="Microsoft" />
+            Sign in with Microsoft
           </SubmitButton>
           <FormMessage message={searchParams} />
         </div>
