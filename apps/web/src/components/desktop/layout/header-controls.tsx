@@ -7,16 +7,11 @@ import { Database, Target } from "lucide-react";
 import { Button } from "@/components/core/ui/button";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { useWorkflow } from "@/context/workflow-context";
 
 interface HeaderControlsProps {
   databasePath?: string;
   className?: string;
-}
-
-declare global {
-  interface Window {
-    toggleWorkflowCards?: () => void;
-  }
 }
 
 export function HeaderControls({
@@ -25,50 +20,12 @@ export function HeaderControls({
 }: HeaderControlsProps) {
   const pathname = usePathname();
   const isMobileRoute = pathname.includes("/mobile");
-  const [isWorkflowMenuOpen, setIsWorkflowMenuOpen] = useState(false);
+  const { showWorkflowCards, toggleWorkflowCards } = useWorkflow();
 
   // Don't render on mobile routes
   if (isMobileRoute) {
     return null;
   }
-
-  // Sync the local state with window's workflow cards state
-  useEffect(() => {
-    // Use a simple window event listener approach
-    const handleWindowClick = () => {
-      // Check the global state after a small delay to ensure it's updated
-      setTimeout(() => {
-        // Access the current state through the window method
-        const isOpen =
-          document.querySelector('[data-workflow-menu="true"]') !== null;
-        setIsWorkflowMenuOpen(isOpen);
-      }, 0);
-    };
-
-    // Listen for clicks anywhere on the page
-    window.addEventListener("click", handleWindowClick);
-
-    // Set up a MutationObserver to detect when workflow cards are toggled
-    const observer = new MutationObserver(() => {
-      const isOpen =
-        document.querySelector('[data-workflow-menu="true"]') !== null;
-      setIsWorkflowMenuOpen(isOpen);
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      window.removeEventListener("click", handleWindowClick);
-      observer.disconnect();
-    };
-  }, []);
-
-  const handleWorkflowToggle = () => {
-    if (window.toggleWorkflowCards) {
-      window.toggleWorkflowCards();
-      setIsWorkflowMenuOpen(!isWorkflowMenuOpen);
-    }
-  };
 
   return (
     <div
@@ -83,9 +40,9 @@ export function HeaderControls({
       <Button
         variant="outline"
         size="icon"
-        onClick={handleWorkflowToggle}
+        onClick={toggleWorkflowCards}
         className={`relative h-12 w-12 rounded-full bg-background dark:bg-gray-800 border-border dark:border-gray-700 shadow-sm hover:shadow-md hover:scale-115 transition-all duration-300 ease-in-out ${
-          isWorkflowMenuOpen
+          showWorkflowCards
             ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
             : ""
         }`}

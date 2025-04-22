@@ -1,6 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+  /**
+   * Server-side middleware function to handle authentication.
+   *
+   * Creates a server-side Supabase client with the correct cookies and headers.
+   * Refreshes the user's session if it is expired.
+   * Checks if the user is on a public route or not.
+   * If not on a public route and there is no user, redirects to sign-in.
+   * Returns the response and session for the main middleware.
+   *
+   * @param request - The NextRequest object.
+   * @returns An object containing the response and session.
+   */
 export async function updateSession(request: NextRequest) {
   // Create a response object that we can modify
   let response = NextResponse.next({
