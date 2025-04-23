@@ -91,13 +91,19 @@ export const signInAction = async (formData: FormData) => {
  * @returns Redirect to the Microsoft sign-in page
  */
 export const signInWithMicrosoftAction = async () => {
-  const origin = headers().get("origin");
+  // if (process.env.NODE_ENV !== "production") {
+  //   return encodedRedirect(
+  //     "error",
+  //     "/sign-in",
+  //     "Not available in development mode"
+  //   );
+  // }
   const supabase = createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "azure",
     options: {
-      scopes: "offline_access",
-      redirectTo: `${origin}/auth/callback`,
+      scopes: "offline_access email",
+      redirectTo: `https://rathburn.app/auth/callback`, // Use absolute URL instead of ${origin}
     },
   });
 
@@ -106,7 +112,6 @@ export const signInWithMicrosoftAction = async () => {
   }
 
   return redirect(data.url);
-  
 };
 
 /**

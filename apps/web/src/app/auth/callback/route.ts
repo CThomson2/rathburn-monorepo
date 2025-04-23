@@ -7,7 +7,6 @@ export async function GET(request: Request) {
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const origin = requestUrl.origin;
   const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
 
   if (code) {
@@ -26,9 +25,9 @@ export async function GET(request: Request) {
     );
     const finalRedirect = isValidPath ? redirectTo : defaultRedirect;
 
-    return NextResponse.redirect(`${origin}${finalRedirect}`);
+    return NextResponse.redirect(`https://rathburn.app${finalRedirect}`);
   }
 
   // Default redirect after sign in/up
-  return NextResponse.redirect(`${origin}/inventory`);
+  return NextResponse.redirect(`https://rathburn.app/inventory`);
 }
