@@ -7,7 +7,7 @@ import Index from "./pages/Index";
 // import ScanView from "./pages/ScanViewSimple";
 import ScanView from "./pages/ScanViewSimple";
 import NotFound from "./pages/NotFound";
-
+import Auth from "./pages/Auth";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -18,6 +18,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/sign-in" element={<Auth />} />
           <Route path="/scan" element={<ScanView />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
