@@ -10,15 +10,35 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     cors: {
-      origin: ["http://localhost:3000", "https://rathburn.app"],
-      credentials: true
+      origin: ["http://localhost:3001", "https://rathburn.app", "http://localhost:4173"],
+      credentials: true,
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"]
+    },
+    proxy: {
+      // Proxy API requests to the Express backend
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      }
     }
   },
   preview: {
     port: 4173,
     cors: {
-      origin: ["http://localhost:3000", "https://rathburn.app"],
-      credentials: true
+      origin: ["http://localhost:3001", "https://rathburn.app"],
+      credentials: true,
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"]
+    },
+    proxy: {
+      // Proxy API requests to the Express backend
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      }
     }
   },
   plugins: [

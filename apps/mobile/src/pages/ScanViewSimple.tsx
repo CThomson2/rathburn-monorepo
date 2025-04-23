@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, FileText } from "lucide-react";
+import { Check, FileText, Download, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // API config - will be different in dev vs production
@@ -12,14 +12,21 @@ const API_BASE_URL = (() => {
   // For development and preview modes
   const host = window.location.hostname;
 
-  // Detect different development environments
+  // When using the dev server proxy, we can use the relative URL
+  // This works with Vite's proxy settings in vite.config.ts
+  return "/api";
+
+  // Old approach without proxy - keeping for reference
+  // If you need to disable the proxy, use this instead
+  /*
   if (host === "localhost" || host === "127.0.0.1") {
     // In local development, use the Express API server running on port 3001
     return "http://localhost:3001/api";
   }
-
-  // For preview deployments or other environments, use the same host but with api path
+  
+  // For preview deployments or other environments
   return `${window.location.protocol}//${host}/api`;
+  */
 })();
 
 /**
@@ -38,6 +45,9 @@ const ScanViewSimple = () => {
   const [showReport, setShowReport] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deviceId, setDeviceId] = useState<string>("");
+  const [localScanCount, setLocalScanCount] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Generate or retrieve device ID on component mount
@@ -111,6 +121,12 @@ const ScanViewSimple = () => {
 
       const data = await response.json();
       console.log("API response:", data);
+
+      // Update local scan count if provided
+      if (data.totalLocalScans) {
+        setLocalScanCount(data.totalLocalScans);
+      }
+
       return data.scan;
     } catch (error) {
       console.error("Error logging scan:", error);
@@ -147,6 +163,55 @@ const ScanViewSimple = () => {
     }
   };
 
+  // Export scans as CSV
+  const exportScansCSV = async () => {
+    try {
+      setIsExporting(true);
+      setExportMessage("Exporting scans...");
+
+      // Trigger CSV download by opening URL in new tab
+      window.open(`${API_BASE_URL}/logs/export-csv`, "_blank");
+
+      setExportMessage("CSV export started in new tab");
+    } catch (error) {
+      console.error("Error exporting scans:", error);
+      setExportMessage("Error exporting scans");
+    } finally {
+      setIsExporting(false);
+      setTimeout(() => setExportMessage(""), 3000);
+    }
+  };
+
+  // Save scans locally on the server
+  const saveScansLocally = async () => {
+    try {
+      setIsExporting(true);
+      setExportMessage("Saving scans...");
+
+      const response = await fetch(`${API_BASE_URL}/logs/save-local`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        mode: "cors",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      const data = await response.json();
+      setExportMessage(`Saved ${data.message}`);
+    } catch (error) {
+      console.error("Error saving scans:", error);
+      setExportMessage("Error saving scans locally");
+    } finally {
+      setIsExporting(false);
+      setTimeout(() => setExportMessage(""), 3000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
       {/* Header */}
@@ -167,7 +232,44 @@ const ScanViewSimple = () => {
             <h2 className="text-sm text-gray-500">Scans</h2>
             <p className="font-medium text-center">{scanCount}</p>
           </div>
+          <div>
+            <h2 className="text-sm text-gray-500">Storage</h2>
+            <p className="font-medium text-center">{localScanCount}</p>
+          </div>
         </div>
+      </div>
+
+      {/* Export buttons (always visible) */}
+      <div className="mt-2 p-2 bg-white shadow-sm mx-2 rounded-lg">
+        <div className="flex justify-between items-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportScansCSV}
+            disabled={isExporting || localScanCount === 0}
+            className="text-xs flex items-center"
+          >
+            <Download className="w-3 h-3 mr-1" />
+            Export CSV
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={saveScansLocally}
+            disabled={isExporting || localScanCount === 0}
+            className="text-xs flex items-center"
+          >
+            <Save className="w-3 h-3 mr-1" />
+            Save to Server
+          </Button>
+        </div>
+
+        {exportMessage && (
+          <p className="text-xs text-center mt-2 text-blue-600">
+            {exportMessage}
+          </p>
+        )}
       </div>
 
       {/* Scan activation area */}
@@ -232,6 +334,30 @@ const ScanViewSimple = () => {
             </div>
             <div className="p-4">
               <p>Total scans: {scanCount}</p>
+              <p>Stored in server memory: {localScanCount}</p>
+
+              <div className="mt-4 flex justify-between">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={exportScansCSV}
+                  disabled={isExporting || localScanCount === 0}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={saveScansLocally}
+                  disabled={isExporting || localScanCount === 0}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save to Server
+                </Button>
+              </div>
+
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={closeReport}

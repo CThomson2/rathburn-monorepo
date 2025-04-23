@@ -7,15 +7,8 @@ import { Database } from "@/types/models/database.types";
  */
 export const createClient = () => {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-};
-
-export const createNewClient = () => {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_ANON_KEY!
   );
 };
 
@@ -36,10 +29,9 @@ export type SupabaseOperationCallback<T> = (
  * });
  */
 export const withSupabaseClient = async <T>(
-  operation: SupabaseOperationCallback<T>,
-  useNewClient: boolean = false
+  operation: SupabaseOperationCallback<T>
 ): Promise<T> => {
-  const db = useNewClient ? createNewClient() : createClient();
+  const db = createClient();
   try {
     // Execute the provided operation with the SupabaseClient instance
     return await operation(db);

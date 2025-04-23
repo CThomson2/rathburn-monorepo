@@ -7,6 +7,8 @@ import JobCard, { JobStatus } from "@/components/inventory/JobCard";
 import SearchBar from "@/components/inventory/SearchBar";
 import MaterialDetail from "@/components/inventory/MaterialDetail";
 import Toast from "@/components/ui/toast-notification";
+// database
+import { supabase } from "@/lib/supabase/client-auth";
 
 // Sample data
 const sampleJobs = [
@@ -160,6 +162,11 @@ const Index = () => {
     });
   };
 
+  /**
+   * Handle the selection of a material from the MaterialList.
+   *
+   * @param {Material} material The selected material
+   */
   const handleSelectMaterial = (material: Material) => {
     setSelectedMaterial(material);
   };

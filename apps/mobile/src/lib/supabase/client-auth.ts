@@ -1,11 +1,10 @@
-import { createNewClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import type { Provider } from "@supabase/supabase-js";
 
 // Create a single instance of the Supabase client
-export const supabase = createNewClient();
+export const supabase = createClient();
 
 /**
  * Hook for managing client-side authentication state and actions
@@ -14,6 +13,8 @@ export const supabase = createNewClient();
  * - Loading state
  * - Sign in/up/out functions
  * - Real-time auth state updates
+ * 
+ * TODO: move to /hooks/ in shared turborepo package
  */
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);

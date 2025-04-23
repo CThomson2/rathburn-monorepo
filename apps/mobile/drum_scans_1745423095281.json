@@ -1,0 +1,28 @@
+[
+  {
+    "id": "1745423090412",
+    "user_id": "anonymous-scan-user",
+    "device_id": "4f096e70-33fd-4913-9df1-8e1fae9591bc",
+    "raw_barcode": "MOCK-1745423090314",
+    "action_type": "transport",
+    "metadata": {
+      "timestamp": "2025-04-23T15:44:50.315Z",
+      "source": "mobile-app-simple"
+    },
+    "status": "processed",
+    "created_at": "2025-04-23T15:44:50.412Z"
+  },
+  {
+    "id": "1745423091672",
+    "user_id": "anonymous-scan-user",
+    "device_id": "4f096e70-33fd-4913-9df1-8e1fae9591bc",
+    "raw_barcode": "MOCK-1745423091651",
+    "action_type": "transport",
+    "metadata": {
+      "timestamp": "2025-04-23T15:44:51.652Z",
+      "source": "mobile-app-simple"
+    },
+    "status": "processed",
+    "created_at": "2025-04-23T15:44:51.672Z"
+  }
+]

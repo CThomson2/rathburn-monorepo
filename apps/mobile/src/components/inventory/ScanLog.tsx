@@ -10,6 +10,20 @@ interface ScanLogProps {
   };
 }
 
+/**
+ * A log item for scans, displaying the barcode, timestamp, and id.
+ *
+ * The log item will automatically hide after 10 seconds.
+ *
+ * @example
+ * <ScanLog log={{ id: "1234", barcode: "1234567890", timestamp: new Date(), messageType: "success" }} />
+ *
+ * @param {ScanLogProps} props
+ * @param {string} props.log.id The id of the log item.
+ * @param {string} props.log.barcode The barcode of the scanned item.
+ * @param {Date} props.log.timestamp The timestamp of the scanned item.
+ * @param {"success" | "error" | "info"} props.log.messageType The type of the log item.
+ */
 const ScanLog: React.FC<ScanLogProps> = ({ log }) => {
   const [visible, setVisible] = useState(true);
 

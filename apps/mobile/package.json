@@ -1,13 +1,14 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "@rathburn/mobile",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "vite",
+    "clean": "rm -rf dist",
     "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build:dev": "pnpm clean && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node --experimental-json-modules server.js"
