@@ -1,10 +1,12 @@
-
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type JobStatus = "preparation" | "distillation" | "qcPending" | "complete";
+export type JobStatus =
+  | "preparation"
+  | "distillation"
+  | "qcPending"
+  | "complete";
 
 interface JobCardProps {
   title: string;
@@ -80,16 +82,11 @@ const JobCard: React.FC<JobCardProps> = ({
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+    <div
       className={cn(
-        "rounded-2xl shadow-md mb-4 border-l-4 overflow-hidden transition-all duration-200",
+        "rounded-2xl shadow-md mb-4 border-l-4 overflow-hidden transition-all duration-200 opacity-100 transform translate-y-0",
         getStatusColor()
       )}
-      whileTap={{ scale: 0.98 }}
       onClick={() => setExpanded(!expanded)}
     >
       <div className="p-4">
@@ -114,12 +111,7 @@ const JobCard: React.FC<JobCardProps> = ({
         </div>
 
         {expanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 pt-4 border-t border-gray-200"
-          >
+          <div className="mt-4 pt-4 border-t border-gray-200 transition-all duration-200">
             <div className="grid grid-cols-2 gap-2">
               {scheduledDate && (
                 <div>
@@ -144,10 +136,10 @@ const JobCard: React.FC<JobCardProps> = ({
             <button className="mt-3 w-full text-center text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none">
               View Details →
             </button>
-          </motion.div>
+          </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 

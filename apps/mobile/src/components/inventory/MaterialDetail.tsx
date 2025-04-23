@@ -1,7 +1,6 @@
-
 import React from "react";
 import { X } from "lucide-react";
-import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface MaterialDetailProps {
   material: {
@@ -14,19 +13,17 @@ interface MaterialDetailProps {
   onClose: () => void;
 }
 
-const MaterialDetail: React.FC<MaterialDetailProps> = ({ material, onClose }) => {
+const MaterialDetail: React.FC<MaterialDetailProps> = ({
+  material,
+  onClose,
+}) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fadeIn"
       onClick={onClose}
     >
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-md"
+      <div
+        className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-md animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-start">
@@ -37,6 +34,7 @@ const MaterialDetail: React.FC<MaterialDetailProps> = ({ material, onClose }) =>
           <button
             onClick={onClose}
             className="p-1 rounded-full hover:bg-gray-100"
+            aria-label="Close material details"
           >
             <X size={20} />
           </button>
@@ -44,7 +42,9 @@ const MaterialDetail: React.FC<MaterialDetailProps> = ({ material, onClose }) =>
 
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <div className="flex justify-between items-center mb-4">
-            <span className="text-sm font-medium text-gray-500">Your Scans</span>
+            <span className="text-sm font-medium text-gray-500">
+              Your Scans
+            </span>
             <span className="text-lg font-bold">{material.scans}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -60,11 +60,11 @@ const MaterialDetail: React.FC<MaterialDetailProps> = ({ material, onClose }) =>
           </p>
         </div>
 
-        <button className="mt-6 w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-          View in Pokédex
-        </button>
-      </motion.div>
-    </motion.div>
+        {/* <button className="mt-6 w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+          View in Collection
+        </button> */}
+      </div>
+    </div>
   );
 };
 
