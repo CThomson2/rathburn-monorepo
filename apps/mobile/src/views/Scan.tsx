@@ -1,5 +1,5 @@
 import { useState } from "react";
-import BarcodeScanner from "../components/BarcodeScanner";
+import BarcodeScanner from "../components/scanner/BarcodeScanner";
 import { toast } from "@/components/ui/use-toast";
 import { useBarcodeScannerHistory } from "@/hooks/use-barcode-scanner";
 import { Button } from "@/components/ui/button";

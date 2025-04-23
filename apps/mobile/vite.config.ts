@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "placeholder.svg", "robots.txt"],
+      includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "Barcode Scanner",
         short_name: "Scanner",

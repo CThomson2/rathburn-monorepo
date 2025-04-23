@@ -32,245 +32,959 @@ export type Database = {
       [_ in never]: never;
     };
   };
-  inventory: {
+  config: {
     Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      add_to_repro_drum: {
-        Args: {
-          distillation_id: number;
-          repro_material: string;
-          volume_to_add: number;
-        };
-        Returns: undefined;
-      };
-      get_drum_inventory: {
-        Args: { material: string };
-        Returns: {
-          drum_id: number;
-          import_id: number;
-          material_type: string;
-          date_received: string;
-          supplier_name: string;
-          supplier_batch_code: string;
-          date_processed: string;
-        }[];
-      };
-      mass_to_volume: {
-        Args: { _material_id: number; _weight: number };
-        Returns: number;
-      };
-    };
-    Enums: {
-      drum_status:
-        | "en_route"
-        | "in_stock"
-        | "pending_allocation"
-        | "allocated"
-        | "rescheduled"
-        | "decommissioned"
-        | "empty"
-        | "lost";
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-  production: {
-    Tables: {
-      cleaning_records: {
+      drum_status_transitions: {
         Row: {
-          checker: string | null;
-          cleaning_id: number;
-          operator: string | null;
-          still_code: unknown | null;
-        };
+          current_status: string
+          next_status: string
+          requires_admin: boolean | null
+          requires_reason: boolean | null
+        }
         Insert: {
-          checker?: string | null;
-          cleaning_id?: number;
-          operator?: string | null;
-          still_code?: unknown | null;
-        };
+          current_status: string
+          next_status: string
+          requires_admin?: boolean | null
+          requires_reason?: boolean | null
+        }
         Update: {
-          checker?: string | null;
-          cleaning_id?: number;
-          operator?: string | null;
-          still_code?: unknown | null;
-        };
-        Relationships: [];
-      };
-      drum_distillations: {
+          current_status?: string
+          next_status?: string
+          requires_admin?: boolean | null
+          requires_reason?: boolean | null
+        }
+        Relationships: []
+      }
+      labs: {
         Row: {
-          distillation_id: number;
-          drum_id: number;
-          fraction_used: number;
-        };
+          description: string | null
+          lab_id: number
+          name: string
+          site: string
+        }
         Insert: {
-          distillation_id: number;
-          drum_id: number;
-          fraction_used?: number;
-        };
+          description?: string | null
+          lab_id?: never
+          name: string
+          site: string
+        }
         Update: {
-          distillation_id?: number;
-          drum_id?: number;
-          fraction_used?: number;
-        };
-        Relationships: [];
-      };
-      employees: {
+          description?: string | null
+          lab_id?: never
+          name?: string
+          site?: string
+        }
+        Relationships: []
+      }
+      products: {
         Row: {
-          employee_id: number;
-          first_name: string;
-          initials: string | null;
-          last_name: string | null;
-          middle_names: string | null;
-        };
+          grade: string
+          material_code: string | null
+          name: string
+          product_id: number
+          sku: string
+        }
         Insert: {
-          employee_id?: never;
-          first_name: string;
-          initials?: string | null;
-          last_name?: string | null;
-          middle_names?: string | null;
-        };
+          grade: string
+          material_code?: string | null
+          name: string
+          product_id?: number
+          sku: string
+        }
         Update: {
-          employee_id?: never;
-          first_name?: string;
-          initials?: string | null;
-          last_name?: string | null;
-          middle_names?: string | null;
-        };
-        Relationships: [];
-      };
-      operators_work_labs: {
+          grade?: string
+          material_code?: string | null
+          name?: string
+          product_id?: number
+          sku?: string
+        }
+        Relationships: []
+      }
+      stills: {
         Row: {
-          lab_id: number;
-          operator_id: number;
-        };
+          code: string
+          is_operational: boolean
+          is_vacuum: boolean
+          lab_id: number
+          max_capacity: number
+          notes: string | null
+          power_rating_kw: number
+          still_id: number
+        }
         Insert: {
-          lab_id: number;
-          operator_id: number;
-        };
+          code: string
+          is_operational: boolean
+          is_vacuum: boolean
+          lab_id: number
+          max_capacity: number
+          notes?: string | null
+          power_rating_kw: number
+          still_id?: never
+        }
         Update: {
-          lab_id?: number;
-          operator_id?: number;
-        };
+          code?: string
+          is_operational?: boolean
+          is_vacuum?: boolean
+          lab_id?: number
+          max_capacity?: number
+          notes?: string | null
+          power_rating_kw?: number
+          still_id?: never
+        }
         Relationships: [
           {
-            foreignKeyName: "operators_work_labs_operator_id_fkey";
-            columns: ["operator_id"];
-            isOneToOne: false;
-            referencedRelation: "employees";
-            referencedColumns: ["employee_id"];
+            foreignKeyName: "stills_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "labs"
+            referencedColumns: ["lab_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  inventory: {
+    Tables: {
+      batch_inputs: {
+        Row: {
+          batch_code: string | null
+          batch_id: string
+          input_id: string
+          recorded_at: string
+          source_id: string
+          source_type: string
+          volume_added: number
+        }
+        Insert: {
+          batch_code?: string | null
+          batch_id: string
+          input_id?: string
+          recorded_at?: string
+          source_id: string
+          source_type: string
+          volume_added: number
+        }
+        Update: {
+          batch_code?: string | null
+          batch_id?: string
+          input_id?: string
+          recorded_at?: string
+          source_id?: string
+          source_type?: string
+          volume_added?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_inputs_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["batch_id"]
           },
           {
-            foreignKeyName: "operators_work_labs_operator_id_fkey";
-            columns: ["operator_id"];
-            isOneToOne: false;
-            referencedRelation: "operator_details";
-            referencedColumns: ["operator_id"];
+            foreignKeyName: "batch_inputs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["po_id"]
           },
-        ];
-      };
-      output_records: {
+        ]
+      }
+      batches: {
         Row: {
-          batch_number: string | null;
-          completion_date: string | null;
-          container_size: number;
-          destination: string | null;
-          end_time: string | null;
-          grade: string | null;
-          labels_destroyed: number | null;
-          labels_required: number | null;
-          no_containers: number;
-          output_id: number;
-          production_id: number | null;
-          start_temp: number | null;
-          start_time: string | null;
-        };
+          batch_id: string
+          batch_type: string
+          created_at: string
+          item_id: string
+          po_id: string | null
+          total_volume: number
+        }
         Insert: {
-          batch_number?: string | null;
-          completion_date?: string | null;
-          container_size: number;
-          destination?: string | null;
-          end_time?: string | null;
-          grade?: string | null;
-          labels_destroyed?: number | null;
-          labels_required?: number | null;
-          no_containers: number;
-          output_id?: never;
-          production_id?: number | null;
-          start_temp?: number | null;
-          start_time?: string | null;
-        };
+          batch_id?: string
+          batch_type: string
+          created_at?: string
+          item_id: string
+          po_id?: string | null
+          total_volume: number
+        }
         Update: {
-          batch_number?: string | null;
-          completion_date?: string | null;
-          container_size?: number;
-          destination?: string | null;
-          end_time?: string | null;
-          grade?: string | null;
-          labels_destroyed?: number | null;
-          labels_required?: number | null;
-          no_containers?: number;
-          output_id?: never;
-          production_id?: number | null;
-          start_temp?: number | null;
-          start_time?: string | null;
-        };
-        Relationships: [];
-      };
-      pr_schedule: {
+          batch_id?: string
+          batch_type?: string
+          created_at?: string
+          item_id?: string
+          po_id?: string | null
+          total_volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batches_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "batches_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["po_id"]
+          },
+        ]
+      }
+      drum_fills: {
         Row: {
-          created_at: string;
-          lab_site: string;
-          production_date: string;
-          schedule_id: number;
-          updated_at: string;
-        };
+          batch_id: string
+          drum_id: string
+          fill_id: string
+          filled_at: string
+          volume_added: number
+        }
         Insert: {
-          created_at?: string;
-          lab_site: string;
-          production_date: string;
-          schedule_id?: never;
-          updated_at?: string;
-        };
+          batch_id: string
+          drum_id: string
+          fill_id?: string
+          filled_at?: string
+          volume_added: number
+        }
         Update: {
-          created_at?: string;
-          lab_site?: string;
-          production_date?: string;
-          schedule_id?: never;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-    };
+          batch_id?: string
+          drum_id?: string
+          fill_id?: string
+          filled_at?: string
+          volume_added?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drum_fills_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "drum_fills_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "drums"
+            referencedColumns: ["drum_id"]
+          },
+        ]
+      }
+      drums: {
+        Row: {
+          batch_id: string
+          created_at: string
+          current_location: string | null
+          current_volume: number
+          drum_id: string
+          serial_number: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          current_location?: string | null
+          current_volume?: number
+          drum_id?: string
+          serial_number: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          current_location?: string | null
+          current_volume?: number
+          drum_id?: string
+          serial_number?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drums_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "drums_current_location_fkey"
+            columns: ["current_location"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          barcode_regex: string
+          created_at: string
+          is_repro: boolean
+          item_id: string
+          material_id: string
+          name: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          barcode_regex: string
+          created_at?: string
+          is_repro?: boolean
+          item_id?: string
+          material_id: string
+          name: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          barcode_regex?: string
+          created_at?: string
+          is_repro?: boolean
+          item_id?: string
+          material_id?: string
+          name?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          code: string
+          created_at: string
+          location_id: string
+          name: string
+          parent_id: string | null
+          type: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          location_id?: string
+          name: string
+          parent_id?: string | null
+          type: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          location_id?: string
+          name?: string
+          parent_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          cas_number: string
+          chemical_group: string
+          code: string
+          material_id: string
+          name: string
+        }
+        Insert: {
+          cas_number: string
+          chemical_group?: string
+          code: string
+          material_id?: string
+          name: string
+        }
+        Update: {
+          cas_number?: string
+          chemical_group?: string
+          code?: string
+          material_id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      purchase_order_lines: {
+        Row: {
+          item_id: string
+          po_id: string
+          pol_id: string
+          quantity: number
+        }
+        Insert: {
+          item_id: string
+          po_id: string
+          pol_id?: string
+          quantity: number
+        }
+        Update: {
+          item_id?: string
+          po_id?: string
+          pol_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["po_id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          eta_date: string | null
+          order_date: string
+          po_id: string
+          po_number: string
+          status: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          eta_date?: string | null
+          order_date?: string
+          po_id?: string
+          po_number: string
+          status: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          eta_date?: string | null
+          order_date?: string
+          po_id?: string
+          po_number?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          name: string
+          supplier_id: string
+        }
+        Insert: {
+          name: string
+          supplier_id?: string
+        }
+        Update: {
+          name?: string
+          supplier_id?: string
+        }
+        Relationships: []
+      }
+    }
     Views: {
-      operator_details: {
-        Row: {
-          description: string | null;
-          first_name: string | null;
-          initials: string | null;
-          lab_name: string | null;
-          last_name: string | null;
-          operator_id: number | null;
-        };
-        Relationships: [];
-      };
-    };
+      [_ in never]: never
+    }
     Functions: {
-      [_ in never]: never;
-    };
+      receive_delivery: {
+        Args: { p_po_id: string; p_item_id: string; p_qty: number }
+        Returns: string
+      }
+      validate_barcode: {
+        Args: { barcode: string }
+        Returns: string
+      }
+    }
     Enums: {
-      [_ in never]: never;
-    };
+      action_type: "context_get" | "context_set" | "transport" | "location_set"
+      batch_type: "new" | "repro"
+      drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
+    }
     CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
+      [_ in never]: never
+    }
+  }
+  logs: {
+    Tables: {
+      context_scan: {
+        Row: {
+          context_scan_id: number
+          context_type: string
+          device_id: string
+          error_code: string | null
+          metadata: Json
+          raw_qr_code: string
+          scanned_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          context_scan_id?: number
+          context_type: string
+          device_id: string
+          error_code?: string | null
+          metadata?: Json
+          raw_qr_code: string
+          scanned_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          context_scan_id?: number
+          context_type?: string
+          device_id?: string
+          error_code?: string | null
+          metadata?: Json
+          raw_qr_code?: string
+          scanned_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_scan_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          device_id: string
+          hw_id: string
+          last_seen: string
+          model: string | null
+          os_version: string | null
+        }
+        Insert: {
+          device_id?: string
+          hw_id: string
+          last_seen?: string
+          model?: string | null
+          os_version?: string | null
+        }
+        Update: {
+          device_id?: string
+          hw_id?: string
+          last_seen?: string
+          model?: string | null
+          os_version?: string | null
+        }
+        Relationships: []
+      }
+      drum_scan: {
+        Row: {
+          action_type: Database["inventory"]["Enums"]["action_type"]
+          detected_drum: string | null
+          device_id: string
+          error_code: string | null
+          metadata: Json
+          raw_barcode: string
+          scan_id: number
+          scanned_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_type: Database["inventory"]["Enums"]["action_type"]
+          detected_drum?: string | null
+          device_id: string
+          error_code?: string | null
+          metadata?: Json
+          raw_barcode: string
+          scan_id?: number
+          scanned_at?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          action_type?: Database["inventory"]["Enums"]["action_type"]
+          detected_drum?: string | null
+          device_id?: string
+          error_code?: string | null
+          metadata?: Json
+          raw_barcode?: string
+          scan_id?: number
+          scanned_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drum_scan_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  production: {
+    Tables: {
+      device_context: {
+        Row: {
+          context_id: string
+          context_type: Database["production"]["Enums"]["context_type"]
+          created_at: string
+          device_id: string
+          expires_at: string
+        }
+        Insert: {
+          context_id: string
+          context_type: Database["production"]["Enums"]["context_type"]
+          created_at?: string
+          device_id: string
+          expires_at?: string
+        }
+        Update: {
+          context_id?: string
+          context_type?: Database["production"]["Enums"]["context_type"]
+          created_at?: string
+          device_id?: string
+          expires_at?: string
+        }
+        Relationships: []
+      }
+      distillation_details: {
+        Row: {
+          details: Json | null
+          expected_yield: number | null
+          op_id: string
+          raw_volume: number
+          still_id: number
+        }
+        Insert: {
+          details?: Json | null
+          expected_yield?: number | null
+          op_id: string
+          raw_volume: number
+          still_id: number
+        }
+        Update: {
+          details?: Json | null
+          expected_yield?: number | null
+          op_id?: string
+          raw_volume?: number
+          still_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distillation_details_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: true
+            referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          created_at: string
+          input_batch_id: string
+          item_id: string
+          job_id: string
+          planned_end: string | null
+          planned_start: string | null
+          priority: number
+          status: Database["production"]["Enums"]["job_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          input_batch_id: string
+          item_id: string
+          job_id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          priority?: number
+          status?: Database["production"]["Enums"]["job_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          input_batch_id?: string
+          item_id?: string
+          job_id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          priority?: number
+          status?: Database["production"]["Enums"]["job_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      operation_drums: {
+        Row: {
+          assigned_at: string
+          drum_id: string
+          op_id: string
+          scan_id: number
+          volume_transferred: number
+        }
+        Insert: {
+          assigned_at?: string
+          drum_id: string
+          op_id: string
+          scan_id: number
+          volume_transferred: number
+        }
+        Update: {
+          assigned_at?: string
+          drum_id?: string
+          op_id?: string
+          scan_id?: number
+          volume_transferred?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_drums_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+        ]
+      }
+      operations: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          job_id: string
+          metadata: Json
+          op_id: string
+          op_type: Database["production"]["Enums"]["op_type"]
+          scheduled_start: string | null
+          started_at: string | null
+          status: Database["production"]["Enums"]["op_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          job_id: string
+          metadata?: Json
+          op_id?: string
+          op_type: Database["production"]["Enums"]["op_type"]
+          scheduled_start?: string | null
+          started_at?: string | null
+          status?: Database["production"]["Enums"]["op_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          job_id?: string
+          metadata?: Json
+          op_id?: string
+          op_type?: Database["production"]["Enums"]["op_type"]
+          scheduled_start?: string | null
+          started_at?: string | null
+          status?: Database["production"]["Enums"]["op_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["job_id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          code: string
+          created_at: string
+          item_id: string
+          order_id: string
+          quantity: number
+          scheduled_end: string | null
+          scheduled_start: string | null
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          item_id: string
+          order_id?: string
+          quantity: number
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          item_id?: string
+          order_id?: string
+          quantity?: number
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      qc_results: {
+        Row: {
+          grade: Database["production"]["Enums"]["qc_grade"]
+          metadata: Json | null
+          op_id: string
+          qc_id: string
+          tested_at: string
+          volume: number
+        }
+        Insert: {
+          grade: Database["production"]["Enums"]["qc_grade"]
+          metadata?: Json | null
+          op_id: string
+          qc_id?: string
+          tested_at?: string
+          volume: number
+        }
+        Update: {
+          grade?: Database["production"]["Enums"]["qc_grade"]
+          metadata?: Json | null
+          op_id?: string
+          qc_id?: string
+          tested_at?: string
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qc_results_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+        ]
+      }
+      split_operations: {
+        Row: {
+          created_at: string
+          metadata: Json | null
+          parent_op_id: string
+          split_id: string
+        }
+        Insert: {
+          created_at?: string
+          metadata?: Json | null
+          parent_op_id: string
+          split_id?: string
+        }
+        Update: {
+          created_at?: string
+          metadata?: Json | null
+          parent_op_id?: string
+          split_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_operations_parent_op_id_fkey"
+            columns: ["parent_op_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      context_type: "distillation" | "warehouse"
+      job_status:
+        | "scheduled"
+        | "confirmed"
+        | "in_progress"
+        | "paused"
+        | "completed"
+        | "failed"
+        | "cancelled"
+      op_status: "pending" | "active" | "completed" | "error"
+      op_type: "distillation" | "decanting" | "qc" | "split" | "packaging"
+      qc_grade:
+        | "HPLC"
+        | "LCMS"
+        | "GlassDist"
+        | "HPLC S"
+        | "PeptideSynth"
+        | "FailedSpec"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       active_context: {
@@ -2437,27 +3151,44 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  graphql_public: {
+  config: {
     Enums: {},
   },
   inventory: {
     Enums: {
-      drum_status: [
-        "en_route",
-        "in_stock",
-        "pending_allocation",
-        "allocated",
-        "rescheduled",
-        "decommissioned",
-        "empty",
-        "lost",
-      ],
+      action_type: ["context_get", "context_set", "transport", "location_set"],
+      batch_type: ["new", "repro"],
+      drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
     },
   },
-  production: {
+  logs: {
     Enums: {},
+  },
+  production: {
+    Enums: {
+      context_type: ["distillation", "warehouse"],
+      job_status: [
+        "scheduled",
+        "confirmed",
+        "in_progress",
+        "paused",
+        "completed",
+        "failed",
+        "cancelled",
+      ],
+      op_status: ["pending", "active", "completed", "error"],
+      op_type: ["distillation", "decanting", "qc", "split", "packaging"],
+      qc_grade: [
+        "HPLC",
+        "LCMS",
+        "GlassDist",
+        "HPLC S",
+        "PeptideSynth",
+        "FailedSpec",
+      ],
+    },
   },
   public: {
     Enums: {},
   },
-} as const;
+} as const

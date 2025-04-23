@@ -1,6 +1,6 @@
 // components/BarcodeScannerInput.tsx
-import { useRef, useEffect, useState } from 'react';
-import { isMobile } from '../utils/deviceDetection';
+import { useRef, useEffect, useState } from "react";
+import { isMobile } from "../../utils/deviceDetection";
 
 interface BarcodeScannerInputProps {
   onScan: (barcode: string) => void;
@@ -8,10 +8,10 @@ interface BarcodeScannerInputProps {
   setIsActive?: (active: boolean) => void;
 }
 
-const BarcodeScannerInput = ({ 
-  onScan, 
-  isActive = true, 
-  setIsActive 
+const BarcodeScannerInput = ({
+  onScan,
+  isActive = true,
+  setIsActive,
 }: BarcodeScannerInputProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [lastScanTime, setLastScanTime] = useState(0);
@@ -21,16 +21,16 @@ const BarcodeScannerInput = ({
     if (setIsActive) {
       setIsActive(true);
     }
-    
+
     if (inputRef.current) {
       // For Android, set readonly first to prevent keyboard
       if (isMobile()) {
         inputRef.current.readOnly = true;
       }
-      
+
       // Focus the input
       inputRef.current.focus();
-      
+
       // For Android, remove readonly after focusing
       if (isMobile()) {
         setTimeout(() => {
@@ -45,7 +45,7 @@ const BarcodeScannerInput = ({
   // Set up event listeners to keep input focused
   useEffect(() => {
     if (!isActive) return;
-    
+
     const keepFocused = () => {
       if (inputRef.current && document.activeElement !== inputRef.current) {
         // For Android, prevent keyboard
@@ -60,26 +60,26 @@ const BarcodeScannerInput = ({
         }
       }
     };
-    
+
     // Initial focus
     keepFocused();
-    
+
     // Set up focus maintenance
     const focusInterval = setInterval(keepFocused, 300);
-    
+
     // Add document-level event listeners
-    document.addEventListener('visibilitychange', keepFocused);
-    window.addEventListener('focus', keepFocused);
-    document.addEventListener('touchstart', keepFocused);
-    document.addEventListener('click', keepFocused);
-    
+    document.addEventListener("visibilitychange", keepFocused);
+    window.addEventListener("focus", keepFocused);
+    document.addEventListener("touchstart", keepFocused);
+    document.addEventListener("click", keepFocused);
+
     return () => {
       clearInterval(focusInterval);
-      document.removeEventListener('visibilitychange', keepFocused);
-      window.removeEventListener('focus', keepFocused);
-      document.removeEventListener('touchstart', keepFocused);
-      document.removeEventListener('click', keepFocused);
-      
+      document.removeEventListener("visibilitychange", keepFocused);
+      window.removeEventListener("focus", keepFocused);
+      document.removeEventListener("touchstart", keepFocused);
+      document.removeEventListener("click", keepFocused);
+
       if (bufferTimeout.current) {
         window.clearTimeout(bufferTimeout.current);
         bufferTimeout.current = null;
@@ -89,28 +89,28 @@ const BarcodeScannerInput = ({
 
   const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
-    
+
     // Clear any existing timeout
     if (bufferTimeout.current) {
       window.clearTimeout(bufferTimeout.current);
       bufferTimeout.current = null;
     }
-    
+
     // Only process if we have a value
     if (value) {
       // Debounce to avoid double scans - many scanners trigger multiple events
       bufferTimeout.current = window.setTimeout(() => {
         const now = Date.now();
-        
+
         // Prevent duplicate scans within 500ms
         if (now - lastScanTime > 500) {
           setLastScanTime(now);
           onScan(value);
         }
-        
+
         // Clear the input for next scan
         if (inputRef.current) {
-          inputRef.current.value = '';
+          inputRef.current.value = "";
         }
       }, 50);
     }
@@ -118,23 +118,23 @@ const BarcodeScannerInput = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Many scanners will send Enter key after the scan
-    if (e.key === 'Enter') {
-      const value = inputRef.current?.value.trim() || '';
-      
+    if (e.key === "Enter") {
+      const value = inputRef.current?.value.trim() || "";
+
       if (value) {
         const now = Date.now();
-        
+
         // Prevent duplicate scans within 500ms
         if (now - lastScanTime > 500) {
           setLastScanTime(now);
           onScan(value);
         }
-        
+
         // Clear the input for next scan
         if (inputRef.current) {
-          inputRef.current.value = '';
+          inputRef.current.value = "";
         }
-        
+
         // Prevent default to avoid form submissions
         e.preventDefault();
       }
