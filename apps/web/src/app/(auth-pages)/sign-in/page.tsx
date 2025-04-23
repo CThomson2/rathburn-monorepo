@@ -19,12 +19,21 @@ function LayoutDebug() {
   );
 }
 
+/**
+ * Page for signing in to the app.
+ *
+ * @param {Object} props
+ * @prop {Promise<Message>} searchParams - Promise that resolves to a message
+ * to display to the user.
+ *
+ * @returns {JSX.Element}
+ */
 export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
   return (
-    <>
+    <div className="flex-1 flex flex-col min-w-64">
       {/* <LayoutDebug /> */}
-      <form className="flex-1 flex flex-col min-w-64">
+      <form>
         <h1 className="text-2xl font-medium">Sign in</h1>
         <p className="text-sm text-foreground">
           Don&apos;t have an account?{" "}
@@ -56,17 +65,19 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
           <SubmitButton pendingText="Signing In..." formAction={signInAction}>
             Sign in
           </SubmitButton>
-          <SubmitButton
-            pendingText="Connecting..."
-            formAction={signInWithMicrosoftAction}
-            className="bg-white text-black border border-gray-600 hover:border-black hover:bg-gray-300"
-          >
-            <Image src={MicrosoftSvg} alt="Microsoft" />
-            Sign in with Microsoft
-          </SubmitButton>
           <FormMessage message={searchParams} />
         </div>
       </form>
-    </>
+      <form className="flex flex-col gap-2">
+        <SubmitButton
+          pendingText="Connecting..."
+          formAction={signInWithMicrosoftAction}
+          className="bg-white text-black border border-gray-600 hover:border-black hover:bg-gray-300"
+        >
+          <Image src={MicrosoftSvg} alt="Microsoft" />
+          Sign in with Microsoft
+        </SubmitButton>
+      </form>
+    </div>
   );
 }
