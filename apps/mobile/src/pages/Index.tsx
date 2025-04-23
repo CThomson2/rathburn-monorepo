@@ -1,7 +1,6 @@
 // App.tsx
 import { useState } from "react";
 import BarcodeScannerInput from "../components/scanner/BarcodeScannerInput";
-import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import BottomNavBar from "@/components/layout/BottomNavBar";
 import JobCard, { JobStatus } from "@/components/inventory/JobCard";
@@ -53,7 +52,16 @@ const sampleJobs = [
   },
 ];
 
-const sampleMaterials = [
+// Using the Material interface from SearchBar.tsx
+interface Material {
+  id: string;
+  name: string;
+  casNumber: string;
+  color: string;
+  scans: number;
+}
+
+const sampleMaterials: Material[] = [
   {
     id: "m1",
     name: "Ethyl Acetate",
@@ -107,7 +115,9 @@ const sampleMaterials = [
 const Index = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("stats");
-  const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
+    null
+  );
   /*************  ✨ Windsurf Command ⭐  *************/
   /**
    * The Index component is the main entry point of the application, managing
@@ -150,7 +160,7 @@ const Index = () => {
     });
   };
 
-  const handleSelectMaterial = (material: any) => {
+  const handleSelectMaterial = (material: Material) => {
     setSelectedMaterial(material);
   };
 
@@ -180,20 +190,18 @@ const Index = () => {
 
           {/* Job Cards */}
           <div className="space-y-3">
-            <AnimatePresence>
-              {sampleJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  title={job.title}
-                  supplier={job.supplier}
-                  status={job.status}
-                  progress={job.progress}
-                  quantity={job.quantity}
-                  scheduledDate={job.scheduledDate}
-                  priority={job.priority}
-                />
-              ))}
-            </AnimatePresence>
+            {sampleJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                title={job.title}
+                supplier={job.supplier}
+                status={job.status}
+                progress={job.progress}
+                quantity={job.quantity}
+                scheduledDate={job.scheduledDate}
+                priority={job.priority}
+              />
+            ))}
           </div>
         </section>
 
@@ -208,14 +216,12 @@ const Index = () => {
       </main>
 
       {/* Material Detail modal */}
-      <AnimatePresence>
-        {selectedMaterial && (
-          <MaterialDetail
-            material={selectedMaterial}
-            onClose={() => setSelectedMaterial(null)}
-          />
-        )}
-      </AnimatePresence>
+      {selectedMaterial && (
+        <MaterialDetail
+          material={selectedMaterial}
+          onClose={() => setSelectedMaterial(null)}
+        />
+      )}
 
       {/* <BarcodeScannerInput onScan={handleBarcodeScan} /> */}
 

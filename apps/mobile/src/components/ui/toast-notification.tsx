@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface ToastProps {
   message: string;
@@ -15,13 +13,13 @@ const Toast: React.FC<ToastProps> = ({ message, type, visible, onClose }) => {
 
   useEffect(() => {
     setIsVisible(visible);
-    
+
     if (visible) {
       const timer = setTimeout(() => {
         setIsVisible(false);
         onClose();
       }, 3000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [visible, onClose]);
@@ -38,34 +36,29 @@ const Toast: React.FC<ToastProps> = ({ message, type, visible, onClose }) => {
     }
   };
 
+  if (!isVisible) return null;
+
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className={cn(
-            "fixed top-4 left-4 right-4 z-50 rounded-lg border-l-4 p-4 shadow-md",
-            getToastColor()
-          )}
-        >
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium">{message}</p>
-            <button
-              onClick={() => {
-                setIsVisible(false);
-                onClose();
-              }}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ×
-            </button>
-          </div>
-        </motion.div>
+    <div
+      className={cn(
+        "fixed top-4 left-4 right-4 z-50 rounded-lg border-l-4 p-4 shadow-md animate-fadeIn",
+        getToastColor()
       )}
-    </AnimatePresence>
+    >
+      <div className="flex justify-between items-center">
+        <p className="text-sm font-medium">{message}</p>
+        <button
+          onClick={() => {
+            setIsVisible(false);
+            onClose();
+          }}
+          className="text-gray-500 hover:text-gray-700"
+          aria-label="Close notification"
+        >
+          ×
+        </button>
+      </div>
+    </div>
   );
 };
 

@@ -9,12 +9,23 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    cors: {
+      origin: ["http://localhost:3000", "https://rathburn.app"],
+      credentials: true
+    }
+  },
+  preview: {
+    port: 4173,
+    cors: {
+      origin: ["http://localhost:3000", "https://rathburn.app"],
+      credentials: true
+    }
   },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "Barcode Scanner",
@@ -48,11 +59,19 @@ export default defineConfig(({ mode }) => ({
           //   purpose: "any maskable",
           // },
         ],
+        start_url: "/",
+      },
+      devOptions: {
+        enabled: true,
+        type: "module",
+        navigateFallback: "index.html",
       },
       workbox: {
         clientsClaim: true,
         skipWaiting: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        navigateFallback: "index.html",
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -61,7 +80,24 @@ export default defineConfig(({ mode }) => ({
               cacheName: "supabase-api-cache",
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24, // 1 day
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+              fetchOptions: {
+                credentials: "include",
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/rathburn\.app\/api\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60,
+              },
+              fetchOptions: {
+                credentials: "include",
               },
             },
           },
@@ -72,7 +108,7 @@ export default defineConfig(({ mode }) => ({
               cacheName: "google-fonts-cache",
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365,
               },
               cacheableResponse: {
                 statuses: [0, 200],
@@ -87,5 +123,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: {
+    exclude: ['@supabase/auth-helpers-nextjs'],
   },
 }));

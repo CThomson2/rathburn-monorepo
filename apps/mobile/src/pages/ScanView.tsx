@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { Check, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ScanLog from "@/components/inventory/ScanLog";
@@ -28,11 +27,30 @@ interface JobItem {
 }
 
 // API config - will be different in dev vs production
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://rathburn.app/api"
-    : "http://localhost:3000/api";
+const API_BASE_URL = (() => {
+  if (process.env.NODE_ENV === "production") {
+    return "https://rathburn.app/api";
+  }
 
+  // For development and preview modes
+  const host = window.location.hostname;
+  const port = window.location.port;
+
+  // Handle vite preview mode on port 4173
+  if (port === "4173") {
+    return "http://localhost:3000/api";
+  }
+
+  return "http://localhost:3000/api";
+})();
+
+/**
+ * ScanView is a component that handles barcode scanning and logs the scans in a database.
+ * It also displays a list of recent scans and a report of the scans.
+ * The component is controlled by the `isActive` state which determines whether the scanner is active or not.
+ * When the scanner is active, a hidden input field is focused and listens for changes, which simulates a barcode scan.
+ * The component also handles the completion of a scan session by displaying a report and allowing the user to close it.
+ */
 const ScanView = () => {
   const navigate = useNavigate();
   const [isActive, setIsActive] = useState(false);
@@ -67,7 +85,8 @@ const ScanView = () => {
       setDeviceId(storedDeviceId);
     } else {
       // Generate a new device ID
-      const newDeviceId = `mobile-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      //   const newDeviceId = `mobile-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      const newDeviceId = "4f096e70-33fd-4913-9df1-8e1fae9591bc";
       localStorage.setItem("device_id", newDeviceId);
       setDeviceId(newDeviceId);
     }
@@ -157,6 +176,15 @@ const ScanView = () => {
     }
   };
 
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * Processes a scan by incrementing the scan counter, logging the scan
+   * attempt, sending the scan to the API, logging the result, and updating
+   * the related job if this is a Methanol scan (mock data).
+   *
+   * @param {string} barcode The barcode to process
+   */
+  /*******  f033669a-2cb1-49ab-8bd9-6621a7fed9c2  *******/
   const processScan = async (barcode: string) => {
     // Increment counter
     setScanCount((prev) => prev + 1);
@@ -314,11 +342,9 @@ const ScanView = () => {
       <div className="mt-4 px-4 pb-20">
         <h2 className="font-medium mb-2">Recent Scans</h2>
         <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
-          <AnimatePresence initial={false}>
-            {logs.map((log) => (
-              <ScanLog key={log.id} log={log} />
-            ))}
-          </AnimatePresence>
+          {logs.map((log) => (
+            <ScanLog key={log.id} log={log} />
+          ))}
         </div>
       </div>
 
