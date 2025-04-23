@@ -5,29 +5,17 @@ import { Button } from "@/components/ui/button";
 
 // API config - will be different in dev vs production
 const API_BASE_URL = (() => {
+  // For production, use the EC2 instance IP
   if (process.env.NODE_ENV === "production") {
-    return "https://rathburn.app/api";
+    // Use environment variable if available, otherwise fallback to the EC2 IP
+    return process.env.VITE_API_URL || "http://3.8.53.147:3001/api";
   }
 
-  // For development and preview modes
-  const host = window.location.hostname;
-
-  // When using the dev server proxy, we can use the relative URL
-  // This works with Vite's proxy settings in vite.config.ts
+  // For development and preview modes with proxy
   return "/api";
-
-  // Old approach without proxy - keeping for reference
-  // If you need to disable the proxy, use this instead
-  /*
-  if (host === "localhost" || host === "127.0.0.1") {
-    // In local development, use the Express API server running on port 3001
-    return "http://localhost:3001/api";
-  }
-  
-  // For preview deployments or other environments
-  return `${window.location.protocol}//${host}/api`;
-  */
 })();
+
+console.log(`API endpoint configured: ${API_BASE_URL}`);
 
 /**
  * Simple barcode scanner view.
@@ -63,6 +51,9 @@ const ScanViewSimple = () => {
       localStorage.setItem("device_id", newDeviceId);
       setDeviceId(newDeviceId);
     }
+
+    // Log the API endpoint on component mount
+    console.log(`Using API endpoint: ${API_BASE_URL}`);
   }, []);
 
   const toggleScanner = () => {

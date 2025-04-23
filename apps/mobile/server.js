@@ -45,6 +45,14 @@ const corsOptions = {
     "http://localhost:3001",
     "http://localhost:4173",
     "https://mobile.rathburn.app",
+    "https://rathburn.app",
+    // Allow EC2 IP address - both http and https
+    "http://3.8.53.147:3001",
+    "http://3.8.53.147:4173",
+    "http://3.8.53.147:8080",
+    "https://3.8.53.147:3001",
+    "https://3.8.53.147:4173",
+    "https://3.8.53.147:8080",
   ],
   credentials: true, // Allow cookies and authentication headers
   methods: ["GET", "POST", "OPTIONS"],
@@ -52,6 +60,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// For preflight requests
+app.options("*", cors(corsOptions));
 
 // Serve static files from the dist directory when in production
 if (process.env.NODE_ENV === "production") {
@@ -237,6 +248,9 @@ if (process.env.NODE_ENV === "production") {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API available at: http://localhost:${PORT}/api`);
+  console.log(
+    `Public API available at: http://3.8.53.147:${PORT}/api (if deployed on EC2)`
+  );
   console.log(`Supabase URL: ${supabaseUrl ? "configured" : "missing"}`);
   console.log(`Supabase Key: ${supabaseServiceKey ? "configured" : "missing"}`);
   console.log(`Local storage: initialized with ${scans.length} scans`);
