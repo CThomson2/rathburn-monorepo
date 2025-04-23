@@ -2,6 +2,7 @@ import { createNewClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
+import type { Provider } from "@supabase/supabase-js";
 
 // Create a single instance of the Supabase client
 export const supabase = createNewClient();
@@ -56,6 +57,17 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+    });
+    if (error) throw error;
+  }, []);
+
+  const signInWithAzure = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "azure",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        scopes: "offline_access email",
+      },
     });
     if (error) throw error;
   }, []);

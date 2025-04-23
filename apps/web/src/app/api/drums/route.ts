@@ -10,10 +10,8 @@ export async function GET() {
     // Create Supabase client
     const supabase = createClient();
 
-    // Get count of drums
-    const { count, error } = await supabase
-      .from("drums")
-      .select("*", { count: "exact", head: true });
+    // Get drums
+    const { data, error } = await supabase.from("stock_drum").select("*").limit(25);
 
     if (error) {
       console.error("Error fetching drum count:", error);
@@ -23,7 +21,7 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ count });
+    return NextResponse.json({ data });
   } catch (error) {
     console.error("Unexpected error:", error);
     return NextResponse.json(
