@@ -65,7 +65,10 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "azure",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo:
+          process.env.NODE_ENV === "production"
+            ? "https://rathburn.app/auth/callback"
+            : "http://localhost:3000/auth/callback",
         scopes: "offline_access email",
       },
     });
