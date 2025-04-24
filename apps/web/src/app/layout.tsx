@@ -26,6 +26,22 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Check if the given pathname is an auth route.
+ *
+ * Currently, an auth route is any route that starts with:
+ * - /sign-in
+ * - /sign-up
+ * - /forgot-password
+ * - /reset-password
+ * - /auth/callback
+ * - any route that contains the string "(auth-pages)"
+ *
+ * For server-side debugging only, logs the pathname and whether it's an auth route.
+ *
+ * @param pathname the pathname to check
+ * @returns whether the pathname is an auth route
+ */
 function isAuthPage(pathname: string) {
   // Check for auth routes
   const isAuth =

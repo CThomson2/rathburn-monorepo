@@ -1,96 +1,144 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation, NavigateFunction } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase/client-auth";
 
-// Define public routes that don't require authentication
-const publicRoutes = ["/sign-in"];
+// Paths that don't require authentication
+const publicPaths = ["/sign-in"];
 
 /**
- * Checks if the current route requires authentication and redirects accordingly
+ * Check if the user is authenticated
+ * This function checks:
+ * 1. If the current path is public (doesn't require auth)
+ * 2. If there's a valid Supabase session
+ * 3. If there are valid localStorage credentials
+ *
+ * @returns {boolean | string} false if no redirect needed, or the redirect path
  */
-export async function checkAuth(
-  pathname: string,
-  navigate: NavigateFunction
-): Promise<boolean> {
-  console.log(`Checking auth for path: ${pathname}`);
+export async function checkAuth(pathname: string): Promise<boolean | string> {
+  console.log(`[AUTH-GUARD] Checking auth for path: ${pathname}`);
+
+  // If it's a public path, no need to check auth
+  if (publicPaths.includes(pathname)) {
+    console.log(`[AUTH-GUARD] ${pathname} is a public path, no auth needed`);
+    return false;
+  }
 
   try {
-    // Get current session
+    // Get session - needs await to properly resolve
+    console.log("[AUTH-GUARD] Fetching Supabase session");
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
-    // Check if the current route is an auth route
-    const isAuthRoute = publicRoutes.some(
-      (route) => pathname === route || pathname.startsWith(route)
+    // Log localStorage values first
+    const userId = localStorage.getItem("userId");
+    const userName = localStorage.getItem("userName");
+    console.log("[AUTH-GUARD] localStorage values:", { userId, userName });
+
+    // Check if there's a valid session
+    if (session?.user) {
+      console.log(
+        "[AUTH-GUARD] Valid Supabase session found:",
+        session.user.id
+      );
+    } else {
+      console.log("[AUTH-GUARD] No valid Supabase session found");
+    }
+
+    // Check for custom passcode auth (userId in localStorage)
+    if (userId && userName) {
+      console.log(
+        `[AUTH-GUARD] Valid local auth found for user: ${userName} (${userId})`
+      );
+      return false; // No redirect needed, user is authenticated
+    }
+
+    console.log(
+      "[AUTH-GUARD] No valid authentication found, redirecting to /sign-in"
     );
-
-    console.log(`Is auth route: ${isAuthRoute}, Has session: ${!!session}`);
-
-    // If on auth route and logged in, redirect to home
-    if (isAuthRoute && session) {
-      console.log(
-        "User is authenticated but on auth route, redirecting to home"
-      );
-      navigate("/");
-      return true;
-    }
-
-    // If on protected route and not logged in, redirect to sign-in
-    if (!isAuthRoute && !session) {
-      console.log(
-        "User is not authenticated and trying to access protected route, redirecting to sign-in"
-      );
-      navigate("/sign-in", {
-        state: { redirectTo: pathname },
-      });
-      return true;
-    }
-
-    // No redirection needed
-    return false;
+    return "/sign-in"; // Redirect to login page
   } catch (error) {
-    console.error("Error checking authentication:", error);
-    return false;
+    console.error("[AUTH-GUARD] Error checking authentication:", error);
+    return "/sign-in"; // Redirect to login page on error
   }
 }
 
 /**
- * Higher-order component to protect routes that require authentication
+ * Higher-order component to protect routes that require authentication.
+ * Redirects to login if not authenticated.
  */
-export function withAuth<P extends object>(Component: React.ComponentType<P>) {
-  return function ProtectedRoute(props: P) {
-    const navigate = useNavigate();
+export function withAuth<P extends object>(
+  Component: React.ComponentType<P>
+): React.FC<P> {
+  return (props: P) => {
     const location = useLocation();
-    const [isChecking, setIsChecking] = useState(true);
+    const [loading, setLoading] = useState(true);
+    const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
     useEffect(() => {
-      let isMounted = true;
+      console.log(
+        "[AUTH-GUARD] withAuth HOC checking auth on path:",
+        location.pathname
+      );
 
       const checkAuthentication = async () => {
-        const didRedirect = await checkAuth(location.pathname, navigate);
-        if (isMounted && !didRedirect) {
-          setIsChecking(false);
+        try {
+          console.log(
+            "[AUTH-GUARD] Starting auth check for",
+            location.pathname
+          );
+          const result = await checkAuth(location.pathname);
+
+          if (typeof result === "string") {
+            console.log(
+              `[AUTH-GUARD] Auth check result: redirect to ${result}`
+            );
+            setRedirectTo(result);
+          } else {
+            console.log(
+              "[AUTH-GUARD] Auth check result: authenticated, no redirect needed"
+            );
+          }
+        } catch (error) {
+          console.error("[AUTH-GUARD] Error in authentication check:", error);
+          setRedirectTo("/sign-in");
+        } finally {
+          console.log(
+            "[AUTH-GUARD] Auth check complete, setting loading to false"
+          );
+          setLoading(false);
         }
       };
 
       checkAuthentication();
+    }, [location.pathname]);
 
-      return () => {
-        isMounted = false;
-      };
-    }, [navigate, location.pathname]);
-
-    // Return loading indicator or the protected component
-    if (isChecking) {
-      return null; // Replace with your actual loading component
+    if (loading) {
+      console.log("[AUTH-GUARD] Still checking authentication...");
+      // You could use a loading spinner here
+      return (
+        <div className="flex h-screen w-full items-center justify-center">
+          Loading...
+        </div>
+      );
     }
 
+    if (redirectTo) {
+      console.log(
+        `[AUTH-GUARD] Redirecting to ${redirectTo}, current path: ${location.pathname}`
+      );
+      console.log("[AUTH-GUARD] Current localStorage state:", {
+        userId: localStorage.getItem("userId"),
+        userName: localStorage.getItem("userName"),
+      });
+
+      // Pass the current location to the redirect so we can return after login
+      return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    }
+
+    console.log(
+      "[AUTH-GUARD] User is authenticated, rendering protected component"
+    );
     return <Component {...props} />;
   };
 }
-
-export default {
-  checkAuth,
-  withAuth,
-};

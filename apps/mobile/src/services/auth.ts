@@ -11,6 +11,20 @@ interface LogInResponse {
     auth_user_id?: string,
     email?: string,
     user_id?: string,
+    redirectTo?: string,
+}
+
+/**
+ * Interface that represents the actual data structure returned by the validate_passcode SQL function
+ */
+interface ValidatePasscodeResponse {
+    success: boolean,
+    message?: string,
+    locked_until?: string,
+    attempts_remaining?: number,
+    user_id?: string,
+    email?: string,
+    auth_user_id?: string,
 }
 
 /**
@@ -22,52 +36,155 @@ interface LogInResponse {
  * @param {string} passcode The passcode to use for authentication
  * @returns {Promise<{success: boolean, message?: string, attemptsRemaining?: number, locked?: boolean, lockTimeRemaining?: number}>}
  */
-export const loginWithPasscode = async (
+export async function loginWithPasscode(
   username: string,
   passcode: string
-) => {
+): Promise<LogInResponse> {
+  console.log(`[AUTH] Attempting login for username: ${username}`);
+  
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc("validate_passcode", {
+    // Clear out any existing auth data first
+    console.log("[AUTH] Clearing any existing auth data");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userDisplayName");
+    
+    // Input validation
+    if (!username || !passcode) {
+      console.log("[AUTH] Login failed: Username or passcode missing");
+      return { success: false, message: "Username and passcode are required" };
+    }
+
+    if (passcode.length !== 4) {
+      console.log("[AUTH] Login failed: Invalid passcode format");
+      return { success: false, message: "Passcode must be 4 digits" };
+    }
+
+    // Check for too many login attempts
+    const failedAttemptsKey = `failed_login_${username}`;
+    const lockoutKey = `lockout_${username}`;
+    const failedAttempts = parseInt(localStorage.getItem(failedAttemptsKey) || "0");
+    const lockoutTime = localStorage.getItem(lockoutKey);
+
+    if (lockoutTime) {
+      const lockoutUntil = new Date(lockoutTime);
+      if (new Date() < lockoutUntil) {
+        const minutesLeft = Math.ceil(
+          (lockoutUntil.getTime() - new Date().getTime()) / (1000 * 60)
+        );
+        console.log(`[AUTH] Login blocked: Account is locked for ${minutesLeft} more minutes`);
+        return {
+          success: false,
+          message: `Too many failed attempts. Try again in ${minutesLeft} minute${
+            minutesLeft > 1 ? "s" : ""
+          }.`,
+        };
+      } else {
+        // Lockout period is over, reset counters
+        console.log("[AUTH] Lockout period ended, resetting counters");
+        localStorage.removeItem(lockoutKey);
+        localStorage.removeItem(failedAttemptsKey);
+      }
+    }
+
+    console.log("[AUTH] Calling validate_passcode RPC");
+    const { data, error } = await createClient().rpc("validate_passcode", {
       p_user_name: username,
       p_passcode: passcode,
     });
-    
-    if (error) throw error;
 
-    if (!data.success) {
-      // Handle failed login
-      if (data.locked_until) {
-        // Convert timestamp to milliseconds and calculate difference
-        const lockTimeRemaining = (data.locked_until * 1000) - Date.now();
+    if (error) {
+      console.error("[AUTH] RPC error:", error);
+      
+      // Increment failed attempts counter
+      const newFailedAttempts = failedAttempts + 1;
+      localStorage.setItem(failedAttemptsKey, newFailedAttempts.toString());
+
+      // If this is the 5th failed attempt, lock the account
+      if (newFailedAttempts >= 5) {
+        const lockoutMinutes = 15;
+        const lockoutUntil = new Date(Date.now() + lockoutMinutes * 60 * 1000);
+        localStorage.setItem(lockoutKey, lockoutUntil.toString());
+        console.log(`[AUTH] Account locked for ${lockoutMinutes} minutes due to too many failed attempts`);
         return {
           success: false,
-          locked: true,
-          lockTimeRemaining: Math.ceil(lockTimeRemaining / 1000),
+          message: `Too many failed attempts. Account locked for ${lockoutMinutes} minutes.`,
         };
       }
 
-      return {
-        success: false,
-        message: data.message,
-        attemptsRemaining: data.attempts_remaining,
+      return { 
+        success: false, 
+        message: `Invalid username or passcode. ${5 - newFailedAttempts} attempts remaining.` 
       };
     }
 
-    // Login successful - store user data
-    if (data.user_id) {
-      localStorage.setItem("userId", data.user_id);
-      localStorage.setItem("userName", username);
-    }
+    // Login successful
+    console.log("[AUTH] Login successful, RPC returned:", data);
     
-    // Set the user as authenticated in your app state
-    // This is a simpler approach - for production, you might want to
-    // create a proper session with Supabase Auth
+    // Cast data to the expected response type
+    const responseData = data as ValidatePasscodeResponse;
+    
+    if (!responseData?.user_id) {
+      console.error("[AUTH] Missing user_id in response data");
+      return { success: false, message: "Authentication error. Please try again." };
+    }
+
+    // Reset failed attempts counter on successful login
+    localStorage.removeItem(failedAttemptsKey);
+    localStorage.removeItem(lockoutKey);
+
+    // Store user data in localStorage
+    console.log("[AUTH] Storing user data in localStorage:", {
+      userId: responseData.user_id,
+      userName: username,
+      userRole: "user",
+      userDisplayName: username
+    });
+    
+    localStorage.setItem("userId", responseData.user_id);
+    localStorage.setItem("userName", username);
+    localStorage.setItem("userRole", "user");
+    localStorage.setItem("userDisplayName", username);
+    
+    console.log("[AUTH] Login complete, user is now authenticated");
+    return { 
+      success: true, 
+      message: "Login successful. Redirecting...",
+      redirectTo: "/", // Changed from "/dashboard" to "/"
+      user_id: responseData.user_id,
+      email: responseData.email,
+      auth_user_id: responseData.auth_user_id
+    };
+  } catch (err) {
+    console.error("[AUTH] Unexpected error during login:", err);
+    return { success: false, message: "An error occurred. Please try again." };
+  }
+}
+
+/**
+ * Log out the user by clearing both Supabase auth and custom localStorage auth
+ * 
+ * @returns {Promise<{success: boolean, message?: string}>}
+ */
+export const logout = async () => {
+  try {
+    const supabase = createClient();
+    
+    // Clear Supabase auth session
+    await supabase.auth.signOut();
+    
+    // Clear localStorage auth data
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
     
     return { success: true };
   } catch (error) {
-    console.error("Login error:", error);
-    return { success: false, message: "An error occurred during login" };
+    console.error("Logout error:", error);
+    return { 
+      success: false, 
+      message: "An error occurred during logout" 
+    };
   }
 };
 

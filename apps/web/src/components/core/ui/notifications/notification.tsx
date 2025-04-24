@@ -1,14 +1,25 @@
 "use client";
 
+import React from "react";
 import { Info, AlertCircle, XCircle, CheckCircle } from "lucide-react";
 
 const icons = {
-  info: <Info className="size-6 text-blue-500" aria-hidden="true" />,
-  success: <CheckCircle className="size-6 text-green-500" aria-hidden="true" />,
-  warning: (
-    <AlertCircle className="size-6 text-yellow-500" aria-hidden="true" />
-  ),
-  error: <XCircle className="size-6 text-red-500" aria-hidden="true" />,
+  info: React.createElement(Info, {
+    className: "size-6 text-blue-500",
+    "aria-hidden": true,
+  }),
+  success: React.createElement(CheckCircle, {
+    className: "size-6 text-green-500",
+    "aria-hidden": true,
+  }),
+  warning: React.createElement(AlertCircle, {
+    className: "size-6 text-yellow-500",
+    "aria-hidden": true,
+  }),
+  error: React.createElement(XCircle, {
+    className: "size-6 text-red-500",
+    "aria-hidden": true,
+  }),
 };
 
 export type NotificationProps = {
@@ -43,7 +54,10 @@ export const Notification = ({
                 }}
               >
                 <span className="sr-only">Close</span>
-                <XCircle className="size-5" aria-hidden="true" />
+                {React.createElement(XCircle, {
+                  className: "size-5",
+                  "aria-hidden": true,
+                })}
               </button>
             </div>
           </div>
