@@ -48,7 +48,7 @@ import { toBuffer } from "qrcode";
 import fs from "fs";
 import path from "path";
 import { createClient } from "@/lib/supabase/server";
-import { Database, Tables } from "@/types/models/database.types";
+import { Database, Tables } from "@/types/models/supabase"";
 
 // For convenience, helper to convert inches to PDF points (72pt = 1in)
 const inchesToPoints = (inches: number) => Math.floor(inches * 72);

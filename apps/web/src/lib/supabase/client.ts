@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "@/types/models/database.types";
+import { Database } from "@/types/models/supabase"";
 
 /**
  * Creates and returns a Supabase client for browser usage

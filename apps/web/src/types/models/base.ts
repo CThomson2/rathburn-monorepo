@@ -5,7 +5,7 @@
  */
 
 import { Prisma } from "@prisma/client/index";
-import { Database, Tables } from "@/types/models/database.types";
+import { Database, Tables } from "@/types/models/supabase"";
 
 // Re-export Prisma namespace for advanced type operations (legacy)
 export { Prisma };

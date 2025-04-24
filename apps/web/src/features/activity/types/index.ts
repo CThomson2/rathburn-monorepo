@@ -1,4 +1,4 @@
-import { Tables } from "@/types/models/database.types";
+import { Tables } from "@/types/models/supabase"";
 
 // Export drum scan log type from database types
 export type DrumScanLog = Tables<"log_drum_scan">;
