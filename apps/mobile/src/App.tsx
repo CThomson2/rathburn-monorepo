@@ -3,12 +3,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Index from "./pages/Index";
 import ScanView from "./pages/ScanViewSimple";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { ErrorBoundary } from "react-error-boundary";
+import { supabase } from "@/lib/supabase/client-auth";
+import { Session } from "@supabase/auth-js";
+import { withAuth } from "./lib/auth/route-guard";
 
 const queryClient = new QueryClient();
 
@@ -35,9 +38,30 @@ const ErrorFallback = ({ error }: { error: Error }) => {
   );
 };
 
+// Apply the withAuth HOC to protected components
+const ProtectedIndex = withAuth(Index);
+const ProtectedScanView = withAuth(ScanView);
+
 // Router component with console logs for debugging
 const RouterWithLogging = () => {
   const location = useLocation();
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     console.log(`Route changed to: ${location.pathname}`);
@@ -47,8 +71,8 @@ const RouterWithLogging = () => {
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <Routes>
         <Route path="/sign-in" element={<Auth />} />
-        <Route path="/" element={<Index />} />
-        <Route path="/scan" element={<ScanView />} />
+        <Route path="/" element={<ProtectedIndex />} />
+        <Route path="/scan" element={<ProtectedScanView />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </ErrorBoundary>

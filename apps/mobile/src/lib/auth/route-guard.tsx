@@ -1,12 +1,5 @@
-/**
- * This file provides middleware functionality for authentication in the mobile application.
- *
- * Since Vite and React Router don't have built-in middleware like Next.js,
- * we implement this as a utility that can be used within components.
- */
-
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, NavigateFunction } from "react-router-dom";
 import { supabase } from "@/lib/supabase/client-auth";
 
 // Define public routes that don't require authentication
@@ -15,7 +8,10 @@ const publicRoutes = ["/sign-in"];
 /**
  * Checks if the current route requires authentication and redirects accordingly
  */
-export async function checkAuth(pathname, navigate) {
+export async function checkAuth(
+  pathname: string,
+  navigate: NavigateFunction
+): Promise<boolean> {
   console.log(`Checking auth for path: ${pathname}`);
 
   try {
@@ -62,8 +58,8 @@ export async function checkAuth(pathname, navigate) {
 /**
  * Higher-order component to protect routes that require authentication
  */
-export function withAuth(Component) {
-  return function ProtectedRoute(props) {
+export function withAuth<P extends object>(Component: React.ComponentType<P>) {
+  return function ProtectedRoute(props: P) {
     const navigate = useNavigate();
     const location = useLocation();
     const [isChecking, setIsChecking] = useState(true);
@@ -87,7 +83,7 @@ export function withAuth(Component) {
 
     // Return loading indicator or the protected component
     if (isChecking) {
-      return null; // Replace with your actual loading component in the app
+      return null; // Replace with your actual loading component
     }
 
     return <Component {...props} />;

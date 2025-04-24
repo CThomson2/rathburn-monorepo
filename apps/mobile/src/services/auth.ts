@@ -8,7 +8,9 @@ interface LogInResponse {
     message?: string,
     locked_until?: number,
     attempts_remaining?: number,
-    token?: string,
+    auth_user_id?: string,
+    email?: string,
+    user_id?: string,
 }
 
 /**
@@ -52,9 +54,16 @@ export const loginWithPasscode = async (
       };
     }
 
-    // Login successful - store token
-    localStorage.setItem("authToken", data.token as string); // Assertion is safe, because if `data.success` is true, `data.token` must exist
-
+    // Login successful - store user data
+    if (data.user_id) {
+      localStorage.setItem("userId", data.user_id);
+      localStorage.setItem("userName", username);
+    }
+    
+    // Set the user as authenticated in your app state
+    // This is a simpler approach - for production, you might want to
+    // create a proper session with Supabase Auth
+    
     return { success: true };
   } catch (error) {
     console.error("Login error:", error);

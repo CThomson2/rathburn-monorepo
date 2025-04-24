@@ -87,7 +87,7 @@ const LoginScreen = () => {
 
       if (result.success) {
         // Successful login - redirect to main app or perform other actions
-        window.location.href = "/dashboard"; // Or use your routing mechanism
+        window.location.href = "/"; // Redirect to the main app page
       } else {
         // Handle failed login
         if (result.locked) {
