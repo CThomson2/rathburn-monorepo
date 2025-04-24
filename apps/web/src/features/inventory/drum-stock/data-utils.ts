@@ -1,5 +1,5 @@
 import { executeDbOperation } from "@/lib/database";
-import { Tables } from "@/types/models/supabase"";
+import { Tables } from "@/types/models/supabase";
 
 export type DrumRecord = Tables<"stock_drum"> & {
   order_detail?: Tables<"order_detail"> | null;
