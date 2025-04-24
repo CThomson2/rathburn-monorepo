@@ -39,7 +39,7 @@ const LoginScreen = () => {
   const [newPasscode, setNewPasscode] = useState("");
   const [confirmPasscode, setConfirmPasscode] = useState("");
   const [userId, setUserId] = useState("");
-  const [email, setEmail] = useState("");
+  // const [email, setEmail] = useState("");
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -90,17 +90,17 @@ const LoginScreen = () => {
         window.location.href = "/"; // Redirect to the main app page
       } else {
         // Handle failed login
-        if (result.locked) {
+        if (result.locked_until) {
           setIsLocked(true);
-          setLockTimer(result.lockTimeRemaining || 300);
+          setLockTimer(result.locked_until || 300);
           setError("Too many failed attempts. Account temporarily locked.");
         } else {
           setError(result.message || "Invalid username or passcode");
-          setAttemptsRemaining(result.attemptsRemaining || null);
+          setAttemptsRemaining(result.attempts_remaining || null);
 
           if (attemptsRemaining !== null) {
             setError(
-              `${result.message || "Invalid username or passcode"}. ${result.attemptsRemaining} attempts remaining.`
+              `${result.message || "Invalid username or passcode"}. ${result.attempts_remaining} attempts remaining.`
             );
           }
         }

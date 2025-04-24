@@ -1,259 +1,81 @@
-// App.tsx
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Scan,
-  User,
-  BarChart,
-  Settings,
+  //   Scan,
+  //   User,
+  //   BarChart,
+  //   Settings,
   ChevronDown,
   ChevronUp,
   Calendar,
   Users,
   MapPin,
-  Play,
-  Package,
-  Beaker,
+  Forklift,
+  Atom,
+  Settings,
 } from "lucide-react";
-import BottomNavBar from "@/components/layout/BottomNavBar";
-import JobCard, { JobStatus } from "@/components/inventory/JobCard";
-import SearchBar from "@/components/inventory/SearchBar";
-import MaterialDetail from "@/components/inventory/MaterialDetail";
-import Toast from "@/components/ui/toast-notification";
-// database
-import { supabase } from "@/lib/supabase/client-auth";
+import { createClient } from "@/lib/supabase/client";
 import { logout } from "@/services/auth";
+import FloatingNavMenu from "@/components/layout/FloatingNavMenu";
+import TopNavbar from "@/components/layout/TopNavbar";
 
-// Status colors for different job types
 const statusColors = {
   transport: {
     pending: "#03045e",
-    inProgress: "#0077B6",
+    inProgress: "##0077B6",
   },
   production: {
-    pending: "#82E3FC",
+    pending: "##82E3FC",
     inProgress: "#00b4d8",
-  },
-  goodsInwards: {
-    pending: "#ffd166",
-    inProgress: "#ef8354",
-    arriving: "#06d6a0",
   },
   shared: {
     completed: "#358600",
   },
 };
 
-// Sample data
-const sampleJobs = [
-  {
-    id: "1",
-    title: "Ethyl Acetate",
-    supplier: "Sigma Aldrich",
-    status: "preparation" as JobStatus,
-    progress: 25,
-    quantity: 5,
-    scheduledDate: "Apr 25, 2025",
-    priority: "high" as const,
-  },
-  {
-    id: "2",
-    title: "Methanol USP",
-    supplier: "Fisher Scientific",
-    status: "distillation" as JobStatus,
-    progress: 60,
-    quantity: 12,
-    scheduledDate: "Apr 28, 2025",
-    priority: "medium" as const,
-  },
-  {
-    id: "3",
-    title: "Acetone",
-    supplier: "VWR International",
-    status: "qcPending" as JobStatus,
-    progress: 85,
-    quantity: 8,
-    scheduledDate: "Apr 30, 2025",
-    priority: "low" as const,
-  },
-  {
-    id: "4",
-    title: "Toluene",
-    supplier: "Merck",
-    status: "complete" as JobStatus,
-    progress: 100,
-    quantity: 3,
-    scheduledDate: "Apr 22, 2025",
-    priority: "medium" as const,
-  },
-];
-
-// Using the Material interface from SearchBar.tsx
-interface Material {
-  id: string;
-  name: string;
-  casNumber: string;
-  color: string;
-  scans: number;
-}
-
-const sampleMaterials: Material[] = [
-  {
-    id: "m1",
-    name: "Ethyl Acetate",
-    casNumber: "141-78-6",
-    color: "#1EAEDB",
-    scans: 7,
-  },
-  {
-    id: "m2",
-    name: "Methanol",
-    casNumber: "67-56-1",
-    color: "#FEC6A1",
-    scans: 12,
-  },
-  {
-    id: "m3",
-    name: "Acetone",
-    casNumber: "67-64-1",
-    color: "#F2FCE2",
-    scans: 5,
-  },
-  {
-    id: "m4",
-    name: "Toluene",
-    casNumber: "108-88-3",
-    color: "#8E9196",
-    scans: 3,
-  },
-  {
-    id: "m5",
-    name: "Hexane",
-    casNumber: "110-54-3",
-    color: "#1EAEDB",
-    scans: 2,
-  },
-];
-
-// Interface for production job data
-interface ProductionJob {
-  id: number;
-  name: string;
-  manufacturer: string;
-  containers: number;
-  containerType: string;
-  progress: number;
-  color: string;
-  expanded: boolean;
-  dateCreated: string;
-  dateScheduled: string;
-  assignedWorkers: string[];
-  drumIds: string[];
-  still: string;
-  location: string | string[];
-}
-
-// Interface for goods inwards job data
-interface GoodsInwardsJob {
-  id: number;
-  name: string;
-  supplier: string;
-  containers: number;
-  containerType: string;
-  progress: number;
-  color: string;
-  expanded: boolean;
-  dateOrdered: string;
-  etaDate: string;
-  status: "pending" | "inProgress" | "arriving" | "completed";
-  purchaseOrderNumber: string;
-  deliveryLocation: string;
-  receivedDrumIds: string[];
-}
-
-interface ViewGoodsInwards {
-  order_date: string | null;
-  eta_date: string | null;
-  item: string | null;
-  po_number: string | null;
-  quantity: number | null;
-  status: string | null;
-  supplier: string | null;
-}
-
 /**
- * The Index component is the main entry point of the application, managing
- * the active tab state and rendering the appropriate view based on the selected tab.
- *
- * - It provides a barcode scanning functionality through the BarcodeScannerInput component,
- *   where the scanned barcode is processed by the handleBarcodeScan function.
- * - The component includes a tab navigation system allowing the user to switch
- *   between different views: Scan, History, and Inventory.
- *
- * Note: The HistoryView and InventoryView components are currently commented out,
- * indicating they may be under development or not needed for the current release.
+ * Inventory component that displays a list of production jobs with
+ * expandable details. Each job includes information such as name,
+ * manufacturer, container details, progress status, and assigned
+ * workers. The component allows toggling of expanded views to
+ * reveal additional job details like creation and scheduled dates,
+ * assigned workers, still assignments, locations, and drum IDs.
+ * It also includes a search input for raw materials and a bottom
+ * navigation bar for quick access to stats, team, and settings.
  */
-
 const Index = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [activeTab, setActiveTab] = useState("stats");
-  const [scannerActive, setScannerActive] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
-    null
-  );
-  const [toast, setToast] = useState<{
-    visible: boolean;
-    message: string;
-    type: "success" | "error" | "info";
-  }>({
-    visible: false,
-    message: "",
-    type: "info",
-  });
 
-  // Check if we're in the inventory route
-  const isInventoryView = location.pathname === "/inventory";
-
-  // Update activeTab based on current route when component mounts
-  useEffect(() => {
-    if (location.pathname === "/scan") {
-      setActiveTab("scan");
-    } else if (location.pathname === "/inventory") {
-      setActiveTab("inventory");
-    }
-  }, [location.pathname]);
-
-  // Production jobs data
-  const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([
+  // Sample production jobs data
+  const [productionJobs, setProductionJobs] = useState([
     {
       id: 1,
-      name: "Ethyl Acetate",
-      manufacturer: "Sigma Aldrich",
-      containers: 5,
+      name: "Pentane",
+      manufacturer: "Caldic",
+      containers: 2,
       containerType: "Drums",
-      progress: 40,
-      color: statusColors.production.inProgress,
+      progress: 0,
+      color: statusColors.transport.pending,
       expanded: false,
-      dateCreated: "2025-04-21",
+      dateCreated: "2025-03-31",
       dateScheduled: "2025-04-24",
-      assignedWorkers: ["Michael Chen", "Sarah Johnson"],
-      drumIds: ["15001", "15002", "15003", "15004", "15005"],
+      assignedWorkers: ["James Doherty"],
+      drumIds: ["17583", "17584", "17585", "17586", "17587"],
       still: "Still B",
       location: "Old Site",
     },
     {
       id: 2,
-      name: "Methanol USP",
-      manufacturer: "Fisher Scientific",
-      containers: 12,
+      name: "Acetic Acid",
+      manufacturer: "Univar",
+      containers: 1,
       containerType: "Drums",
-      progress: 75,
-      color: statusColors.production.inProgress,
+      progress: 0,
+      color: statusColors.transport.pending,
       expanded: false,
       dateCreated: "2025-04-20",
       dateScheduled: "2025-04-23",
-      assignedWorkers: ["David Miller", "Amanda Lopez"],
+      assignedWorkers: ["Alistair Nottman"],
       drumIds: [
         "16120",
         "16121",
@@ -273,136 +95,71 @@ const Index = () => {
     },
   ]);
 
-  // Goods inwards jobs data
-  const [goodsInwardsJobs, setGoodsInwardsJobs] = useState<GoodsInwardsJob[]>([
-    {
-      id: 101,
-      name: "Acetone",
-      supplier: "VWR International",
-      containers: 24,
-      containerType: "Drums",
-      progress: 12,
-      color: statusColors.goodsInwards.inProgress,
-      expanded: false,
-      dateOrdered: "2025-04-19",
-      etaDate: "2025-04-25",
-      status: "inProgress",
-      purchaseOrderNumber: "PO-2025-0423",
-      deliveryLocation: "New Site",
-      receivedDrumIds: ["12453", "12454", "12455"],
-    },
-    {
-      id: 102,
-      name: "Toluene",
-      supplier: "Merck",
-      containers: 18,
-      containerType: "Drums",
-      progress: 0,
-      color: statusColors.goodsInwards.pending,
-      expanded: false,
-      dateOrdered: "2025-04-22",
-      etaDate: "2025-05-03",
-      status: "pending",
-      purchaseOrderNumber: "PO-2025-0427",
-      deliveryLocation: "Old Site",
-      receivedDrumIds: [],
-    },
-    {
-      id: 103,
-      name: "Hexane",
-      supplier: "Alfa Aesar",
-      containers: 8,
-      containerType: "Drums",
-      progress: 100,
-      color: statusColors.shared.completed,
-      expanded: false,
-      dateOrdered: "2025-04-10",
-      etaDate: "2025-04-18",
-      status: "completed",
-      purchaseOrderNumber: "PO-2025-0412",
-      deliveryLocation: "New Site",
-      receivedDrumIds: [
-        "17701",
-        "17702",
-        "17703",
-        "17704",
-        "17705",
-        "17706",
-        "17707",
-        "17708",
-      ],
-    },
-  ]);
-
-  // Toggle scanner function
-  const toggleScanner = () => {
-    setScannerActive(!scannerActive);
-    navigate("/scan");
+  // Define the type for goods inwards
+  type GoodsInData = {
+    eta_date: string | null;
+    item: string | null;
+    order_date: string | null;
+    po_number: string | null;
+    quantity: number | null;
+    status: string | null;
+    supplier: string | null;
   };
 
-  const handleLogout = async () => {
-    try {
-      const result = await logout();
-      if (result.success) {
-        navigate("/sign-in");
-      } else {
-        showToast(result.message || "Failed to logout", "error");
+  const [goodsInwards, setGoodsInwards] = useState<GoodsInData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Use IIFE for async operation
+    (async () => {
+      try {
+        const supabase = createClient();
+        // Use simpler string approach with any type to bypass TypeScript checking
+        // This will work at runtime even if TypeScript complains
+        const { data, error } = (await supabase
+          .from("ui.v_goods_in")
+          .select("*")) as { data: GoodsInData[] | null; error: Error };
+
+        if (error) {
+          console.error("Error fetching goods inwards:", error);
+        } else if (data) {
+          console.log("Goods inwards data:", data);
+          setGoodsInwards(data);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Logout error:", error);
-      showToast("An error occurred during logout", "error");
+    })();
+  }, []);
+
+  // Navigation handler for the floating menu
+  const handleNavigation = (itemId: string) => {
+    // Handle navigation based on the item ID
+    switch (itemId) {
+      case "stats":
+        navigate("/");
+        break;
+      case "team":
+        navigate("/team");
+        break;
+      case "scan":
+        navigate("/scan");
+        break;
+      case "inventory":
+        // Already on the inventory page, stay here
+        break;
+      case "settings":
+        navigate("/settings");
+        break;
+      default:
+        navigate("/");
     }
   };
 
-  const handleBarcodeScan = (barcode: string) => {
-    console.log("Barcode scanned:", barcode);
-    // Process the barcode data here
-    // This could include API calls to Supabase
-  };
-
-  const showToast = (message: string, type: "success" | "error" | "info") => {
-    setToast({
-      visible: true,
-      message,
-      type,
-    });
-  };
-
-  /**
-   * Handle the selection of a material from the MaterialList.
-   *
-   * @param {Material} material The selected material
-   */
-  const handleSelectMaterial = (material: Material) => {
-    setSelectedMaterial(material);
-  };
-
-  // Start scanning for a job
-  const startJobScan = (
-    jobType: "production" | "goodsInwards",
-    jobId: number
-  ) => {
-    // Here you could store the job information in localStorage or state
-    // before navigating to the scan view
-    localStorage.setItem("currentScanJobType", jobType);
-    localStorage.setItem("currentScanJobId", jobId.toString());
-
-    // Navigate to scan view
-    navigate("/scan");
-  };
-
-  // Toggle expand function for production jobs
-  const toggleExpandProduction = (id: number) => {
+  const toggleExpand = (id: number) => {
     setProductionJobs((jobs) =>
-      jobs.map((job) =>
-        job.id === id ? { ...job, expanded: !job.expanded } : job
-      )
-    );
-  };
-
-  // Toggle expand function for goods inwards jobs
-  const toggleExpandGoodsInwards = (id: number) => {
-    setGoodsInwardsJobs((jobs) =>
       jobs.map((job) =>
         job.id === id ? { ...job, expanded: !job.expanded } : job
       )
@@ -448,47 +205,249 @@ const Index = () => {
     return location;
   };
 
-  // Handle tab changes
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-
-    // Navigate based on tab
-    if (tab === "inventory") {
-      navigate("/inventory");
-    } else if (tab === "scan") {
-      navigate("/scan");
-    } else if (isInventoryView || location.pathname === "/scan") {
-      // If we're on a specific view and switching to a different tab,
-      // go back to the home page
-      navigate("/");
-    }
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
   };
 
+  const navLinks = [
+    { name: "Inventory", path: "/inventory", icon: Forklift },
+    { name: "Production", path: "/production", icon: Atom },
+    { name: "Settings", path: "/settings", icon: Settings },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Main content - renders different sections based on activeTab */}
-      <div className="flex-1 pb-24">
-        {/* Content varies based on active tab */}
-        {/* ... existing content ... */}
+    <div className="h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
+      {/* Header */}
+      {/* Logout button */}
+      <button
+        className="text-white font-medium hover:shadow-md"
+        onClick={handleLogout}
+      >
+        Logout
+      </button>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto pb-20">
+        <TopNavbar navLinks={navLinks} />
+        {/* Section Header */}
+        <div className="flex justify-between items-center px-6 py-4">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+            Goods in Transport
+          </h2>
+          <button className="text-blue-600 font-medium">View All</button>
+        </div>
+
+        {/* Production Jobs List */}
+        <div className="px-4 space-y-3">
+          {productionJobs.map((job) => (
+            <div
+              key={job.id}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+              style={{ borderLeftWidth: "4px", borderLeftColor: job.color }}
+            >
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-1">
+                  <div>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100">
+                      {job.name}
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      {job.manufacturer}
+                    </p>
+                  </div>
+                  <div className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full flex items-center space-x-1">
+                    <span className="text-gray-700 dark:text-gray-300 text-sm">
+                      {job.containerType} × {job.containers}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mt-3 relative">
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${job.progress}%`,
+                        backgroundColor: job.color,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end px-4 py-2 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  onClick={() => toggleExpand(job.id)}
+                  aria-label={
+                    job.expanded ? "Collapse details" : "Expand details"
+                  }
+                >
+                  {job.expanded ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </button>
+              </div>
+
+              {/* Expanded Details */}
+              {job.expanded && (
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center">
+                      <Calendar size={16} className="text-gray-500 mr-2" />
+                      <div>
+                        <p className="text-xs text-gray-500">Created</p>
+                        <p className="text-sm">{job.dateCreated}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar size={16} className="text-gray-500 mr-2" />
+                      <div>
+                        <p className="text-xs text-gray-500">Scheduled</p>
+                        <p className="text-sm font-bold text-blue-700">
+                          {job.dateScheduled}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-center mb-2">
+                      <Users size={16} className="text-gray-500 mr-2" />
+                      <p className="text-xs text-gray-500">Assigned Workers</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {job.assignedWorkers.map((worker, index) => (
+                        <div
+                          key={index}
+                          className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-sm py-1 px-3 rounded-full"
+                        >
+                          {worker}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">
+                      Still Assignment
+                    </p>
+                    <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 inline-block text-sm py-1 px-3 rounded-md font-medium">
+                      {job.still}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-center mb-2">
+                      <MapPin size={16} className="text-gray-500 mr-2" />
+                      <p className="text-xs text-gray-500">Location</p>
+                    </div>
+                    <p className="text-sm">{renderLocation(job.location)}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2">Drum IDs</p>
+                    {renderDrumChips(job.drumIds)}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Display Goods Inwards data if available */}
+        {goodsInwards.length > 0 && (
+          <div className="px-6 py-4 mt-4">
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3">
+              Goods Inwards
+            </h2>
+            <div className="space-y-3">
+              {goodsInwards.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4"
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h3 className="font-bold text-gray-800 dark:text-gray-100">
+                        {item.item}
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {item.supplier}
+                      </p>
+                    </div>
+                    <div className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+                      <span className="text-gray-700 dark:text-gray-300 text-sm">
+                        Qty: {item.quantity}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-sm">
+                    <div className="flex gap-4">
+                      <div>
+                        <span className="text-gray-500">Ordered:</span>{" "}
+                        {item.order_date}
+                      </div>
+                      <div>
+                        <span className="text-gray-500">ETA:</span>{" "}
+                        {item.eta_date}
+                      </div>
+                      <div className="ml-auto">
+                        <span className="text-gray-500">Status:</span>{" "}
+                        {item.status}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Display loading state */}
+        {isLoading && (
+          <div className="px-6 py-4 text-center text-gray-500">
+            Loading goods inwards data...
+          </div>
+        )}
+
+        {/* Quick Lookup */}
+        <div className="px-6 py-4 mt-4">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3">
+            Quick Lookup
+          </h2>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search raw materials..."
+              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg py-3 px-4 pl-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-gray-100 dark:placeholder-gray-400"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="w-5 h-5 text-gray-400 dark:text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Bottom navigation */}
-      <BottomNavBar
-        activeTab={activeTab}
-        setActiveTab={handleTabChange}
-        toggleScanner={toggleScanner}
-        scannerActive={scannerActive}
-      />
-
-      {/* Toast notification for feedback */}
-      {toast.visible && (
-        <Toast
-          visible={toast.visible}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast({ ...toast, visible: false })}
-        />
-      )}
+      {/* Replace bottom navigation with our floating nav menu */}
+      <FloatingNavMenu onNavigate={handleNavigation} />
     </div>
   );
 };

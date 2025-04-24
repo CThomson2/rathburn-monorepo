@@ -7,11 +7,12 @@ import Index from "./pages/Index";
 import ScanView from "./pages/ScanViewSimple";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
-import Inventory from "./views/Inventory";
+import Settings from "./pages/Settings";
 import { ErrorBoundary } from "react-error-boundary";
 import { supabase } from "@/lib/supabase/client-auth";
 import { Session } from "@supabase/auth-js";
 import { withAuth } from "./lib/auth/route-guard";
+import { ThemeProvider } from "./providers/theme-provider";
 
 const queryClient = new QueryClient();
 
@@ -41,12 +42,13 @@ const ErrorFallback = ({ error }: { error: Error }) => {
 // Apply the withAuth HOC to protected components
 const ProtectedIndex = withAuth(Index);
 const ProtectedScanView = withAuth(ScanView);
-const ProtectedInventory = withAuth(Inventory);
+const ProtectedSettings = withAuth(Settings);
 
 // Router component with console logs for debugging
 const RouterWithLogging = () => {
   const location = useLocation();
   const [session, setSession] = useState<Session | null>(null);
+  const isAuthPage = location.pathname === "/sign-in";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -68,28 +70,42 @@ const RouterWithLogging = () => {
     console.log(`Route changed to: ${location.pathname}`);
   }, [location]);
 
+  // Set body class based on route
+  useEffect(() => {
+    const body = document.body;
+    if (isAuthPage) {
+      body.classList.remove("dark");
+    }
+  }, [isAuthPage]);
+
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <Routes>
-        <Route path="/sign-in" element={<Auth />} />
-        <Route path="/" element={<ProtectedIndex />} />
-        <Route path="/scan" element={<ProtectedScanView />} />
-        <Route path="/inventory" element={<ProtectedInventory />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </ErrorBoundary>
+    <div
+      className={`app-container ${isAuthPage ? "" : "dark:bg-gray-900 dark:text-gray-100"}`}
+    >
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Routes>
+          <Route path="/sign-in" element={<Auth />} />
+          <Route path="/" element={<ProtectedIndex />} />
+          <Route path="/scan" element={<ProtectedScanView />} />
+          <Route path="/settings" element={<ProtectedSettings />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ErrorBoundary>
+    </div>
   );
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <RouterWithLogging />
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider defaultTheme="system">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <RouterWithLogging />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
