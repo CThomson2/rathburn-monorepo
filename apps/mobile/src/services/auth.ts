@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * Response interface for login attempts
@@ -29,7 +29,7 @@ export const loginWithPasscode = async (
     const { data, error } = await supabase.rpc("validate_passcode", {
       p_user_name: username,
       p_passcode: passcode,
-    }) as { data: LogInResponse, error: null };
+    });
     
     if (error) throw error;
 
@@ -139,6 +139,55 @@ export const resetPasscodeWithToken = async (token: string, newPasscode: string)
     return {
       success: false,
       message: "An error occurred while resetting your passcode. Please try again later."
+    };
+  }
+};
+
+/**
+ * Create a mobile app passcode for an existing authenticated user.
+ * Requires the user to be authenticated via Supabase Auth (email/password or SSO).
+ * 
+ * @param {string} username The username to create
+ * @param {string} passcode The 4-digit passcode to set
+ * @param {string} userId The UUID of the user from Supabase Auth
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const createMobilePasscode = async (username: string, passcode: string, userId: string) => {
+  // Validate the passcode format
+  if (!/^\d{4}$/.test(passcode)) {
+    return {
+      success: false,
+      message: "Passcode must be exactly 4 digits"
+    };
+  }
+
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("create_mobile_app_passcode", {
+      p_user_name: username,
+      p_passcode: passcode,
+      p_user_id: userId
+    });
+
+    if (error) {
+      if (error.message.includes("already exists")) {
+        return {
+          success: false,
+          message: "This username is already taken. Please choose another."
+        };
+      }
+      throw error;
+    }
+
+    return {
+      success: true,
+      message: "Mobile passcode created successfully. You can now sign in with your username and passcode."
+    };
+  } catch (error) {
+    console.error("Create passcode error:", error);
+    return {
+      success: false,
+      message: "An error occurred while creating your passcode. Please try again later."
     };
   }
 };

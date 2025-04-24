@@ -8,9 +8,9 @@ import "../styles/ScanView.css";
 // API config - will be different in dev vs production
 const API_BASE_URL = (() => {
   // For production, use the EC2 instance IP
-  if (process.env.NODE_ENV === "production") {
+  if (import.meta.env.NODE_ENV === "production") {
     // Use environment variable if available, otherwise fallback to the EC2 IP
-    return process.env.VITE_API_URL || "http://3.8.53.147:3001/api";
+    return import.meta.env.VITE_API_URL || "http://3.8.53.147:3001/api";
   }
 
   // For development and preview modes with proxy

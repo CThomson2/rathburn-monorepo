@@ -21,14 +21,14 @@ export const createClient = () => {
   if (isBuildTime) {
     // Use the browser client during build time
     if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      !import.meta.env.VITE_SUPABASE_URL ||
+      !import.meta.env.VITE_SUPABASE_ANON_KEY
     ) {
       console.error("Missing Supabase environment variables during build time");
     }
     return createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      import.meta.env.VITE_SUPABASE_URL!,
+      import.meta.env.VITE_SUPABASE_ANON_KEY!
     );
   }
 
@@ -36,8 +36,8 @@ export const createClient = () => {
   const cookieStore = cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    import.meta.env.VITE_SUPABASE_URL!,
+    import.meta.env.VITE_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -90,14 +90,14 @@ export const createNewClient = () => {
   if (isBuildTime) {
     // Use the browser client during build time
     if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL_NEW ||
-      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW
+      !import.meta.env.VITE_SUPABASE_URL_NEW ||
+      !import.meta.env.VITE_SUPABASE_ANON_KEY_NEW
     ) {
       console.error("Missing Supabase environment variables during build time");
     }
     return createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
+      import.meta.env.VITE_SUPABASE_URL_NEW!,
+      import.meta.env.VITE_SUPABASE_ANON_KEY_NEW!
     );
   }
 
@@ -105,8 +105,8 @@ export const createNewClient = () => {
   const cookieStore = cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!,
+    import.meta.env.VITESUPABASE_URL_NEW!,
+    import.meta.env.VITESUPABASE_ANON_KEY_NEW!,
     {
       cookies: {
         getAll() {

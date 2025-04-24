@@ -67,7 +67,7 @@ export function useAuth() {
       provider: "azure",
       options: {
         redirectTo:
-          process.env.NODE_ENV === "production"
+          import.meta.env.NODE_ENV === "production"
             ? "https://rathburn.app/auth/callback"
             : "http://localhost:3000/auth/callback",
         scopes: "offline_access email",

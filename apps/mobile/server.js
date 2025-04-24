@@ -22,16 +22,16 @@ const __dirname = path.dirname(__filename);
 
 // Create Express application
 const app = express();
-const PORT = process.env.SERVER_PORT || 3001;
+const PORT = import.meta.env.SERVER_PORT || 3001;
 
 // In-memory storage for scans when offline
 const scans = [];
 
 // Supabase client setup - connects to our Supabase instance
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseServiceKey =
-  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.VITE_SUPABASE_ANON_KEY;
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -65,7 +65,7 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // Serve static files from the dist directory when in production
-if (process.env.NODE_ENV === "production") {
+if (import.meta.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "dist")));
 }
 
@@ -238,7 +238,7 @@ app.get("/api/logs/save-local", (req, res) => {
 });
 
 // In production, serve the SPA for any unmatched routes
-if (process.env.NODE_ENV === "production") {
+if (import.meta.env.NODE_ENV === "production") {
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "dist", "index.html"));
   });

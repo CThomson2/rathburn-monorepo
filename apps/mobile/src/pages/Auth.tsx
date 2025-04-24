@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
-import { LogIn, AlertCircle, ChevronLeft } from "lucide-react";
-import { loginWithPasscode } from "@/services/auth";
+// import { LogIn, AlertCircle, ChevronLeft } from "lucide-react";
+import {
+  loginWithPasscode,
+  requestPasscodeReset,
+  createMobilePasscode,
+} from "@/services/auth";
 import React from "react";
 
 /**
@@ -20,6 +24,7 @@ const LoginScreen = () => {
   const [username, setUsername] = useState("");
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(
     null
@@ -27,6 +32,14 @@ const LoginScreen = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [lockTimer, setLockTimer] = useState(0);
   const [showResetOptions, setShowResetOptions] = useState(false);
+  const [showCreatePasscode, setShowCreatePasscode] = useState(false);
+
+  // Fields for create passcode form
+  const [newUsername, setNewUsername] = useState("");
+  const [newPasscode, setNewPasscode] = useState("");
+  const [confirmPasscode, setConfirmPasscode] = useState("");
+  const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -48,6 +61,7 @@ const LoginScreen = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setMessage("");
 
     if (isLocked) {
       setError(
@@ -109,19 +123,99 @@ const LoginScreen = () => {
 
   const handleForgotPasscode = () => {
     setShowResetOptions(true);
+    setShowCreatePasscode(false);
+  };
+
+  const handleCreateNewPasscode = () => {
+    setShowCreatePasscode(true);
+    setShowResetOptions(false);
   };
 
   const handleResetBack = () => {
     setShowResetOptions(false);
+    setShowCreatePasscode(false);
   };
 
-  const handleResetRequest = (method: string) => {
-    // This would be implemented with your auth server actions
+  const handleResetRequest = async (username: string) => {
     setError("");
-    setShowResetOptions(false);
-    return alert(
-      `Reset link sent via ${method}. This would integrate with your existing auth system.`
-    );
+    setIsLoading(true);
+
+    try {
+      const result = await requestPasscodeReset(username);
+
+      if (result.success) {
+        setMessage(result.message);
+        // Return to login screen after a delay
+        setTimeout(() => {
+          setShowResetOptions(false);
+          setMessage("");
+        }, 3000);
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreatePasscode = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    // Validation
+    if (!newUsername.trim()) {
+      setError("Please enter a username");
+      return;
+    }
+
+    if (!userId.trim()) {
+      setError("Please enter your user ID");
+      return;
+    }
+
+    if (!/^\d{4}$/.test(newPasscode)) {
+      setError("Passcode must be exactly 4 digits");
+      return;
+    }
+
+    if (newPasscode !== confirmPasscode) {
+      setError("Passcodes do not match");
+      return;
+    }
+
+    // Create passcode
+    setIsLoading(true);
+    try {
+      const result = await createMobilePasscode(
+        newUsername,
+        newPasscode,
+        userId
+      );
+
+      if (result.success) {
+        setMessage(result.message);
+        // Go back to login after success
+        setTimeout(() => {
+          setShowCreatePasscode(false);
+          setNewUsername("");
+          setNewPasscode("");
+          setConfirmPasscode("");
+          setUserId("");
+          setMessage("");
+        }, 3000);
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (showResetOptions) {
@@ -134,34 +228,207 @@ const LoginScreen = () => {
               className="mr-2 text-gray-500"
               title="Go back to login screen"
             >
-              {React.createElement(ChevronLeft, { size: 24 })}
+              <span>←</span>
             </button>
             <h2 className="text-xl font-bold text-gray-800">Reset Passcode</h2>
           </div>
 
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {message && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+              <p className="text-sm text-green-700">{message}</p>
+            </div>
+          )}
+
           <p className="text-gray-600">
-            Select how you would like to receive your passcode reset link:
+            Enter your username below. If found, a reset link will be sent to
+            your associated email.
           </p>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => handleResetRequest("email")}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-150"
-            >
-              Send Email to work@example.com
-            </button>
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="reset-username"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Username
+              </label>
+              <input
+                type="text"
+                id="reset-username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your username"
+                disabled={isLoading}
+              />
+            </div>
 
             <button
-              onClick={() => handleResetRequest("SMS")}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition duration-150"
+              onClick={() => handleResetRequest(username)}
+              disabled={!username.trim() || isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-150 disabled:bg-gray-400"
             >
-              Send SMS to (***) ***-5678
+              {isLoading ? "Processing..." : "Send Reset Link"}
             </button>
 
             <p className="text-sm text-gray-500 text-center mt-4">
               If you need immediate assistance, please contact your supervisor.
             </p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showCreatePasscode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-teal-500 flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-6">
+          <div className="flex items-center">
+            <button
+              onClick={handleResetBack}
+              className="mr-2 text-gray-500"
+              title="Go back to login screen"
+            >
+              <span>←</span>
+            </button>
+            <h2 className="text-xl font-bold text-gray-800">
+              Create Mobile Passcode
+            </h2>
+          </div>
+
+          <p className="text-gray-600">
+            If you already have a Supabase account, you can create a passcode
+            for the mobile app. You'll need your Supabase user ID to complete
+            this process.
+          </p>
+
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {message && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+              <p className="text-sm text-green-700">{message}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleCreatePasscode} className="space-y-6">
+            <div>
+              <label
+                htmlFor="new-username"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Username
+              </label>
+              <input
+                type="text"
+                id="new-username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Choose a username"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="user-id"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Supabase User ID
+              </label>
+              <input
+                type="text"
+                id="user-id"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Your Supabase User ID"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This is the UUID from your Supabase account
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="new-passcode"
+                className="block text-sm font-medium text-gray-700"
+              >
+                4-Digit Passcode
+              </label>
+              <input
+                type="password"
+                id="new-passcode"
+                value={newPasscode}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^\d{0,4}$/.test(value)) {
+                    setNewPasscode(value);
+                  }
+                }}
+                className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter 4-digit passcode"
+                maxLength={4}
+                inputMode="numeric"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="confirm-passcode"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Confirm Passcode
+              </label>
+              <input
+                type="password"
+                id="confirm-passcode"
+                value={confirmPasscode}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^\d{0,4}$/.test(value)) {
+                    setConfirmPasscode(value);
+                  }
+                }}
+                className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Confirm 4-digit passcode"
+                maxLength={4}
+                inputMode="numeric"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="flex space-x-4">
+              <button
+                type="button"
+                onClick={handleResetBack}
+                className="flex-1 py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating..." : "Create Passcode"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -188,12 +455,23 @@ const LoginScreen = () => {
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  {React.createElement(AlertCircle, {
-                    className: "h-5 w-5 text-red-500",
-                  })}
+                  <span className="h-5 w-5 text-red-500">⚠️</span>
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {message && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <span className="h-5 w-5 text-green-500">✓</span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">{message}</p>
                 </div>
               </div>
             </div>
@@ -257,7 +535,7 @@ const LoginScreen = () => {
                 } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 disabled={isLocked || isLoading}
               >
-                {React.createElement(LogIn, { className: "mr-2 h-5 w-5" })}
+                <span className="mr-2 h-5 w-5">➡️</span>
                 {isLocked
                   ? `Locked (${lockTimer}s)`
                   : isLoading
@@ -266,6 +544,18 @@ const LoginScreen = () => {
               </button>
             </div>
           </form>
+
+          <div className="text-center border-t pt-4">
+            <p className="text-sm text-gray-600 mb-2">
+              First time using the mobile app?
+            </p>
+            <button
+              onClick={handleCreateNewPasscode}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Create Mobile Passcode
+            </button>
+          </div>
         </div>
       </div>
 
