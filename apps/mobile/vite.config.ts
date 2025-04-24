@@ -145,6 +145,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    exclude: ['@supabase/auth-helpers-nextjs'],
+    // No exclusions needed
   },
 }));

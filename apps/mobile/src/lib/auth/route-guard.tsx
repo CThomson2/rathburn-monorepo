@@ -9,8 +9,7 @@ const publicPaths = ["/sign-in"];
  * Check if the user is authenticated
  * This function checks:
  * 1. If the current path is public (doesn't require auth)
- * 2. If there's a valid Supabase session
- * 3. If there are valid localStorage credentials
+ * 2. If there are valid localStorage credentials
  *
  * @returns {boolean | string} false if no redirect needed, or the redirect path
  */
@@ -24,33 +23,24 @@ export async function checkAuth(pathname: string): Promise<boolean | string> {
   }
 
   try {
-    // Get session - needs await to properly resolve
-    console.log("[AUTH-GUARD] Fetching Supabase session");
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
     // Log localStorage values first
     const userId = localStorage.getItem("userId");
     const userName = localStorage.getItem("userName");
     console.log("[AUTH-GUARD] localStorage values:", { userId, userName });
 
-    // Check if there's a valid session
-    if (session?.user) {
-      console.log(
-        "[AUTH-GUARD] Valid Supabase session found:",
-        session.user.id
-      );
-    } else {
-      console.log("[AUTH-GUARD] No valid Supabase session found");
-    }
+    // Check if there is valid local authentication
+    const isLocalAuth = Boolean(userId && userName);
 
-    // Check for custom passcode auth (userId in localStorage)
-    if (userId && userName) {
-      console.log(
-        `[AUTH-GUARD] Valid local auth found for user: ${userName} (${userId})`
-      );
-      return false; // No redirect needed, user is authenticated
+    // Check if there's a valid Supabase session
+    const { data } = await supabase.auth.getSession();
+    const isAuthRoute = publicPaths.includes(pathname);
+    const hasSession = Boolean(data.session);
+
+    console.log(`Is auth route: ${isAuthRoute}, Has session: ${hasSession}`);
+
+    if (hasSession || isLocalAuth) {
+      console.log("[AUTH-GUARD] User is authenticated");
+      return false; // No redirect needed
     }
 
     console.log(

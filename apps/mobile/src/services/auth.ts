@@ -89,7 +89,8 @@ export async function loginWithPasscode(
     }
 
     console.log("[AUTH] Calling validate_passcode RPC");
-    const { data, error } = await createClient().rpc("validate_passcode", {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("validate_passcode", {
       p_user_name: username,
       p_passcode: passcode,
     });
@@ -151,7 +152,7 @@ export async function loginWithPasscode(
     return { 
       success: true, 
       message: "Login successful. Redirecting...",
-      redirectTo: "/", // Changed from "/dashboard" to "/"
+      redirectTo: "/", 
       user_id: responseData.user_id,
       email: responseData.email,
       auth_user_id: responseData.auth_user_id

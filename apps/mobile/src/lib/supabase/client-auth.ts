@@ -1,17 +1,18 @@
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
+import { loginWithPasscode, logout, requestPasscodeReset, resetPasscodeWithToken, createMobilePasscode } from "@/services/auth";
 
 // Create a single instance of the Supabase client
 export const supabase = createClient();
 
 /**
- * Hook for managing client-side authentication state and actions
+ * Hook for managing client-side authentication state and actions for mobile app
  * This hook provides:
  * - Current user state
  * - Loading state
- * - Sign in/up/out functions
+ * - Passcode-based authentication functions
  * - Real-time auth state updates
  * 
  * TODO: move to /hooks/ in shared turborepo package
@@ -19,15 +20,24 @@ export const supabase = createClient();
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Get initial user state
     const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      // Check for Supabase auth session
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user ?? null);
+      
+      // Check for mobile app passcode auth
+      const storedUserId = localStorage.getItem("userId");
+      const storedUserName = localStorage.getItem("userName");
+      
+      setUserId(storedUserId);
+      setUserName(storedUserName);
+      
       setLoading(false);
     };
 
@@ -35,16 +45,12 @@ export function useAuth() {
 
     // Subscribe to auth state changes
     // This sets up a real-time listener for authentication state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription }} = supabase.auth.onAuthStateChange((_event, session) => {
       // When auth state changes:
       // 1. Update the user state with the new user or null if signed out
       setUser(session?.user ?? null);
       // 2. Set loading to false since we've received the auth state
       setLoading(false);
-      // 3. Refresh the router to update UI based on new auth state
-      router.refresh();
     });
 
     // Clean up function that runs when the component unmounts
@@ -52,49 +58,59 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]); // Only re-run this effect if router changes
+  }, []); // No dependencies needed here
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-  }, []);
-
-  const signInWithAzure = useCallback(async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "azure",
-      options: {
-        redirectTo:
-          import.meta.env.NODE_ENV === "production"
-            ? "https://mobile.rathburn.app/auth/callback"
-            : "http://localhost:8080/",
-        scopes: "offline_access email",
-      },
-    });
-    if (error) throw error;
-  }, []);
-
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    if (error) throw error;
-  }, []);
+  const signInWithPasscode = useCallback(async (username: string, passcode: string) => {
+    const response = await loginWithPasscode(username, passcode);
+    
+    if (response.success) {
+      // The auth service already sets localStorage items
+      setUserId(localStorage.getItem("userId"));
+      setUserName(localStorage.getItem("userName"));
+      navigate("/");
+      return { success: true };
+    } else {
+      return { success: false, message: response.message };
+    }
+  }, [navigate]);
 
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    router.push("/sign-in");
-  }, [router]);
+    const response = await logout();
+    
+    if (response.success) {
+      setUserId(null);
+      setUserName(null);
+      navigate("/sign-in");
+      return { success: true };
+    } else {
+      return { success: false, message: response.message };
+    }
+  }, [navigate]);
+
+  const resetPasscode = useCallback(async (username: string) => {
+    return await requestPasscodeReset(username);
+  }, []);
+
+  const confirmPasscodeReset = useCallback(async (token: string, newPasscode: string) => {
+    return await resetPasscodeWithToken(token, newPasscode);
+  }, []);
+
+  const createPasscode = useCallback(async (username: string, passcode: string, authUserId: string) => {
+    return await createMobilePasscode(username, passcode, authUserId);
+  }, []);
+
+  const isAuthenticated = Boolean(userId) || Boolean(user);
 
   return {
     user,
+    userId,
+    userName,
     loading,
-    signIn,
-    signUp,
+    isAuthenticated,
+    signInWithPasscode,
     signOut,
+    resetPasscode,
+    confirmPasscodeReset,
+    createPasscode
   };
 }

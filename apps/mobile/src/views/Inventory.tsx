@@ -1,0 +1,357 @@
+import { useState } from "react";
+import {
+  Scan,
+  User,
+  BarChart,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Users,
+  MapPin,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase/client-auth";
+
+/**
+ * Inventory component that displays a list of production jobs with
+ * expandable details. Each job includes information such as name,
+ * manufacturer, container details, progress status, and assigned
+ * workers. The component allows toggling of expanded views to
+ * reveal additional job details like creation and scheduled dates,
+ * assigned workers, still assignments, locations, and drum IDs.
+ * It also includes a search input for raw materials and a bottom
+ * navigation bar for quick access to stats, team, and settings.
+ */
+const Inventory = () => {
+  // Sample production jobs data
+  const [productionJobs, setProductionJobs] = useState([
+    {
+      id: 1,
+      name: "Ethyl Acetate",
+      manufacturer: "Sigma Aldrich",
+      containers: 5,
+      containerType: "Drums",
+      progress: 40,
+      color: "#bbdefb",
+      expanded: false,
+      dateCreated: "2025-04-21",
+      dateScheduled: "2025-04-24",
+      assignedWorkers: ["Michael Chen", "Sarah Johnson"],
+      drumIds: ["15001", "15002", "15003", "15004", "15005"],
+      still: "Still B",
+      location: "Old Site",
+    },
+    {
+      id: 2,
+      name: "Methanol USP",
+      manufacturer: "Fisher Scientific",
+      containers: 12,
+      containerType: "Drums",
+      progress: 75,
+      color: "#ffecb3",
+      expanded: false,
+      dateCreated: "2025-04-20",
+      dateScheduled: "2025-04-23",
+      assignedWorkers: ["David Miller", "Amanda Lopez"],
+      drumIds: [
+        "16120",
+        "16121",
+        "16122",
+        "16123",
+        "16124",
+        "16125",
+        "16126",
+        "16127",
+        "16128",
+        "16129",
+        "16130",
+        "16131",
+      ],
+      still: "Still G",
+      location: "New Site",
+    },
+    {
+      id: 3,
+      name: "Acetone",
+      manufacturer: "VWR International",
+      containers: 8,
+      containerType: "Drums",
+      progress: 12,
+      color: "#c8e6c9",
+      expanded: false,
+      dateCreated: "2025-04-19",
+      dateScheduled: "2025-04-25",
+      assignedWorkers: ["Robert Taylor", "Emma Wilson"],
+      drumIds: [
+        "12453",
+        "12454",
+        "12455",
+        "12456",
+        "12457",
+        "12458",
+        "12459",
+        "12460",
+      ],
+      still: "Still M",
+      location: ["Old Site", "New Site"],
+    },
+    {
+      id: 4,
+      name: "Toluene",
+      manufacturer: "Merck",
+      containers: 3,
+      containerType: "Drums",
+      progress: 94,
+      color: "#e1bee7",
+      expanded: false,
+      dateCreated: "2025-04-22",
+      dateScheduled: "2025-04-23",
+      assignedWorkers: ["James Wilson"],
+      drumIds: ["17701", "17702", "17703"],
+      still: "Still A",
+      location: "New Site",
+    },
+  ]);
+
+  const toggleExpand = (id) => {
+    setProductionJobs((jobs) =>
+      jobs.map((job) =>
+        job.id === id ? { ...job, expanded: !job.expanded } : job
+      )
+    );
+  };
+
+  // Function to render drum ID chips
+  const renderDrumChips = (drums) => {
+    const displayDrums = drums.slice(0, 8);
+    return (
+      <div className="grid grid-cols-4 gap-2">
+        {displayDrums.map((drum, index) => (
+          <div
+            key={index}
+            className="bg-gray-100 text-gray-700 text-sm py-1 px-2 rounded text-center"
+          >
+            {drum}
+          </div>
+        ))}
+        {drums.length > 8 && (
+          <div className="bg-gray-200 text-gray-700 text-sm py-1 px-2 rounded text-center">
+            +{drums.length - 8} more
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Function to display location
+  const renderLocation = (location) => {
+    if (Array.isArray(location)) {
+      return (
+        <div className="flex flex-col">
+          {location.map((loc, index) => (
+            <span key={index} className="flex items-center">
+              <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+              {loc}
+            </span>
+          ))}
+        </div>
+      );
+    }
+    return location;
+  };
+
+  return (
+    <div className="h-screen w-full flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="bg-blue-600 text-white py-4 px-6 shadow-md">
+        <h1 className="text-xl font-bold">Production & Inventory</h1>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto pb-20">
+        {/* Section Header */}
+        <div className="flex justify-between items-center px-6 py-4">
+          <h2 className="text-lg font-bold text-gray-800">
+            Goods in Transport
+          </h2>
+          <button className="text-blue-600 font-medium">View All</button>
+        </div>
+
+        {/* Production Jobs List */}
+        <div className="px-4 space-y-3">
+          {productionJobs.map((job) => (
+            <div
+              key={job.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
+              style={{ borderLeftWidth: "4px", borderLeftColor: job.color }}
+            >
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-1">
+                  <div>
+                    <h3 className="font-bold text-gray-800">{job.name}</h3>
+                    <p className="text-gray-500 text-sm">{job.manufacturer}</p>
+                  </div>
+                  <div className="bg-gray-100 px-3 py-1 rounded-full flex items-center space-x-1">
+                    <span className="text-gray-700 text-sm">
+                      {job.containerType} × {job.containers}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mt-3 relative">
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${job.progress}%`,
+                        backgroundColor: job.color,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end px-4 py-2 border-t border-gray-100">
+                <button
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  onClick={() => toggleExpand(job.id)}
+                >
+                  {job.expanded ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </button>
+              </div>
+
+              {/* Expanded Details */}
+              {job.expanded && (
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center">
+                      <Calendar size={16} className="text-gray-500 mr-2" />
+                      <div>
+                        <p className="text-xs text-gray-500">Created</p>
+                        <p className="text-sm">{job.dateCreated}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar size={16} className="text-gray-500 mr-2" />
+                      <div>
+                        <p className="text-xs text-gray-500">Scheduled</p>
+                        <p className="text-sm font-bold text-blue-700">
+                          {job.dateScheduled}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-center mb-2">
+                      <Users size={16} className="text-gray-500 mr-2" />
+                      <p className="text-xs text-gray-500">Assigned Workers</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {job.assignedWorkers.map((worker, index) => (
+                        <div
+                          key={index}
+                          className="bg-blue-50 text-blue-700 text-sm py-1 px-3 rounded-full"
+                        >
+                          {worker}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">
+                      Still Assignment
+                    </p>
+                    <div className="bg-indigo-50 text-indigo-700 inline-block text-sm py-1 px-3 rounded-md font-medium">
+                      {job.still}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-center mb-2">
+                      <MapPin size={16} className="text-gray-500 mr-2" />
+                      <p className="text-xs text-gray-500">Location</p>
+                    </div>
+                    <p className="text-sm">{renderLocation(job.location)}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2">Drum IDs</p>
+                    {renderDrumChips(job.drumIds)}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Lookup */}
+        <div className="px-6 py-4 mt-4">
+          <h2 className="text-lg font-bold text-gray-800 mb-3">Quick Lookup</h2>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search raw materials..."
+              className="w-full bg-white border border-gray-300 rounded-lg py-3 px-4 pl-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-lg">
+        <div className="flex items-center justify-around relative">
+          <button className="flex flex-col items-center justify-center py-3 px-5 text-gray-600">
+            <BarChart size={24} />
+            <span className="text-xs mt-1">Stats</span>
+          </button>
+
+          <button className="flex flex-col items-center justify-center py-3 px-5 text-gray-600">
+            <User size={24} />
+            <span className="text-xs mt-1">Team</span>
+          </button>
+
+          {/* Centered Scan Button */}
+          <div className="relative">
+            <button className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg">
+              <Scan size={28} />
+            </button>
+          </div>
+
+          <button className="flex flex-col items-center justify-center py-3 px-5 text-gray-600 invisible">
+            <span>Placeholder</span>
+          </button>
+
+          <button className="flex flex-col items-center justify-center py-3 px-5 text-gray-600">
+            <Settings size={24} />
+            <span className="text-xs mt-1">Settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Inventory;

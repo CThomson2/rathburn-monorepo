@@ -1,5 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/types/models/database.types";
 
 // Define custom types for our RPC functions
@@ -45,7 +44,7 @@ export type CustomTypes = Database & {
  * Creates and returns a Supabase client for browser usage
  */
 export const createClient = () => {
-  return createBrowserClient<CustomTypes>(
+  return createSupabaseClient<CustomTypes>(
     import.meta.env.VITE_SUPABASE_URL!,
     import.meta.env.VITE_SUPABASE_ANON_KEY!
   );
@@ -55,7 +54,7 @@ export const createClient = () => {
  * Type definition for a Supabase operation callback function
  */
 export type SupabaseOperationCallback<T> = (
-  db: SupabaseClient<CustomTypes>
+  db: ReturnType<typeof createClient>
 ) => Promise<T>;
 
 /**
