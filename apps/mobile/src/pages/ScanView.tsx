@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, FileText } from "lucide-react";
+// import { Check, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ScanLog from "@/components/inventory/ScanLog";
 import ScanReport from "@/components/inventory/ScanReport";
@@ -29,7 +29,7 @@ interface JobItem {
 
 // API config - will be different in dev vs production
 const API_BASE_URL =
-  process.env.NODE_ENV === "production"
+  import.meta.env.NODE_ENV === "production"
     ? "https://rathburn.app/api"
     : "http://localhost:3001/api";
 
@@ -309,7 +309,7 @@ const ScanView = () => {
                 onClick={handleComplete}
                 disabled={isSubmitting}
               >
-                <Check className="w-4 h-4 mr-2" />
+                <span className="w-4 h-4 mr-2">✓</span>
                 Complete
               </Button>
               <Button
@@ -317,7 +317,7 @@ const ScanView = () => {
                 onClick={simulateScan}
                 disabled={isSubmitting}
               >
-                <FileText className="w-4 h-4 mr-2" />
+                <span className="w-4 h-4 mr-2">📄</span>
                 Test Scan
               </Button>
             </div>
