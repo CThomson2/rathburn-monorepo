@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import ScanView from "./pages/ScanViewSimple";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Inventory from "./views/Inventory";
 import { ErrorBoundary } from "react-error-boundary";
 import { supabase } from "@/lib/supabase/client-auth";
 import { Session } from "@supabase/auth-js";
@@ -40,6 +41,7 @@ const ErrorFallback = ({ error }: { error: Error }) => {
 // Apply the withAuth HOC to protected components
 const ProtectedIndex = withAuth(Index);
 const ProtectedScanView = withAuth(ScanView);
+const ProtectedInventory = withAuth(Inventory);
 
 // Router component with console logs for debugging
 const RouterWithLogging = () => {
@@ -72,6 +74,7 @@ const RouterWithLogging = () => {
         <Route path="/sign-in" element={<Auth />} />
         <Route path="/" element={<ProtectedIndex />} />
         <Route path="/scan" element={<ProtectedScanView />} />
+        <Route path="/inventory" element={<ProtectedInventory />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </ErrorBoundary>

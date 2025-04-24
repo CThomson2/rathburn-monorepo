@@ -30,10 +30,12 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const isScanView = location.pathname === "/scan";
+  const isInventoryView = location.pathname === "/inventory";
 
   const navItems = [
     { id: "stats", label: "Stats" },
     { id: "team", label: "Team" },
+    { id: "inventory", label: "Inventory" },
     { id: "scan", label: "Scan" },
     { id: "achievements", label: "Achievements" },
     { id: "settings", label: "Settings" },
@@ -47,10 +49,18 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
       } else {
         navigate("/scan");
       }
+    } else if (itemId === "inventory") {
+      // Navigate to inventory page or back to home based on current location
+      if (isInventoryView) {
+        navigate("/");
+      } else {
+        navigate("/inventory");
+      }
+      setActiveTab(itemId);
     } else {
       setActiveTab(itemId);
       // Always go back to home for other tabs
-      if (isScanView) {
+      if (isScanView || isInventoryView) {
         navigate("/");
       }
     }
@@ -66,12 +76,14 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
             onClick={() => handleNavigation(item.id)}
             className={cn(
               "flex flex-col items-center justify-center p-2 rounded-full w-12 h-12 transition-all duration-200",
-              (item.id === activeTab && !isScanView) ||
-                (item.id === "scan" && isScanView)
+              (item.id === activeTab && !isScanView && !isInventoryView) ||
+                (item.id === "scan" && isScanView) ||
+                (item.id === "inventory" && isInventoryView)
                 ? "text-white"
                 : "text-gray-400",
               item.id === "scan" ? "transform -translate-y-3" : ""
             )}
+            aria-label={`Navigate to ${item.label}`}
           >
             <div
               className={cn(

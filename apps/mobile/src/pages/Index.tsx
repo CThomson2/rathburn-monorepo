@@ -1,6 +1,6 @@
 // App.tsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Scan,
   User,
@@ -196,7 +196,9 @@ interface ViewGoodsInwards {
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("stats");
+  const [scannerActive, setScannerActive] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
   );
@@ -209,6 +211,18 @@ const Index = () => {
     message: "",
     type: "info",
   });
+
+  // Check if we're in the inventory route
+  const isInventoryView = location.pathname === "/inventory";
+
+  // Update activeTab based on current route when component mounts
+  useEffect(() => {
+    if (location.pathname === "/scan") {
+      setActiveTab("scan");
+    } else if (location.pathname === "/inventory") {
+      setActiveTab("inventory");
+    }
+  }, [location.pathname]);
 
   // Production jobs data
   const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([
@@ -320,7 +334,9 @@ const Index = () => {
     },
   ]);
 
+  // Toggle scanner function
   const toggleScanner = () => {
+    setScannerActive(!scannerActive);
     navigate("/scan");
   };
 
@@ -432,383 +448,47 @@ const Index = () => {
     return location;
   };
 
+  // Handle tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+
+    // Navigate based on tab
+    if (tab === "inventory") {
+      navigate("/inventory");
+    } else if (tab === "scan") {
+      navigate("/scan");
+    } else if (isInventoryView || location.pathname === "/scan") {
+      // If we're on a specific view and switching to a different tab,
+      // go back to the home page
+      navigate("/");
+    }
+  };
+
   return (
-    <div className="h-screen w-full flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-blue-600 text-white py-4 px-6 shadow-md flex justify-between items-center">
-        <h1 className="text-xl font-bold">Production & Inventory</h1>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-white hover:text-blue-200"
-        >
-          Logout
-        </button>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Main content - renders different sections based on activeTab */}
+      <div className="flex-1 pb-24">
+        {/* Content varies based on active tab */}
+        {/* ... existing content ... */}
       </div>
 
-      {/* Toast notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        visible={toast.visible}
-        onClose={() => setToast({ ...toast, visible: false })}
+      {/* Bottom navigation */}
+      <BottomNavBar
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+        toggleScanner={toggleScanner}
+        scannerActive={scannerActive}
       />
 
-      {/* Main Content - Scrollable area */}
-      <div className="flex-1 overflow-auto pb-20">
-        {/* Production Jobs Section */}
-        <div className="flex justify-between items-center px-6 py-4">
-          <div className="flex items-center">
-            <Beaker size={18} className="text-blue-600 mr-2" />
-            <h2 className="text-lg font-bold text-gray-800">Production Jobs</h2>
-          </div>
-          <button className="text-blue-600 font-medium text-sm">
-            View All
-          </button>
-        </div>
-
-        {/* Production Jobs List */}
-        <div className="px-4 space-y-3">
-          {productionJobs.map((job) => (
-            <div
-              key={job.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
-              style={{ borderLeftWidth: "4px", borderLeftColor: job.color }}
-            >
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <h3 className="font-bold text-gray-800">{job.name}</h3>
-                    <p className="text-gray-500 text-sm">{job.manufacturer}</p>
-                  </div>
-                  <div className="bg-gray-100 px-3 py-1 rounded-full flex items-center space-x-1">
-                    <span className="text-gray-700 text-sm">
-                      {job.containerType} × {job.containers}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-3 relative">
-                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${job.progress}%`,
-                        backgroundColor: job.color,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Action Button Row */}
-                <div className="mt-3 flex justify-end">
-                  <button
-                    onClick={() => startJobScan("production", job.id)}
-                    className="flex items-center space-x-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition-colors"
-                  >
-                    <Play size={16} />
-                    <span>Start</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex justify-end px-4 py-2 border-t border-gray-100">
-                <button
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                  onClick={() => toggleExpandProduction(job.id)}
-                >
-                  {job.expanded ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
-                  )}
-                </button>
-              </div>
-
-              {/* Expanded Details */}
-              {job.expanded && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center">
-                      <Calendar size={16} className="text-gray-500 mr-2" />
-                      <div>
-                        <p className="text-xs text-gray-500">Created</p>
-                        <p className="text-sm">{job.dateCreated}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar size={16} className="text-gray-500 mr-2" />
-                      <div>
-                        <p className="text-xs text-gray-500">Scheduled</p>
-                        <p className="text-sm font-bold text-blue-700">
-                          {job.dateScheduled}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-center mb-2">
-                      <Users size={16} className="text-gray-500 mr-2" />
-                      <p className="text-xs text-gray-500">Assigned Workers</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {job.assignedWorkers.map((worker, index) => (
-                        <div
-                          key={index}
-                          className="bg-blue-50 text-blue-700 text-sm py-1 px-3 rounded-full"
-                        >
-                          {worker}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 mb-2">
-                      Still Assignment
-                    </p>
-                    <div className="bg-indigo-50 text-indigo-700 inline-block text-sm py-1 px-3 rounded-md font-medium">
-                      {job.still}
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-center mb-2">
-                      <MapPin size={16} className="text-gray-500 mr-2" />
-                      <p className="text-xs text-gray-500">Location</p>
-                    </div>
-                    <p className="text-sm">{renderLocation(job.location)}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-gray-500 mb-2">Drum IDs</p>
-                    {renderDrumChips(job.drumIds)}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Goods Inwards Section */}
-        <div className="flex justify-between items-center px-6 py-4 mt-4">
-          <div className="flex items-center">
-            <Package size={18} className="text-amber-600 mr-2" />
-            <h2 className="text-lg font-bold text-gray-800">Goods Inwards</h2>
-          </div>
-          <button className="text-blue-600 font-medium text-sm">
-            View All
-          </button>
-        </div>
-
-        {/* Goods Inwards Jobs List */}
-        <div className="px-4 space-y-3">
-          {goodsInwardsJobs.map((job) => (
-            <div
-              key={job.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
-              style={{ borderLeftWidth: "4px", borderLeftColor: job.color }}
-            >
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <h3 className="font-bold text-gray-800">{job.name}</h3>
-                    <p className="text-gray-500 text-sm">{job.supplier}</p>
-                  </div>
-                  <div className="bg-gray-100 px-3 py-1 rounded-full flex items-center space-x-1">
-                    <span className="text-gray-700 text-sm">
-                      {job.containerType} × {job.containers}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Status Chip */}
-                <div className="mt-2">
-                  <span
-                    className={`inline-block px-2 py-1 rounded-md text-xs ${
-                      job.status === "pending"
-                        ? "bg-amber-100 text-amber-800"
-                        : job.status === "inProgress"
-                          ? "bg-orange-100 text-orange-800"
-                          : job.status === "arriving"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {job.status === "pending" && "Awaiting Delivery"}
-                    {job.status === "inProgress" && "Partially Received"}
-                    {job.status === "arriving" && "Arriving Today"}
-                    {job.status === "completed" && "Fully Received"}
-                  </span>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-2 relative">
-                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${job.progress}%`,
-                        backgroundColor: job.color,
-                      }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>{job.receivedDrumIds.length} received</span>
-                    <span>{job.containers} total</span>
-                  </div>
-                </div>
-
-                {/* Action Button Row */}
-                <div className="mt-3 flex justify-end">
-                  <button
-                    onClick={() => startJobScan("goodsInwards", job.id)}
-                    className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-sm transition-colors"
-                    disabled={job.status === "completed"}
-                  >
-                    <Play size={16} />
-                    <span>Start</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex justify-end px-4 py-2 border-t border-gray-100">
-                <button
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                  onClick={() => toggleExpandGoodsInwards(job.id)}
-                >
-                  {job.expanded ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
-                  )}
-                </button>
-              </div>
-
-              {/* Expanded Details */}
-              {job.expanded && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center">
-                      <Calendar size={16} className="text-gray-500 mr-2" />
-                      <div>
-                        <p className="text-xs text-gray-500">Date Ordered</p>
-                        <p className="text-sm">{job.dateOrdered}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar size={16} className="text-gray-500 mr-2" />
-                      <div>
-                        <p className="text-xs text-gray-500">ETA</p>
-                        <p className="text-sm font-bold text-amber-700">
-                          {job.etaDate}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 mb-2">Purchase Order</p>
-                    <div className="bg-amber-50 text-amber-700 inline-block text-sm py-1 px-3 rounded-md font-medium">
-                      {job.purchaseOrderNumber}
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-center mb-2">
-                      <MapPin size={16} className="text-gray-500 mr-2" />
-                      <p className="text-xs text-gray-500">Delivery Location</p>
-                    </div>
-                    <p className="text-sm">{job.deliveryLocation}</p>
-                  </div>
-
-                  {job.receivedDrumIds.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-2">
-                        Received Drums
-                      </p>
-                      {renderDrumChips(job.receivedDrumIds)}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Quick Lookup */}
-        <div className="px-6 py-4 mt-4">
-          <h2 className="text-lg font-bold text-gray-800 mb-3">Quick Lookup</h2>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search raw materials..."
-              className="w-full bg-white border border-gray-300 rounded-lg py-3 px-4 pl-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg
-                className="w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-lg">
-        <div className="flex items-center justify-around relative">
-          <button
-            className={`flex flex-col items-center justify-center py-3 px-5 ${activeTab === "stats" ? "text-blue-600" : "text-gray-600"}`}
-            onClick={() => setActiveTab("stats")}
-          >
-            <BarChart size={24} />
-            <span className="text-xs mt-1">Stats</span>
-          </button>
-
-          <button
-            className={`flex flex-col items-center justify-center py-3 px-5 ${activeTab === "team" ? "text-blue-600" : "text-gray-600"}`}
-            onClick={() => setActiveTab("team")}
-          >
-            <User size={24} />
-            <span className="text-xs mt-1">Team</span>
-          </button>
-
-          {/* Centered Scan Button */}
-          <div className="relative">
-            <button
-              className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg"
-              onClick={toggleScanner}
-              aria-label="Scan"
-            >
-              <Scan size={28} />
-            </button>
-          </div>
-
-          <button className="flex flex-col items-center justify-center py-3 px-5 text-gray-600 invisible">
-            <span>Placeholder</span>
-          </button>
-
-          <button
-            className={`flex flex-col items-center justify-center py-3 px-5 ${activeTab === "settings" ? "text-blue-600" : "text-gray-600"}`}
-            onClick={() => setActiveTab("settings")}
-          >
-            <Settings size={24} />
-            <span className="text-xs mt-1">Settings</span>
-          </button>
-        </div>
-      </div>
+      {/* Toast notification for feedback */}
+      {toast.visible && (
+        <Toast
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, visible: false })}
+        />
+      )}
     </div>
   );
 };
