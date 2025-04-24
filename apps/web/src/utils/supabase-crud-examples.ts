@@ -4,7 +4,7 @@
  */
 
 import { createCRUD } from "./crud";
-import { Tables } from "@/types/models/supabase"";
+import { Tables } from "@/types/models/supabase";
 
 // Example 1: Basic CRUD operations on raw_materials table
 export async function rawMaterialsExample() {

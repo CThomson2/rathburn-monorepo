@@ -44,7 +44,7 @@ import {
   AvailableTable,
 } from "../constants/tables";
 import { useColumns } from "../hooks/use-columns";
-import { Database } from "@/types/models/supabase"";
+import { Database } from "@/types/models/supabase";
 import {
   Alert,
   AlertDescription,

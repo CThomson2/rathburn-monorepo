@@ -1,4 +1,4 @@
-import type { Database } from "@/types/models/supabase"";
+import type { Database } from "@/types/models/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FilterCondition, SortSpec } from "../types";
 import { availableTables } from "../constants/tables";
