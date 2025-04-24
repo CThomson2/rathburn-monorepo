@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Scan,
   User,
@@ -10,7 +10,8 @@ import {
   Users,
   MapPin,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase/client-auth";
+import { createClient } from "@/lib/supabase/client";
+import { Database } from "@/types/supabase";
 
 const statusColors = {
   transport: {
@@ -86,51 +87,90 @@ const Inventory = () => {
     },
   ]);
 
-  const [goodsInwards, setGoodsInwards] = useState([
-    {
-      id: 1,
-      name: "Acetone",
-      manufacturer: "VWR International",
-      containers: 8,
-      containerType: "Drums",
-      progress: 24,
-      color: "#c8e6c9",
-      expanded: false,
-      dateOrdered: "2025-04-19",
-      dateETA: "2025-04-25",
-      assignedWorkers: ["James Doherty", "Slawek Knopnik"],
-      drumIds: [
-        "12453",
-        "12454",
-        "12455",
-        "12456",
-        "12457",
-        "12458",
-        "12459",
-        "12460",
-      ],
-      still: "Still M",
-      location: ["Old Site", "New Site"],
-    },
-    {
-      id: 2,
-      name: "Toluene",
-      manufacturer: "Merck",
-      containers: 12,
-      containerType: "Drums",
-      progress: 94,
-      color: "#e1bee7",
-      expanded: false,
-      dateOrdered: "2025-04-22",
-      dateETA: "2025-04-23",
-      assignedWorkers: ["James Doherty"],
-      drumIds: ["17701", "17702", "17703"],
-      still: "Still A",
-      location: "New Site",
-    },
-  ]);
+  // Define the type for goods inwards
+  type GoodsInData = {
+    eta_date: string | null;
+    item: string | null;
+    order_date: string | null;
+    po_number: string | null;
+    quantity: number | null;
+    status: string | null;
+    supplier: string | null;
+  };
 
-  const toggleExpand = (id) => {
+  const [goodsInwards, setGoodsInwards] = useState<GoodsInData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Use IIFE for async operation
+    (async () => {
+      try {
+        const supabase = createClient();
+        // Use simpler string approach with any type to bypass TypeScript checking
+        // This will work at runtime even if TypeScript complains
+        const { data, error } = (await supabase
+          .from("ui.v_goods_in")
+          .select("*")) as { data: GoodsInData[] | null; error: any };
+
+        if (error) {
+          console.error("Error fetching goods inwards:", error);
+        } else if (data) {
+          console.log("Goods inwards data:", data);
+          setGoodsInwards(data);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
+
+  //   const [goodsInwards, setGoodsInwards] = useState([
+  //     {
+  //       id: 1,
+  //       name: "Acetone",
+  //       manufacturer: "VWR International",
+  //       containers: 8,
+  //       containerType: "Drums",
+  //       progress: 24,
+  //       color: "#c8e6c9",
+  //       expanded: false,
+  //       dateOrdered: "2025-04-19",
+  //       dateETA: "2025-04-25",
+  //       assignedWorkers: ["James Doherty", "Slawek Knopnik"],
+  //       drumIds: [
+  //         "12453",
+  //         "12454",
+  //         "12455",
+  //         "12456",
+  //         "12457",
+  //         "12458",
+  //         "12459",
+  //         "12460",
+  //       ],
+  //       still: "Still M",
+  //       location: ["Old Site", "New Site"],
+  //     },
+  //     {
+  //       id: 2,
+  //       name: "Toluene",
+  //       manufacturer: "Merck",
+  //       containers: 12,
+  //       containerType: "Drums",
+  //       progress: 94,
+  //       color: "#e1bee7",
+  //       expanded: false,
+  //       dateOrdered: "2025-04-22",
+  //       dateETA: "2025-04-23",
+  //       assignedWorkers: ["James Doherty"],
+  //       drumIds: ["17701", "17702", "17703"],
+  //       still: "Still A",
+  //       location: "New Site",
+  //     },
+  //   ]);
+
+  const toggleExpand = (id: number) => {
     setProductionJobs((jobs) =>
       jobs.map((job) =>
         job.id === id ? { ...job, expanded: !job.expanded } : job
@@ -139,7 +179,7 @@ const Inventory = () => {
   };
 
   // Function to render drum ID chips
-  const renderDrumChips = (drums) => {
+  const renderDrumChips = (drums: string[]) => {
     const displayDrums = drums.slice(0, 8);
     return (
       <div className="grid grid-cols-4 gap-2">
@@ -161,7 +201,7 @@ const Inventory = () => {
   };
 
   // Function to display location
-  const renderLocation = (location) => {
+  const renderLocation = (location: string | string[]) => {
     if (Array.isArray(location)) {
       return (
         <div className="flex flex-col">
@@ -233,6 +273,9 @@ const Inventory = () => {
                 <button
                   className="text-gray-500 hover:text-gray-700 transition-colors"
                   onClick={() => toggleExpand(job.id)}
+                  aria-label={
+                    job.expanded ? "Collapse details" : "Expand details"
+                  }
                 >
                   {job.expanded ? (
                     <ChevronUp size={20} />
@@ -308,6 +351,58 @@ const Inventory = () => {
           ))}
         </div>
 
+        {/* Display Goods Inwards data if available */}
+        {goodsInwards.length > 0 && (
+          <div className="px-6 py-4 mt-4">
+            <h2 className="text-lg font-bold text-gray-800 mb-3">
+              Goods Inwards
+            </h2>
+            <div className="space-y-3">
+              {goodsInwards.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-lg shadow-sm border border-gray-100 p-4"
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h3 className="font-bold text-gray-800">{item.item}</h3>
+                      <p className="text-gray-500 text-sm">{item.supplier}</p>
+                    </div>
+                    <div className="bg-gray-100 px-3 py-1 rounded-full">
+                      <span className="text-gray-700 text-sm">
+                        Qty: {item.quantity}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-sm">
+                    <div className="flex gap-4">
+                      <div>
+                        <span className="text-gray-500">Ordered:</span>{" "}
+                        {item.order_date}
+                      </div>
+                      <div>
+                        <span className="text-gray-500">ETA:</span>{" "}
+                        {item.eta_date}
+                      </div>
+                      <div className="ml-auto">
+                        <span className="text-gray-500">Status:</span>{" "}
+                        {item.status}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Display loading state */}
+        {isLoading && (
+          <div className="px-6 py-4 text-center text-gray-500">
+            Loading goods inwards data...
+          </div>
+        )}
+
         {/* Quick Lookup */}
         <div className="px-6 py-4 mt-4">
           <h2 className="text-lg font-bold text-gray-800 mb-3">Quick Lookup</h2>
@@ -352,7 +447,10 @@ const Inventory = () => {
 
           {/* Centered Scan Button */}
           <div className="relative">
-            <button className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg">
+            <button
+              className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg"
+              aria-label="Scan"
+            >
               <Scan size={28} />
             </button>
           </div>

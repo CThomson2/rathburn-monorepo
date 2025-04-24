@@ -171,6 +171,16 @@ interface GoodsInwardsJob {
   receivedDrumIds: string[];
 }
 
+interface ViewGoodsInwards {
+  order_date: string | null;
+  eta_date: string | null;
+  item: string | null;
+  po_number: string | null;
+  quantity: number | null;
+  status: string | null;
+  supplier: string | null;
+}
+
 /**
  * The Index component is the main entry point of the application, managing
  * the active tab state and rendering the appropriate view based on the selected tab.
