@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Scan, LucideIcon } from "lucide-react";
-import { BottomTabBar } from "./bottom-tab-bar";
+import { BottomTabBar } from "../navbar/bottom-tab-bar";
 import { FloatingActionButton } from "./floating-action-button";
 
 interface TabItem {

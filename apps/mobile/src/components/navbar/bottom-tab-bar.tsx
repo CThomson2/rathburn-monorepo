@@ -1,33 +1,32 @@
 import { LucideIcon } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface TabItem {
   name: string;
-  path: string;
   icon: LucideIcon;
 }
 
 interface BottomTabBarProps {
   tabs: TabItem[];
+  activeTab: string;
+  onTabChange: (tabName: string) => void;
   showFloatingButton?: boolean;
   className?: string;
 }
 
 /**
- * Modern bottom tab bar navigation component
+ * Modern bottom tab bar navigation component for view switching
  *
  * Provides a fixed bottom navigation with icons and labels
  * Can be configured to leave space for a floating action button
  */
 export function BottomTabBar({
   tabs,
+  activeTab,
+  onTabChange,
   showFloatingButton = false,
   className,
 }: BottomTabBarProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   return (
     <div
       className={cn(
@@ -42,7 +41,7 @@ export function BottomTabBar({
         )}
       >
         {tabs.map((tab, index) => {
-          const isActive = location.pathname === tab.path;
+          const isActive = activeTab === tab.name;
           const Icon = tab.icon;
 
           // If we need to make room for a floating button in the middle
@@ -52,8 +51,8 @@ export function BottomTabBar({
 
           return (
             <button
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
+              key={tab.name}
+              onClick={() => onTabChange(tab.name)}
               className={cn(
                 "flex flex-col items-center justify-center w-full h-full px-1",
                 isActive

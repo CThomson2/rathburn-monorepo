@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Scan, User, BarChart, Settings, Package } from "lucide-react";
+import {
+  Scan,
+  User,
+  BarChart,
+  Settings,
+  Package,
+  List,
+  Search,
+  ClipboardCheck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -12,27 +21,56 @@ interface NavItem {
 
 interface FloatingNavMenuProps {
   onNavigate?: (itemId: string) => void;
+  onMenuToggle?: (isOpen: boolean) => void;
 }
 
-const FloatingNavMenu = ({ onNavigate }: FloatingNavMenuProps) => {
+/**
+ * A floating navigation menu that can be toggled open and closed.
+ *
+ * @remarks
+ *
+ * The menu is rendered as a series of buttons that appear when the menu is toggled
+ * open. The menu can be closed by clicking outside of it or by clicking on one of
+ * the buttons. The buttons are rendered as a column of icons with labels that
+ * appear when the menu is open. The main toggle button is rendered as a large
+ * button with a rotating icon that changes depending on whether the menu is open
+ * or closed.
+ *
+ * If the `onNavigate` prop is provided, the menu will call the provided function
+ * with the `id` of the item that was clicked. If not, the menu will navigate to the
+ * `path` prop of the item if it exists, or to the root path if it doesn't.
+ *
+ * @param onNavigate - An optional function that will be called with the `id` of
+ * the item that was clicked.
+ * @param onMenuToggle - An optional function that will be called with the current
+ * open state when the menu is toggled.
+ */
+const FloatingNavMenu = ({
+  onNavigate,
+  onMenuToggle,
+}: FloatingNavMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   const navItems: NavItem[] = [
     { id: "stats", label: "Stats", icon: <BarChart size={20} /> },
-    { id: "team", label: "Team", icon: <User size={20} /> },
+    { id: "logs", label: "Logs", icon: <List size={20} /> },
     {
-      id: "inventory",
-      label: "Inventory",
-      icon: <Package size={20} />,
-      path: "/inventory",
+      id: "tasks",
+      label: "Tasks",
+      icon: <ClipboardCheck size={20} />,
+      path: "/",
     },
-    { id: "settings", label: "Settings", icon: <Settings size={20} /> },
+    { id: "search", label: "Search", icon: <Search size={20} /> },
   ];
 
   const toggleMenu = () => {
-    setIsOpen(!isOpen);
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    if (onMenuToggle) {
+      onMenuToggle(newIsOpen);
+    }
   };
 
   // const handleScan = () => {
@@ -46,6 +84,9 @@ const FloatingNavMenu = ({ onNavigate }: FloatingNavMenuProps) => {
 
   const handleNavigation = (item: NavItem) => {
     setIsOpen(false);
+    if (onMenuToggle) {
+      onMenuToggle(false);
+    }
     if (onNavigate) {
       onNavigate(item.id);
     } else if (item.path) {
@@ -61,7 +102,12 @@ const FloatingNavMenu = ({ onNavigate }: FloatingNavMenuProps) => {
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-60 z-70 transition-opacity duration-300"
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setIsOpen(false);
+            if (onMenuToggle) {
+              onMenuToggle(false);
+            }
+          }}
         />
       )}
 

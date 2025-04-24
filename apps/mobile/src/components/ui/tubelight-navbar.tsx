@@ -1,79 +1,93 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   name: string;
-  path: string;
   icon: LucideIcon;
 }
 
 interface NavBarProps {
   items: NavItem[];
+  activeView?: string;
+  onViewChange?: (viewName: string) => void;
   className?: string;
+  showLabels?: boolean;
 }
 
 /**
- * A responsive bottom tab bar for Tubelight.
+ * A responsive navigation bar for Tubelight.
+ * Can be used for view switching with animations.
  *
- * @param {{ items: NavItem[]; className?: string }} props
- * @param {NavItem[]} props.items
- * @param {string} [props.className]
+ * @param {{ items: NavItem[]; activeView?: string; onViewChange?: (viewName: string) => void; className?: string; showLabels?: boolean }} props
+ * @param {NavItem[]} props.items - Navigation items to display
+ * @param {string} [props.activeView] - Currently active view name
+ * @param {function} [props.onViewChange] - Callback when view is changed
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {boolean} [props.showLabels] - Whether to show text labels next to icons
  *
  * @returns {JSX.Element}
  *
  * @example
  * <NavBar
  *   items={[
- *     { name: "Home", path: "/", icon: HomeIcon },
- *     { name: "About", path: "/about", icon: InfoCircleIcon },
+ *     { name: "Transport", icon: ForkliftIcon },
+ *     { name: "Production", icon: AtomIcon },
  *   ]}
+ *   activeView="Transport"
+ *   onViewChange={(view) => setActiveView(view)}
  *   className="bg-background"
+ *   showLabels={false}
  * />
  */
-export function NavBar({ items, className }: NavBarProps) {
-  const [activeTab, setActiveTab] = useState(items[0].name);
-  const [isMobile, setIsMobile] = useState(false);
+export function NavBar({
+  items,
+  activeView,
+  onViewChange,
+  className,
+  showLabels = false,
+}: NavBarProps) {
+  const [activeTab, setActiveTab] = useState(activeView || items[0].name);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    if (activeView) {
+      setActiveTab(activeView);
+    }
+  }, [activeView]);
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const handleTabChange = (tabName: string) => {
+    setActiveTab(tabName);
+    if (onViewChange) {
+      onViewChange(tabName);
+    }
+  };
 
   return (
     <div
       className={cn(
-        "fixed bottom-0 sm:top-0 left-[50%] -translate-x-1/2 z-40 mb-6 sm:pt-6",
+        "fixed top-0 left-0 right-0 z-40 flex justify-center mb-10 mt-4",
         className
       )}
     >
-      <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
+      <div className="flex items-center gap-2 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg mx-auto">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.name;
 
           return (
-            <Link
+            <button
               key={item.name}
-              href={item.path}
-              onClick={() => setActiveTab(item.name)}
+              onClick={() => handleTabChange(item.name)}
               className={cn(
-                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
+                "relative cursor-pointer text-sm font-semibold px-4 py-1.5 rounded-full transition-colors",
                 "text-foreground/80 hover:text-primary dark:text-foreground/60 dark:hover:text-primary",
                 isActive && "bg-muted text-primary dark:bg-muted/20"
               )}
+              title={item.name}
             >
-              <span className="hidden md:inline">{item.name}</span>
-              <span className="md:hidden">
-                <Icon size={18} strokeWidth={2.5} />
-              </span>
+              {showLabels && <span className="mr-1.5">{item.name}</span>}
+              <Icon size={18} strokeWidth={2} />
               {isActive && (
                 <motion.div
                   layoutId="lamp"
@@ -92,7 +106,7 @@ export function NavBar({ items, className }: NavBarProps) {
                   </div>
                 </motion.div>
               )}
-            </Link>
+            </button>
           );
         })}
       </div>
