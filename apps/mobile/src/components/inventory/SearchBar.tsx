@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, X } from "lucide-react";
+// import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Material {
@@ -30,7 +30,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ materials, onSelect }) => {
     <div className="relative w-full mb-6">
       <div className="relative">
         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <Search size={16} className="text-gray-500" />
+          <span className="text-gray-500">🔍</span>
         </div>
         <input
           type="text"
@@ -40,7 +40,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ materials, onSelect }) => {
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
-            // Delay to allow click to register on dropdown items
             setTimeout(() => setIsFocused(false), 200);
           }}
         />
@@ -50,7 +49,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ materials, onSelect }) => {
             onClick={() => setSearchQuery("")}
             aria-label="Clear search"
           >
-            <X size={16} className="text-gray-500" />
+            <span className="text-gray-500">✕</span>
           </button>
         )}
       </div>

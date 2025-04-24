@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { LogIn, AlertCircle, ChevronLeft } from "lucide-react";
 import { loginWithPasscode } from "@/services/auth";
+import React from "react";
 
 /**
  * A login screen component that accepts a username and 4-digit passcode.
@@ -133,7 +134,7 @@ const LoginScreen = () => {
               className="mr-2 text-gray-500"
               title="Go back to login screen"
             >
-              <ChevronLeft size={24} />
+              {React.createElement(ChevronLeft, { size: 24 })}
             </button>
             <h2 className="text-xl font-bold text-gray-800">Reset Passcode</h2>
           </div>
@@ -187,7 +188,9 @@ const LoginScreen = () => {
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  {React.createElement(AlertCircle, {
+                    className: "h-5 w-5 text-red-500",
+                  })}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-red-700">{error}</p>
@@ -254,7 +257,7 @@ const LoginScreen = () => {
                 } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 disabled={isLocked || isLoading}
               >
-                <LogIn className="mr-2 h-5 w-5" />
+                {React.createElement(LogIn, { className: "mr-2 h-5 w-5" })}
                 {isLocked
                   ? `Locked (${lockTimer}s)`
                   : isLoading

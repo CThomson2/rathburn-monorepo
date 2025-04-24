@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+// import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type JobStatus =
@@ -99,7 +99,7 @@ const JobCard: React.FC<JobCardProps> = ({
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
               Drums × {quantity}
             </span>
-            {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            <span className="text-xs mt-1">{expanded ? "▲" : "▼"}</span>
           </div>
         </div>
 

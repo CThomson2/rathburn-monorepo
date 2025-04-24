@@ -1,5 +1,5 @@
 import React from "react";
-import { Book, Users, Camera, Trophy, Settings } from "lucide-react";
+// import { Book, Users, Camera, Trophy, Settings } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +32,11 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
   const isScanView = location.pathname === "/scan";
 
   const navItems = [
-    { id: "stats", icon: Book, label: "Stats" },
-    { id: "team", icon: Users, label: "Team" },
-    { id: "scan", icon: Camera, label: "Scan" },
-    { id: "achievements", icon: Trophy, label: "Achievements" },
-    { id: "settings", icon: Settings, label: "Settings" },
+    { id: "stats", label: "Stats" },
+    { id: "team", label: "Team" },
+    { id: "scan", label: "Scan" },
+    { id: "achievements", label: "Achievements" },
+    { id: "settings", label: "Settings" },
   ];
 
   const handleNavigation = (itemId: string) => {
@@ -79,10 +79,10 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
                 item.id === "scan" ? "bg-white p-3" : ""
               )}
             >
-              <item.icon
-                size={item.id === "scan" ? 22 : 20}
-                className={item.id === "scan" ? "text-navBar" : ""}
-              />
+              {/* Temporarily replace icon with text for debugging */}
+              <span className={item.id === "scan" ? "text-navBar" : ""}>
+                {item.label[0]}
+              </span>
             </div>
             {item.id !== "scan" && (
               <span className="text-xs mt-1">{item.label}</span>

@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, FileText, Download, Save } from "lucide-react";
+// import { Check, FileText, Download, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import "../styles/ScanView.css";
 
 // API config - will be different in dev vs production
 const API_BASE_URL = (() => {
@@ -37,6 +39,13 @@ const ScanViewSimple = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [currentUPC, setCurrentUPC] = useState<string>("");
+  const [scannedItems, setScannedItems] = useState([]);
+  const [scanInput, setScanInput] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Generate or retrieve device ID on component mount
   useEffect(() => {
@@ -57,21 +66,24 @@ const ScanViewSimple = () => {
   }, []);
 
   const toggleScanner = () => {
-    if (!isActive) {
-      setIsActive(true);
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
+    if (isActive) {
+      setIsActive(false);
     } else {
-      // Already active, do nothing
+      setIsActive(true);
+      setShowReport(false);
+      setError(null);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.value) {
-      const barcode = e.target.value;
-      processScan(barcode);
-      e.target.value = ""; // Clear input for next scan
+    setScanInput(e.target.value);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (scanInput.trim() !== "") {
+      processScan(scanInput);
+      setScanInput("");
     }
   };
 
@@ -203,6 +215,25 @@ const ScanViewSimple = () => {
     }
   };
 
+  // Mock function to simulate barcode scanning
+  // In a real app, this would be connected to a barcode scanner API
+  useEffect(() => {
+    if (!isActive) return;
+
+    // Simulate random scans for testing
+    const interval = setInterval(() => {
+      if (isActive && !isProcessing && Math.random() > 0.7) {
+        // Generate a random 12-digit barcode
+        const randomBarcode = Math.floor(
+          100000000000 + Math.random() * 900000000000
+        ).toString();
+        processScan(randomBarcode);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isActive, isProcessing]);
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
       {/* Header */}
@@ -240,7 +271,7 @@ const ScanViewSimple = () => {
             disabled={isExporting || localScanCount === 0}
             className="text-xs flex items-center"
           >
-            <Download className="w-3 h-3 mr-1" />
+            <span className="w-3 h-3 mr-1">⬇️</span>
             Export CSV
           </Button>
 
@@ -251,7 +282,7 @@ const ScanViewSimple = () => {
             disabled={isExporting || localScanCount === 0}
             className="text-xs flex items-center"
           >
-            <Save className="w-3 h-3 mr-1" />
+            <span className="w-3 h-3 mr-1">💾</span>
             Save to Server
           </Button>
         </div>
@@ -274,7 +305,7 @@ const ScanViewSimple = () => {
                 onClick={handleComplete}
                 disabled={isSubmitting}
               >
-                <Check className="w-4 h-4 mr-2" />
+                <span className="w-4 h-4 mr-2">✓</span>
                 Complete
               </Button>
               <Button
@@ -282,7 +313,7 @@ const ScanViewSimple = () => {
                 onClick={simulateScan}
                 disabled={isSubmitting}
               >
-                <FileText className="w-4 h-4 mr-2" />
+                <span className="w-4 h-4 mr-2">📄</span>
                 Test Scan
               </Button>
             </div>
@@ -334,7 +365,7 @@ const ScanViewSimple = () => {
                   onClick={exportScansCSV}
                   disabled={isExporting || localScanCount === 0}
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <span className="w-4 h-4 mr-2">⬇️</span>
                   Export CSV
                 </Button>
 
@@ -344,7 +375,7 @@ const ScanViewSimple = () => {
                   onClick={saveScansLocally}
                   disabled={isExporting || localScanCount === 0}
                 >
-                  <Save className="w-4 h-4 mr-2" />
+                  <span className="w-4 h-4 mr-2">💾</span>
                   Save to Server
                 </Button>
               </div>
