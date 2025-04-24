@@ -68,8 +68,8 @@ export function useAuth() {
       options: {
         redirectTo:
           import.meta.env.NODE_ENV === "production"
-            ? "https://rathburn.app/auth/callback"
-            : "http://localhost:3000/auth/callback",
+            ? "https://mobile.rathburn.app/auth/callback"
+            : "http://localhost:8080/",
         scopes: "offline_access email",
       },
     });

@@ -1,3 +1,4 @@
+import React from "react";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +57,9 @@ const AlertsWidget = ({ alerts }: AlertsWidgetProps) => {
       {/* Widget Header */}
       <div className="p-4 flex justify-between items-center">
         <div className="flex items-center">
-          <AlertTriangle className="text-yellow-500 h-5 w-5 mr-2" />
+          {React.createElement(AlertTriangle, {
+            className: "text-yellow-500 h-5 w-5 mr-2",
+          })}
           <h3 className="font-medium text-gray-900">Alerts & Exceptions</h3>
         </div>
         <span className="text-sm text-gray-500">

@@ -9,6 +9,7 @@ import MaterialDetail from "@/components/inventory/MaterialDetail";
 import Toast from "@/components/ui/toast-notification";
 // database
 import { supabase } from "@/lib/supabase/client-auth";
+import { logout } from "@/services/auth";
 
 // Sample data
 const sampleJobs = [
@@ -148,6 +149,20 @@ const Index = () => {
     navigate("/scan");
   };
 
+  const handleLogout = async () => {
+    try {
+      const result = await logout();
+      if (result.success) {
+        navigate("/sign-in");
+      } else {
+        showToast(result.message || "Failed to logout", "error");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      showToast("An error occurred during logout", "error");
+    }
+  };
+
   const handleBarcodeScan = (barcode: string) => {
     console.log("Barcode scanned:", barcode);
     // Process the barcode data here
@@ -174,8 +189,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-lightBg pb-20">
       {/* Header */}
-      <header className="bg-white shadow-sm p-4">
+      <header className="bg-white shadow-sm p-4 flex justify-between items-center">
         <h1 className="text-lg font-bold">Production & Inventory</h1>
+        <button
+          onClick={handleLogout}
+          className="text-sm text-gray-600 hover:text-blue-600"
+        >
+          Logout
+        </button>
       </header>
 
       {/* Toast notification */}
