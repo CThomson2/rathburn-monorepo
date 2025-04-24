@@ -69,27 +69,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const pathname = usePathname();
 
   const navItems: NavItem[] = [
-    { name: "Dashboard", icon: Home, href: "/", level: 1 },
+    { name: "Production", icon: Home, href: "/", level: 1 },
     { name: "Orders", icon: Clipboard, href: "/orders", level: 2 },
     {
       name: "Inventory",
       icon: Package,
       href: "/inventory",
       level: 2,
-    },
-    { name: "Drums", icon: Database, href: "/drums", level: 3 },
-    {
-      name: "Reprocessing",
-      icon: DatabaseBackup,
-      href: "/reprocessing",
-      level: 3,
-    },
-    { name: "Overview", icon: BarChart, href: "/overview", level: 3 },
-    {
-      name: "Data Explorer",
-      icon: DatabaseZap,
-      href: "/data-explorer",
-      level: 3,
     },
     {
       name: "Documentation",

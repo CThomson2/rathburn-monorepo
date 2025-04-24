@@ -1,5 +1,7 @@
-"use client";
+
 import { useState, useEffect } from "react";
+// import { Header } from "@/components/layout/header";
+// import { Sidebar } from "@/components/layout/sidebar";
 import { Order } from "@/features/production/types";
 import { AnimatedOrderCard } from "@/features/production";
 import { OrdersToolbar } from "@/features/production";
@@ -217,8 +219,9 @@ const OrdersPage = () => {
   };
   
   const { activeIndex, registerRef } = useKeyboardNavigation(orders, handleOrderSelect);
+
   return (
-    <div className={`p-4 md:p-6 min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
       
       <div className="flex-1 flex flex-col">
         
