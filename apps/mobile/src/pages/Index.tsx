@@ -11,6 +11,9 @@ import {
   Calendar,
   Users,
   MapPin,
+  Play,
+  Package,
+  Beaker,
 } from "lucide-react";
 import BottomNavBar from "@/components/layout/BottomNavBar";
 import JobCard, { JobStatus } from "@/components/inventory/JobCard";
@@ -20,6 +23,26 @@ import Toast from "@/components/ui/toast-notification";
 // database
 import { supabase } from "@/lib/supabase/client-auth";
 import { logout } from "@/services/auth";
+
+// Status colors for different job types
+const statusColors = {
+  transport: {
+    pending: "#03045e",
+    inProgress: "#0077B6",
+  },
+  production: {
+    pending: "#82E3FC",
+    inProgress: "#00b4d8",
+  },
+  goodsInwards: {
+    pending: "#ffd166",
+    inProgress: "#ef8354",
+    arriving: "#06d6a0",
+  },
+  shared: {
+    completed: "#358600",
+  },
+};
 
 // Sample data
 const sampleJobs = [
@@ -130,6 +153,24 @@ interface ProductionJob {
   location: string | string[];
 }
 
+// Interface for goods inwards job data
+interface GoodsInwardsJob {
+  id: number;
+  name: string;
+  supplier: string;
+  containers: number;
+  containerType: string;
+  progress: number;
+  color: string;
+  expanded: boolean;
+  dateOrdered: string;
+  etaDate: string;
+  status: "pending" | "inProgress" | "arriving" | "completed";
+  purchaseOrderNumber: string;
+  deliveryLocation: string;
+  receivedDrumIds: string[];
+}
+
 /**
  * The Index component is the main entry point of the application, managing
  * the active tab state and rendering the appropriate view based on the selected tab.
@@ -149,20 +190,6 @@ const Index = () => {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
   );
-  /*************  ✨ Windsurf Command ⭐  *************/
-  /**
-   * The Index component is the main entry point of the application, managing
-   * the active tab state and rendering the appropriate view based on the selected tab.
-   *
-   * - It provides a barcode scanning functionality through the BarcodeScannerInput component,
-   *   where the scanned barcode is processed by the handleBarcodeScan function.
-   * - The component includes a tab navigation system allowing the user to switch
-   *   between different views: Scan, History, and Inventory.
-   *
-   * Note: The HistoryView and InventoryView components are currently commented out,
-   * indicating they may be under development or not needed for the current release.
-   */
-  /*******  9c2a0ff3-c1f5-410e-be42-7f97cbbc7146  *******/
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
@@ -173,7 +200,7 @@ const Index = () => {
     type: "info",
   });
 
-  // Production jobs data from Inventory.tsx
+  // Production jobs data
   const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([
     {
       id: 1,
@@ -182,7 +209,7 @@ const Index = () => {
       containers: 5,
       containerType: "Drums",
       progress: 40,
-      color: "#bbdefb",
+      color: statusColors.production.inProgress,
       expanded: false,
       dateCreated: "2025-04-21",
       dateScheduled: "2025-04-24",
@@ -198,7 +225,7 @@ const Index = () => {
       containers: 12,
       containerType: "Drums",
       progress: 75,
-      color: "#ffecb3",
+      color: statusColors.production.inProgress,
       expanded: false,
       dateCreated: "2025-04-20",
       dateScheduled: "2025-04-23",
@@ -220,46 +247,66 @@ const Index = () => {
       still: "Still G",
       location: "New Site",
     },
+  ]);
+
+  // Goods inwards jobs data
+  const [goodsInwardsJobs, setGoodsInwardsJobs] = useState<GoodsInwardsJob[]>([
     {
-      id: 3,
+      id: 101,
       name: "Acetone",
-      manufacturer: "VWR International",
-      containers: 8,
+      supplier: "VWR International",
+      containers: 24,
       containerType: "Drums",
       progress: 12,
-      color: "#c8e6c9",
+      color: statusColors.goodsInwards.inProgress,
       expanded: false,
-      dateCreated: "2025-04-19",
-      dateScheduled: "2025-04-25",
-      assignedWorkers: ["Robert Taylor", "Emma Wilson"],
-      drumIds: [
-        "12453",
-        "12454",
-        "12455",
-        "12456",
-        "12457",
-        "12458",
-        "12459",
-        "12460",
-      ],
-      still: "Still M",
-      location: ["Old Site", "New Site"],
+      dateOrdered: "2025-04-19",
+      etaDate: "2025-04-25",
+      status: "inProgress",
+      purchaseOrderNumber: "PO-2025-0423",
+      deliveryLocation: "New Site",
+      receivedDrumIds: ["12453", "12454", "12455"],
     },
     {
-      id: 4,
+      id: 102,
       name: "Toluene",
-      manufacturer: "Merck",
-      containers: 3,
+      supplier: "Merck",
+      containers: 18,
       containerType: "Drums",
-      progress: 94,
-      color: "#e1bee7",
+      progress: 0,
+      color: statusColors.goodsInwards.pending,
       expanded: false,
-      dateCreated: "2025-04-22",
-      dateScheduled: "2025-04-23",
-      assignedWorkers: ["James Wilson"],
-      drumIds: ["17701", "17702", "17703"],
-      still: "Still A",
-      location: "New Site",
+      dateOrdered: "2025-04-22",
+      etaDate: "2025-05-03",
+      status: "pending",
+      purchaseOrderNumber: "PO-2025-0427",
+      deliveryLocation: "Old Site",
+      receivedDrumIds: [],
+    },
+    {
+      id: 103,
+      name: "Hexane",
+      supplier: "Alfa Aesar",
+      containers: 8,
+      containerType: "Drums",
+      progress: 100,
+      color: statusColors.shared.completed,
+      expanded: false,
+      dateOrdered: "2025-04-10",
+      etaDate: "2025-04-18",
+      status: "completed",
+      purchaseOrderNumber: "PO-2025-0412",
+      deliveryLocation: "New Site",
+      receivedDrumIds: [
+        "17701",
+        "17702",
+        "17703",
+        "17704",
+        "17705",
+        "17706",
+        "17707",
+        "17708",
+      ],
     },
   ]);
 
@@ -304,8 +351,22 @@ const Index = () => {
     setSelectedMaterial(material);
   };
 
-  // Toggle expand function from Inventory.tsx
-  const toggleExpand = (id: number) => {
+  // Start scanning for a job
+  const startJobScan = (
+    jobType: "production" | "goodsInwards",
+    jobId: number
+  ) => {
+    // Here you could store the job information in localStorage or state
+    // before navigating to the scan view
+    localStorage.setItem("currentScanJobType", jobType);
+    localStorage.setItem("currentScanJobId", jobId.toString());
+
+    // Navigate to scan view
+    navigate("/scan");
+  };
+
+  // Toggle expand function for production jobs
+  const toggleExpandProduction = (id: number) => {
     setProductionJobs((jobs) =>
       jobs.map((job) =>
         job.id === id ? { ...job, expanded: !job.expanded } : job
@@ -313,7 +374,16 @@ const Index = () => {
     );
   };
 
-  // Function to render drum ID chips from Inventory.tsx
+  // Toggle expand function for goods inwards jobs
+  const toggleExpandGoodsInwards = (id: number) => {
+    setGoodsInwardsJobs((jobs) =>
+      jobs.map((job) =>
+        job.id === id ? { ...job, expanded: !job.expanded } : job
+      )
+    );
+  };
+
+  // Function to render drum ID chips
   const renderDrumChips = (drums: string[]) => {
     const displayDrums = drums.slice(0, 8);
     return (
@@ -335,7 +405,7 @@ const Index = () => {
     );
   };
 
-  // Function to display location from Inventory.tsx
+  // Function to display location
   const renderLocation = (location: string | string[]) => {
     if (Array.isArray(location)) {
       return (
@@ -373,14 +443,17 @@ const Index = () => {
         onClose={() => setToast({ ...toast, visible: false })}
       />
 
-      {/* Main Content - From Inventory.tsx */}
+      {/* Main Content - Scrollable area */}
       <div className="flex-1 overflow-auto pb-20">
-        {/* Section Header */}
+        {/* Production Jobs Section */}
         <div className="flex justify-between items-center px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-800">
-            Goods in Transport
-          </h2>
-          <button className="text-blue-600 font-medium">View All</button>
+          <div className="flex items-center">
+            <Beaker size={18} className="text-blue-600 mr-2" />
+            <h2 className="text-lg font-bold text-gray-800">Production Jobs</h2>
+          </div>
+          <button className="text-blue-600 font-medium text-sm">
+            View All
+          </button>
         </div>
 
         {/* Production Jobs List */}
@@ -416,12 +489,23 @@ const Index = () => {
                     />
                   </div>
                 </div>
+
+                {/* Action Button Row */}
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={() => startJobScan("production", job.id)}
+                    className="flex items-center space-x-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition-colors"
+                  >
+                    <Play size={16} />
+                    <span>Start</span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end px-4 py-2 border-t border-gray-100">
                 <button
                   className="text-gray-500 hover:text-gray-700 transition-colors"
-                  onClick={() => toggleExpand(job.id)}
+                  onClick={() => toggleExpandProduction(job.id)}
                 >
                   {job.expanded ? (
                     <ChevronUp size={20} />
@@ -497,6 +581,152 @@ const Index = () => {
           ))}
         </div>
 
+        {/* Goods Inwards Section */}
+        <div className="flex justify-between items-center px-6 py-4 mt-4">
+          <div className="flex items-center">
+            <Package size={18} className="text-amber-600 mr-2" />
+            <h2 className="text-lg font-bold text-gray-800">Goods Inwards</h2>
+          </div>
+          <button className="text-blue-600 font-medium text-sm">
+            View All
+          </button>
+        </div>
+
+        {/* Goods Inwards Jobs List */}
+        <div className="px-4 space-y-3">
+          {goodsInwardsJobs.map((job) => (
+            <div
+              key={job.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
+              style={{ borderLeftWidth: "4px", borderLeftColor: job.color }}
+            >
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-1">
+                  <div>
+                    <h3 className="font-bold text-gray-800">{job.name}</h3>
+                    <p className="text-gray-500 text-sm">{job.supplier}</p>
+                  </div>
+                  <div className="bg-gray-100 px-3 py-1 rounded-full flex items-center space-x-1">
+                    <span className="text-gray-700 text-sm">
+                      {job.containerType} × {job.containers}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status Chip */}
+                <div className="mt-2">
+                  <span
+                    className={`inline-block px-2 py-1 rounded-md text-xs ${
+                      job.status === "pending"
+                        ? "bg-amber-100 text-amber-800"
+                        : job.status === "inProgress"
+                          ? "bg-orange-100 text-orange-800"
+                          : job.status === "arriving"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {job.status === "pending" && "Awaiting Delivery"}
+                    {job.status === "inProgress" && "Partially Received"}
+                    {job.status === "arriving" && "Arriving Today"}
+                    {job.status === "completed" && "Fully Received"}
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mt-2 relative">
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${job.progress}%`,
+                        backgroundColor: job.color,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>{job.receivedDrumIds.length} received</span>
+                    <span>{job.containers} total</span>
+                  </div>
+                </div>
+
+                {/* Action Button Row */}
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={() => startJobScan("goodsInwards", job.id)}
+                    className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-sm transition-colors"
+                    disabled={job.status === "completed"}
+                  >
+                    <Play size={16} />
+                    <span>Start</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end px-4 py-2 border-t border-gray-100">
+                <button
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  onClick={() => toggleExpandGoodsInwards(job.id)}
+                >
+                  {job.expanded ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </button>
+              </div>
+
+              {/* Expanded Details */}
+              {job.expanded && (
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center">
+                      <Calendar size={16} className="text-gray-500 mr-2" />
+                      <div>
+                        <p className="text-xs text-gray-500">Date Ordered</p>
+                        <p className="text-sm">{job.dateOrdered}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar size={16} className="text-gray-500 mr-2" />
+                      <div>
+                        <p className="text-xs text-gray-500">ETA</p>
+                        <p className="text-sm font-bold text-amber-700">
+                          {job.etaDate}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">Purchase Order</p>
+                    <div className="bg-amber-50 text-amber-700 inline-block text-sm py-1 px-3 rounded-md font-medium">
+                      {job.purchaseOrderNumber}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-center mb-2">
+                      <MapPin size={16} className="text-gray-500 mr-2" />
+                      <p className="text-xs text-gray-500">Delivery Location</p>
+                    </div>
+                    <p className="text-sm">{job.deliveryLocation}</p>
+                  </div>
+
+                  {job.receivedDrumIds.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Received Drums
+                      </p>
+                      {renderDrumChips(job.receivedDrumIds)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
         {/* Quick Lookup */}
         <div className="px-6 py-4 mt-4">
           <h2 className="text-lg font-bold text-gray-800 mb-3">Quick Lookup</h2>
@@ -526,7 +756,7 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Bottom Navigation - From Inventory.tsx */}
+      {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-lg">
         <div className="flex items-center justify-around relative">
           <button

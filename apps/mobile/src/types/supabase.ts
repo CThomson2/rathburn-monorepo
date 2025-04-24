@@ -1932,7 +1932,14 @@ export type Database = {
         | "failed"
         | "cancelled"
       op_status: "pending" | "active" | "completed" | "error"
-      op_type: "distillation" | "decanting" | "qc" | "split" | "packaging"
+      op_type:
+        | "distillation"
+        | "decanting"
+        | "qc"
+        | "split"
+        | "packaging"
+        | "goods_in"
+        | "transport"
       qc_grade:
         | "HPLC"
         | "LCMS"
@@ -2166,7 +2173,15 @@ export const Constants = {
         "cancelled",
       ],
       op_status: ["pending", "active", "completed", "error"],
-      op_type: ["distillation", "decanting", "qc", "split", "packaging"],
+      op_type: [
+        "distillation",
+        "decanting",
+        "qc",
+        "split",
+        "packaging",
+        "goods_in",
+        "transport",
+      ],
       qc_grade: [
         "HPLC",
         "LCMS",

@@ -12,6 +12,20 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client-auth";
 
+const statusColors = {
+  transport: {
+    pending: "#03045e",
+    inProgress: "##0077B6",
+  },
+  production: {
+    pending: "##82E3FC",
+    inProgress: "#00b4d8",
+  },
+  shared: {
+    completed: "#358600",
+  },
+};
+
 /**
  * Inventory component that displays a list of production jobs with
  * expandable details. Each job includes information such as name,
@@ -27,32 +41,32 @@ const Inventory = () => {
   const [productionJobs, setProductionJobs] = useState([
     {
       id: 1,
-      name: "Ethyl Acetate",
-      manufacturer: "Sigma Aldrich",
-      containers: 5,
+      name: "Pentane",
+      manufacturer: "Caldic",
+      containers: 2,
       containerType: "Drums",
-      progress: 40,
-      color: "#bbdefb",
+      progress: 0,
+      color: statusColors.transport.pending,
       expanded: false,
-      dateCreated: "2025-04-21",
+      dateCreated: "2025-03-31",
       dateScheduled: "2025-04-24",
-      assignedWorkers: ["Michael Chen", "Sarah Johnson"],
-      drumIds: ["15001", "15002", "15003", "15004", "15005"],
+      assignedWorkers: ["James Doherty"],
+      drumIds: ["17583", "17584", "17585", "17586", "17587"],
       still: "Still B",
       location: "Old Site",
     },
     {
       id: 2,
-      name: "Methanol USP",
-      manufacturer: "Fisher Scientific",
-      containers: 12,
+      name: "Acetic Acid",
+      manufacturer: "Univar",
+      containers: 1,
       containerType: "Drums",
-      progress: 75,
-      color: "#ffecb3",
+      progress: 0,
+      color: statusColors.transport.pending,
       expanded: false,
       dateCreated: "2025-04-20",
       dateScheduled: "2025-04-23",
-      assignedWorkers: ["David Miller", "Amanda Lopez"],
+      assignedWorkers: ["Alistair Nottman"],
       drumIds: [
         "16120",
         "16121",
@@ -70,18 +84,21 @@ const Inventory = () => {
       still: "Still G",
       location: "New Site",
     },
+  ]);
+
+  const [goodsInwards, setGoodsInwards] = useState([
     {
-      id: 3,
+      id: 1,
       name: "Acetone",
       manufacturer: "VWR International",
       containers: 8,
       containerType: "Drums",
-      progress: 12,
+      progress: 24,
       color: "#c8e6c9",
       expanded: false,
-      dateCreated: "2025-04-19",
-      dateScheduled: "2025-04-25",
-      assignedWorkers: ["Robert Taylor", "Emma Wilson"],
+      dateOrdered: "2025-04-19",
+      dateETA: "2025-04-25",
+      assignedWorkers: ["James Doherty", "Slawek Knopnik"],
       drumIds: [
         "12453",
         "12454",
@@ -96,17 +113,17 @@ const Inventory = () => {
       location: ["Old Site", "New Site"],
     },
     {
-      id: 4,
+      id: 2,
       name: "Toluene",
       manufacturer: "Merck",
-      containers: 3,
+      containers: 12,
       containerType: "Drums",
       progress: 94,
       color: "#e1bee7",
       expanded: false,
-      dateCreated: "2025-04-22",
-      dateScheduled: "2025-04-23",
-      assignedWorkers: ["James Wilson"],
+      dateOrdered: "2025-04-22",
+      dateETA: "2025-04-23",
+      assignedWorkers: ["James Doherty"],
       drumIds: ["17701", "17702", "17703"],
       still: "Still A",
       location: "New Site",
