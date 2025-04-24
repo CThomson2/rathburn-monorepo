@@ -1,50 +1,18 @@
-import { createBrowserClient } from "@supabase/ssr";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "@/types/models/supabase";
+"use client";
 
-/**
- * Creates and returns a Supabase client for browser usage
- */
-export const createClient = () => {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-};
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { Database } from "@/types/models/supabase";
 
-export const createNewClient = () => {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
-  );
-};
+export function createClient() {
+  return createClientComponentClient<Database>();
+}
 
-/**
- * Type definition for a Supabase operation callback function
- */
-export type SupabaseOperationCallback<T> = (
-  db: SupabaseClient<Database>
-) => Promise<T>;
-
-/**
- * Executes a Supabase operation with proper connection handling.
- * This provides a consistent pattern for Supabase client usage.
- *
- * @example
- * const result = await withSupabaseClient(async (supabase) => {
- *   return await supabase.from("drums").select("*");
- * });
- */
-export const withSupabaseClient = async <T>(
-  operation: SupabaseOperationCallback<T>,
-  useNewClient: boolean = false
-): Promise<T> => {
-  const db = useNewClient ? createNewClient() : createClient();
-  try {
-    // Execute the provided operation with the SupabaseClient instance
-    return await operation(db);
-  } catch (error) {
-    console.error("Supabase operation failed:", error);
-    throw error;
-  }
-};
+export async function withSupabaseClient<T>(
+  callback: (supabase: ReturnType<typeof createClient>) => Promise<T>,
+  useNewClient = false
+): Promise<T> {
+  // This is just a placeholder for future implementation
+  // In a real implementation, this would manage client creation and disposal
+  const supabase = createClient();
+  return callback(supabase);
+}

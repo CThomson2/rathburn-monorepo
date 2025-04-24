@@ -2007,6 +2007,50 @@ export type Database = {
       [_ in never]: never
     }
   }
+  ui: {
+    Tables: {}
+    Views: {
+      v_batches: {
+        Row: {
+          batch_id: string
+          batch_type: string
+          item_name: string
+          material_name: string
+          chemical_group: string
+          supplier_name: string | null
+          total_volume: number
+          created_at: string
+          updated_at: string
+          po_number: string | null
+          input_recorded_at: string | null
+          batch_code: string | null
+        }
+        Relationships: []
+      }
+      v_batches_with_drums: {
+        Row: {
+          batch_id: string
+          batch_type: string
+          item_name: string
+          material_name: string
+          chemical_group: string
+          supplier_name: string | null
+          total_volume: number
+          created_at: string
+          updated_at: string
+          po_number: string | null
+          input_recorded_at: string | null
+          batch_code: string | null
+          drum_count: number
+          drums_in_stock: number
+        }
+        Relationships: []
+      }
+    }
+    Functions: {}
+    Enums: {}
+    CompositeTypes: {}
+  }
 }
 
 type DefaultSchema = Database[Extract<keyof Database, "public">]
@@ -2178,6 +2222,9 @@ export const Constants = {
     },
   },
   public: {
+    Enums: {},
+  },
+  ui: {
     Enums: {},
   },
 } as const
