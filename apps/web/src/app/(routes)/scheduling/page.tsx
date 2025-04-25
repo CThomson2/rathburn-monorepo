@@ -1,66 +1,16 @@
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
 import { AssignmentForm, PendingAssignments } from "./components";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  getAvailableDrums,
+  getUpcomingDistillations,
+  getPendingAssignments,
+} from "./actions";
 
 export const metadata: Metadata = {
   title: "Drum Assignment | Rathburn Online",
   description: "Assign drums to distillation processes",
 };
-
-async function getAvailableDrums() {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("drums")
-    .select("*")
-    .eq("status", "in_stock")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching available drums:", error);
-    return [];
-  }
-
-  return data || [];
-}
-
-async function getUpcomingDistillations() {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("distillation_schedule")
-    .select("*")
-    .eq("status", "scheduled")
-    .order("distillation_date", { ascending: true });
-
-  if (error) {
-    console.error("Error fetching distillation schedule:", error);
-    return [];
-  }
-
-  return data || [];
-}
-
-async function getPendingAssignments() {
-  const supabase = createClient();
-  const { data, error, count } = await supabase
-    .from("distillation_pending_assignment")
-    .select(
-      `
-      *,
-      drum:drums(*)
-    `,
-      { count: "exact" }
-    )
-    .order("created_at", { ascending: false })
-    .limit(10);
-
-  if (error) {
-    console.error("Error fetching pending assignments:", error);
-    return { assignments: [], total: 0 };
-  }
-
-  return { assignments: data || [], total: count || 0 };
-}
 
 export default async function DrumAssignmentPage() {
   const availableDrums = await getAvailableDrums();

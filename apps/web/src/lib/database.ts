@@ -8,6 +8,7 @@
 import { withSupabaseClient } from "./supabase/client";
 import { Database, Tables } from "@/types/models/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { createNewClient } from "./supabase/server";
 import {
   TableType,
   TableInsertType,
@@ -22,20 +23,60 @@ export type SupabaseOperation<T> = (
 ) => Promise<T>;
 
 /**
- * Execute a database operation
- *
+ * Client type for database operations
+ */
+export type ClientType = "browser" | "server";
+
+/**
+ * Execute a database operation with specified client type
+ * 
  * @example
+ * // Using the server client (recommended for server components & actions)
  * const users = await executeDbOperation(
+ *   async (client) => {
+ *     const { data } = await client.from('users').select('*');
+ *     return data;
+ *   },
+ *   "server" // Use the server client
+ * );
+ * 
+ * @example
+ * // Using the browser client (for backward compatibility)
+ * const users = await executeDbOperation(
+ *   async (client) => {
+ *     const { data } = await client.from('users').select('*');
+ *     return data;
+ *   },
+ *   "browser" // Use the browser client
+ * );
+ */
+export async function executeDbOperation<T>(
+  operation: SupabaseOperation<T>,
+  clientType: ClientType = "browser"
+): Promise<T> {
+  if (clientType === "server") {
+    const supabase = createNewClient();
+    return operation(supabase);
+  }
+  return withSupabaseClient(operation);
+}
+
+/**
+ * Execute a database operation using the server client
+ * This is recommended for all server-side operations including server actions
+ * 
+ * @example
+ * const users = await executeServerDbOperation(
  *   async (client) => {
  *     const { data } = await client.from('users').select('*');
  *     return data;
  *   }
  * );
  */
-export async function executeDbOperation<T>(
+export async function executeServerDbOperation<T>(
   operation: SupabaseOperation<T>
 ): Promise<T> {
-  return withSupabaseClient(operation);
+  return executeDbOperation(operation, "server");
 }
 
 /**

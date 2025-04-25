@@ -1060,7 +1060,6 @@ export type Database = {
           code: string
           is_operational: boolean
           is_vacuum: boolean
-          lab_id: number
           max_capacity: number
           notes: string | null
           power_rating_kw: number
@@ -1070,31 +1069,21 @@ export type Database = {
           code: string
           is_operational: boolean
           is_vacuum: boolean
-          lab_id: number
           max_capacity: number
           notes?: string | null
           power_rating_kw: number
-          still_id?: never
+          still_id?: number
         }
         Update: {
           code?: string
           is_operational?: boolean
           is_vacuum?: boolean
-          lab_id?: number
           max_capacity?: number
           notes?: string | null
           power_rating_kw?: number
-          still_id?: never
+          still_id?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "stills_lab_id_fkey"
-            columns: ["lab_id"]
-            isOneToOne: false
-            referencedRelation: "labs"
-            referencedColumns: ["lab_id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -1165,6 +1154,7 @@ export type Database = {
           item_id: string
           po_id: string | null
           total_volume: number
+          updated_at: string
         }
         Insert: {
           batch_id?: string
@@ -1172,7 +1162,8 @@ export type Database = {
           created_at?: string
           item_id: string
           po_id?: string | null
-          total_volume: number
+          total_volume?: number
+          updated_at?: string
         }
         Update: {
           batch_id?: string
@@ -1181,6 +1172,7 @@ export type Database = {
           item_id?: string
           po_id?: string | null
           total_volume?: number
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1288,33 +1280,33 @@ export type Database = {
       }
       items: {
         Row: {
-          barcode_regex: string
+          barcode_regex: string | null
           created_at: string
           is_repro: boolean
           item_id: string
           material_id: string
           name: string
-          supplier_id: string
+          supplier_id: string | null
           updated_at: string
         }
         Insert: {
-          barcode_regex: string
+          barcode_regex?: string | null
           created_at?: string
           is_repro?: boolean
           item_id?: string
           material_id: string
           name: string
-          supplier_id: string
+          supplier_id?: string | null
           updated_at?: string
         }
         Update: {
-          barcode_regex?: string
+          barcode_regex?: string | null
           created_at?: string
           is_repro?: boolean
           item_id?: string
           material_id?: string
           name?: string
-          supplier_id?: string
+          supplier_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1446,7 +1438,7 @@ export type Database = {
           order_date?: string
           po_id?: string
           po_number: string
-          status: string
+          status?: string
           supplier_id: string
           updated_at?: string
         }
@@ -1817,39 +1809,6 @@ export type Database = {
           },
         ]
       }
-      orders: {
-        Row: {
-          code: string
-          created_at: string
-          item_id: string
-          order_id: string
-          quantity: number
-          scheduled_end: string | null
-          scheduled_start: string | null
-          status: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          item_id: string
-          order_id?: string
-          quantity: number
-          scheduled_end?: string | null
-          scheduled_start?: string | null
-          status?: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          item_id?: string
-          order_id?: string
-          quantity?: number
-          scheduled_end?: string | null
-          scheduled_start?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
       qc_results: {
         Row: {
           grade: Database["production"]["Enums"]["qc_grade"]
@@ -1932,7 +1891,14 @@ export type Database = {
         | "failed"
         | "cancelled"
       op_status: "pending" | "active" | "completed" | "error"
-      op_type: "distillation" | "decanting" | "qc" | "split" | "packaging"
+      op_type:
+        | "distillation"
+        | "decanting"
+        | "qc"
+        | "split"
+        | "packaging"
+        | "goods_in"
+        | "transport"
       qc_grade:
         | "HPLC"
         | "LCMS"
@@ -1987,6 +1953,31 @@ export type Database = {
         Args: { p_email: string; p_user_name: string; p_passcode: string }
         Returns: string
       }
+      query_batches_view: {
+        Args: {
+          p_search?: string
+          p_batch_type?: string
+          p_chemical_group?: string
+          p_date_from?: string
+          p_date_to?: string
+        }
+        Returns: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_type: string | null
+          chemical_group: string | null
+          created_at: string | null
+          drum_count: number | null
+          drums_in_stock: number | null
+          input_recorded_at: string | null
+          item_name: string | null
+          material_name: string | null
+          po_number: string | null
+          supplier_name: string | null
+          total_volume: number | null
+          updated_at: string | null
+        }[]
+      }
       request_passcode_reset: {
         Args: { p_user_name: string }
         Returns: boolean
@@ -2008,48 +1999,162 @@ export type Database = {
     }
   }
   ui: {
-    Tables: {}
+    Tables: {
+      [_ in never]: never
+    }
     Views: {
       v_batches: {
         Row: {
-          batch_id: string
-          batch_type: string
-          item_name: string
-          material_name: string
-          chemical_group: string
-          supplier_name: string | null
-          total_volume: number
-          created_at: string
-          updated_at: string
-          po_number: string | null
-          input_recorded_at: string | null
           batch_code: string | null
+          batch_id: string | null
+          batch_type: string | null
+          chemical_group: string | null
+          created_at: string | null
+          input_recorded_at: string | null
+          item_name: string | null
+          material_name: string | null
+          po_number: string | null
+          supplier_name: string | null
+          total_volume: number | null
+          updated_at: string | null
         }
         Relationships: []
       }
       v_batches_with_drums: {
         Row: {
-          batch_id: string
-          batch_type: string
-          item_name: string
-          material_name: string
-          chemical_group: string
-          supplier_name: string | null
-          total_volume: number
-          created_at: string
-          updated_at: string
-          po_number: string | null
-          input_recorded_at: string | null
           batch_code: string | null
-          drum_count: number
-          drums_in_stock: number
+          batch_id: string | null
+          batch_type: string | null
+          chemical_group: string | null
+          created_at: string | null
+          drum_count: number | null
+          drums_in_stock: number | null
+          input_recorded_at: string | null
+          item_name: string | null
+          material_name: string | null
+          po_number: string | null
+          supplier_name: string | null
+          total_volume: number | null
+          updated_at: string | null
         }
         Relationships: []
       }
+      v_distillation_schedule: {
+        Row: {
+          batch_id: string | null
+          batch_total_volume: number | null
+          expected_yield: number | null
+          item_name: string | null
+          job_id: string | null
+          job_status: Database["production"]["Enums"]["job_status"] | null
+          op_id: string | null
+          operation_status: Database["production"]["Enums"]["op_status"] | null
+          raw_volume: number | null
+          scheduled_start: string | null
+          still_capacity: number | null
+          still_code: string | null
+          still_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_jobs"
+            referencedColumns: ["job_id"]
+          },
+        ]
+      }
+      v_drums: {
+        Row: {
+          batch_type: string | null
+          drum_id: string | null
+          item_name: string | null
+          last_fill_vol: number | null
+          serial_number: string | null
+          status: string | null
+          total_volume: number | null
+        }
+        Relationships: []
+      }
+      v_goods_in: {
+        Row: {
+          eta_date: string | null
+          item: string | null
+          order_date: string | null
+          po_number: string | null
+          quantity: number | null
+          status: string | null
+          supplier: string | null
+        }
+        Relationships: []
+      }
+      v_production_jobs: {
+        Row: {
+          created_at: string | null
+          current_location: string | null
+          current_volume: number | null
+          drum_id: string | null
+          ended_at: string | null
+          input_batch_id: string | null
+          item_id: string | null
+          item_name: string | null
+          job_id: string | null
+          location_name: string | null
+          op_id: string | null
+          op_type: Database["production"]["Enums"]["op_type"] | null
+          operation_status: Database["production"]["Enums"]["op_status"] | null
+          planned_end: string | null
+          planned_start: string | null
+          priority: number | null
+          scheduled_start: string | null
+          serial_number: string | null
+          started_at: string | null
+          status: Database["production"]["Enums"]["job_status"] | null
+          supplier_name: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_input_batch_id_fkey"
+            columns: ["input_batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_batches"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "jobs_input_batch_id_fkey"
+            columns: ["input_batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_batches_with_drums"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "jobs_input_batch_id_fkey"
+            columns: ["input_batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_distillation_schedule"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "operation_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_drums"
+            referencedColumns: ["drum_id"]
+          },
+        ]
+      }
     }
-    Functions: {}
-    Enums: {}
-    CompositeTypes: {}
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
@@ -2210,7 +2315,15 @@ export const Constants = {
         "cancelled",
       ],
       op_status: ["pending", "active", "completed", "error"],
-      op_type: ["distillation", "decanting", "qc", "split", "packaging"],
+      op_type: [
+        "distillation",
+        "decanting",
+        "qc",
+        "split",
+        "packaging",
+        "goods_in",
+        "transport",
+      ],
       qc_grade: [
         "HPLC",
         "LCMS",

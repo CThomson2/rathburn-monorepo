@@ -1,6 +1,6 @@
 'use server';
 
-import { executeDbOperation } from "@/lib/database";
+import { executeServerDbOperation } from "@/lib/database";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Order, mapJobStatusToOrderStatus, getProgressFromStatus, getPriorityFromJob } from "@/features/production/types";
 
@@ -13,47 +13,58 @@ import { Order, mapJobStatusToOrderStatus, getProgressFromStatus, getPriorityFro
  */
 export async function fetchProductionJobs(): Promise<Order[]> {
   try {
-    return await executeDbOperation(async (supabase: SupabaseClient) => {
-      // Fetch jobs with nested related data using Supabase's nested select
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+      // Fetch jobs using an RPC function that accesses the view
       const { data: jobs, error } = await supabase
-      .from('production.jobs')
-      .select(`
-        job_id,
-        item_id,
-        input_batch_id,
-        status,
-        priority,
-        planned_start,
-        planned_end,
-        created_at,
-        updated_at,
-        items:item_id (
-          name,
-          suppliers:supplier_id (
-            name
-          )
-        ),
-        operations!job_id (
-          op_id,
-          op_type,
-          status,
-          scheduled_start,
-          started_at,
-          ended_at,
-          operation_drums!op_id (
-            drum_id,
-            drums!drum_id (
-              serial_number,
-              current_volume,
-              current_location,
-              locations!current_location (
-                name
-              )
-            )
-          )
-        )
-      `)
-      .order('created_at', { ascending: false });
+      // .from('v_production_jobs')
+      // .select('*')
+      // .order('created_at', { ascending: false });
+      .rpc('get_production_jobs')
+      // .select(`
+      //   job_id,
+      //   item_id,
+      //   input_batch_id,
+      //   status,
+      //   priority,
+      //   planned_start,
+      //   planned_end,
+      //   created_at,
+      //   updated_at,
+      //   items:item_id (
+      //     name,
+      //     suppliers:supplier_id (
+      //       name
+      //     )
+      //   ),
+      //   operations!job_id (
+      //     op_id,
+      //     op_type,
+      //     status,
+      //     scheduled_start,
+      //     started_at,
+      //     ended_at,
+      //     operation_drums!op_id (
+      //       drum_id,
+      //       drums!drum_id (
+      //         serial_number,
+      //         current_volume,
+      //         current_location,
+      //         locations!current_location (
+      //           name
+      //         )
+      //       )
+      //     )
+      //   )
+      // `)
+        
+      // If the RPC function is not available, you need to create it first:
+      // CREATE OR REPLACE FUNCTION get_production_jobs()
+      // RETURNS SETOF ui.v_production_jobs
+      // LANGUAGE sql
+      // SECURITY DEFINER
+      // AS $$
+      //   SELECT * FROM ui.v_production_jobs ORDER BY created_at DESC;
+      // $$;
 
       if (error) {
         console.error('Error fetching production jobs:', error);
@@ -136,7 +147,7 @@ export async function createProductionJob(
   priority: number = 5
 ): Promise<string | null> {
   try {
-    return await executeDbOperation(async (supabase: SupabaseClient) => {
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
       // Insert the new job record
       const { data, error } = await supabase
         .from('production.jobs')
@@ -220,7 +231,7 @@ export async function updateProductionJob(
   }
 ): Promise<boolean> {
   try {
-    return await executeDbOperation(async (supabase: SupabaseClient) => {
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
       // Build update object with only the fields that need to be updated
       const updateData: any = {};
       
@@ -254,7 +265,7 @@ export async function updateProductionJob(
  */
 export async function fetchAvailableBatches() {
   try {
-    return await executeDbOperation(async (supabase: SupabaseClient) => {
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
       // Only fetch batches that have at least one drum in stock
       const { data, error } = await supabase
         .from('ui.v_batches_with_drums')
@@ -282,7 +293,7 @@ export async function fetchAvailableBatches() {
  */
 export async function fetchItems() {
   try {
-    return await executeDbOperation(async (supabase: SupabaseClient) => {
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
       // Fetch items with their related supplier and material information
       const { data, error } = await supabase
         .from('inventory.items')

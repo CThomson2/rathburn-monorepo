@@ -21,6 +21,7 @@ import {
   DatabaseIcon,
   DatabaseBackup,
   DatabaseZap,
+  Atom,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -73,16 +74,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { name: "Dashboard", icon: Home, url: "/", level: 1 },
     { name: "Orders", icon: Clipboard, url: "/orders", level: 2 },
     {
+      name: "Production",
+      icon: Atom,
+      url: "/production",
+      level: 2,
+    },
+    {
       name: "Inventory",
       icon: Package,
       url: "/inventory",
       level: 2,
-    },
-    {
-      name: "Production",
-      icon: Home,
-      url: "/production",
-      level: 5,
     },
   ];
 
