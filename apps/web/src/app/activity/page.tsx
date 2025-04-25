@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { ActivityDashboard } from "@/features/activity";
-import { Skeleton } from "@/components/core/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata = {
   title: "Activity Dashboard | Rathburn Operations",

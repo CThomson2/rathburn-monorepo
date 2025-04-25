@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
+} from "@/components/ui/select";
 
 export const TableFooter = <TData,>({ table }: { table: Table<TData> }) => {
   return (

@@ -7,7 +7,7 @@
  * Includes client-specific functionality like toast notifications.
  */
 
-import { useNotifications } from "@/components/core/ui/notifications";
+import { useNotifications } from "@/components/ui/notifications";
 import { ApiClient, RequestOptions, buildUrlWithParams } from "./base";
 
 // Client-side fetch implementation

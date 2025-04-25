@@ -8,7 +8,7 @@ This document provides examples of how to use the authentication system in diffe
 "use client";
 
 import { useAuthContext } from "@/components/desktop/layout/auth/auth-context";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 
 export function UserProfileButton() {
   const { user, loading, signOut } = useAuthContext();
@@ -69,8 +69,8 @@ The server actions in `src/app/actions.ts` are designed to be used with forms:
 "use client";
 
 import { signInAction } from "@/app/actions";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function LoginForm() {
   return (
@@ -124,7 +124,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -164,7 +166,7 @@ const fetchUserData = async (userId: string) => {
 
 export function UserProfile() {
   const { user, loading } = useAuthContext();
-  
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["userData", user?.id],
     queryFn: () => fetchUserData(user!.id),

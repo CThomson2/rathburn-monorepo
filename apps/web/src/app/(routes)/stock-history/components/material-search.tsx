@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "@/components/core/ui/command";
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/core/ui/popover";
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface MaterialSearchProps {

@@ -14,12 +14,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/core/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ChevronDown,
   ChevronUp,

@@ -5,19 +5,14 @@ import { DocFile, fetchDocContent } from "@/lib/docs";
 import DocFileTree from "./doc-file-tree";
 import DocContent from "./doc-content";
 import { cn } from "@/lib/utils";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/core/ui/tabs";
-import { ScrollArea } from "@/components/core/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/core/ui/resizable";
-import { Button } from "@/components/core/ui/button";
+} from "@/components/ui/resizable";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SpecialFile {

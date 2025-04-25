@@ -1,4 +1,4 @@
-import { Link } from "@/components/core/ui/link";
+import { Link } from "@/components/ui/link";
 import { paths } from "@/config/paths";
 
 const NotFoundPage = () => {

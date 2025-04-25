@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/core/ui/card";
-import { Badge } from "@/components/core/ui/badge";
-import { ScrollArea } from "@/components/core/ui/scroll-area";
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistance } from "date-fns";
 
 interface LiveActivitySidebarProps {

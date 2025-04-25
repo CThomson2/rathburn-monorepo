@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import { Check, Filter, X } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/core/ui/popover";
+} from "@/components/ui/popover";
 
 interface MaterialFilterProps {
   materialOptions: string[];

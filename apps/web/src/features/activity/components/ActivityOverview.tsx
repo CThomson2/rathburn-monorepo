@@ -8,13 +8,8 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/core/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/core/ui/tabs";
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
 
 interface ActivityData {

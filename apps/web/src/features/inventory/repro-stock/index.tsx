@@ -19,15 +19,15 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 import {
   ChevronFirst,
   ChevronLast,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { Input } from "@/components/core/ui/input";
-import { Button } from "@/components/core/ui/button";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 import { ReproStock } from "../types";
 import { MaterialFilter } from "./material-filter";

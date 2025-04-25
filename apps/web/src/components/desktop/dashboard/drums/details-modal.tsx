@@ -6,15 +6,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/core/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/core/ui/tabs";
-import { Badge } from "@/components/core/ui/badge";
-import { Button } from "@/components/core/ui/button";
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Calendar,
   Clock,

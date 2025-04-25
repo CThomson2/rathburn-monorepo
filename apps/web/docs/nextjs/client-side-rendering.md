@@ -1187,7 +1187,7 @@ getSortedRowModel,
 } from '@tanstack/react-table';
 import { useDrums } from '../hooks/use-drums';
 import { Drum, DrumStatus } from '@/types/models';
-import { Spinner } from '@/components/core/ui/spinner';
+import { Spinner } from '@/components/ui/spinner';
 import { useQueryClient } from '@tanstack/react-query';
 const columnHelper = createColumnHelper<Drum>();
 export function DrumsTableWithServerOperations() {
@@ -1576,9 +1576,9 @@ useUpdateDistillation
 import { useRawMaterials } from '@/features/api/hooks/use-raw-materials';
 import { useStills } from '@/features/api/hooks/use-stills';
 import { useOperators } from '@/features/api/hooks/use-operators';
-import { Button } from '@/components/core/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/core/ui/card';
-import { Spinner } from '@/components/core/ui/spinner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 interface DistillationDetailProps {
 distillationId: number;
 }
@@ -1802,7 +1802,7 @@ refetchIntervalInBackground: true,
 'use client';
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/core/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 async function fetchActiveDistillations() {
 const response = await fetch('/api/production/distillations/active');
 if (!response.ok) {
@@ -2010,7 +2010,7 @@ return (
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDistillations } from '@/features/api/hooks/use-distillations';
-import { Link } from '@/components/core/ui/link';
+import { Link } from '@/components/ui/link';
 export function DistillationsList() {
 const queryClient = useQueryClient();
 const { data, isLoading, isError } = useDistillations();
@@ -2215,9 +2215,9 @@ import {
 import { useRawMaterials } from '@/features/api/hooks/use-raw-materials';
 import { useStills } from '@/features/api/hooks/use-stills';
 import { useOperators } from '@/features/api/hooks/use-operators';
-import { Button } from '@/components/core/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/core/ui/card';
-import { Spinner } from '@/components/core/ui/spinner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 
 interface DistillationDetailProps {
   distillationId: number;
@@ -2463,7 +2463,7 @@ For truly real-time updates, integrate with Server-Sent Events (SSE):
 'use client';
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/core/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 async function fetchActiveDistillations() {
   const response = await fetch('/api/production/distillations/active');
@@ -2708,7 +2708,7 @@ Improve perceived performance by prefetching data the user is likely to need:
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDistillations } from '@/features/api/hooks/use-distillations';
-import { Link } from '@/components/core/ui/link';
+import { Link } from '@/components/ui/link';
 
 export function DistillationsList() {
   const queryClient = useQueryClient();
@@ -2779,7 +2779,7 @@ Use React Suspense and Error Boundaries with TanStack Query:
 import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { DistillationDetail } from '@/features/production/components/distillation-detail';
-import { Spinner } from '@/components/core/ui/spinner';
+import { Spinner } from '@/components/ui/spinner';
 
 function ErrorFallback({ error, resetErrorBoundary }: any) {
   return (

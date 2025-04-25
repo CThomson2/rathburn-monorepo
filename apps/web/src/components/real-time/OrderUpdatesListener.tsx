@@ -2,13 +2,8 @@
 
 import { useState } from "react";
 import { useOrderEvents } from "@/hooks/useOrderEvents";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/core/ui/card";
-import { Badge } from "@/components/core/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Package } from "lucide-react";
 
 /**

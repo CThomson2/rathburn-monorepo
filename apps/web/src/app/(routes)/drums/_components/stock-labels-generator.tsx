@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/core/ui/card";
+} from "@/components/ui/card";
 import { Printer, FileDown, Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/core/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /**
  * StockLabelsGenerator component.

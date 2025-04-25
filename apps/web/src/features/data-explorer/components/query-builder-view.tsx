@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
-import { Checkbox } from "@/components/core/ui/checkbox";
-import { Label } from "@/components/core/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,20 +13,15 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/core/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/core/ui/tabs";
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
+} from "@/components/ui/select";
 import {
   ChevronRight,
   PlusCircle,
@@ -40,7 +35,7 @@ import {
   Download,
   Loader2,
 } from "lucide-react";
-import { Badge } from "@/components/core/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -48,7 +43,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 import { FilterCondition, SortSpec } from "../types";
 import { availableTables, buildQuery } from "../constants/tables";
 import { useColumns } from "../hooks/use-columns";

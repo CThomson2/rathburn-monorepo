@@ -2,20 +2,20 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
-import { Label } from "@/components/core/ui/label";
-import { Textarea } from "@/components/core/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
+} from "@/components/ui/select";
 import { createDrumAssignment } from "@/features/drum-assignment/data-utils";
 import { DrumAssignmentFormData } from "@/features/drum-assignment/types";
-import { useToast } from "@/components/core/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
   CardContent,
@@ -23,7 +23,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/core/ui/card";
+} from "@/components/ui/card";
 
 interface AssignmentFormProps {
   drums: any[];

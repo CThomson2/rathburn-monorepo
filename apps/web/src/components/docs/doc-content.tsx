@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ScrollArea } from "@/components/core/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -46,7 +46,10 @@ export default function DocContent({ title, content }: DocContentProps) {
               table({ node, className, children, ...props }) {
                 return (
                   <div className="overflow-x-auto my-4">
-                    <table className="border-collapse border border-border w-full" {...props}>
+                    <table
+                      className="border-collapse border border-border w-full"
+                      {...props}
+                    >
                       {children}
                     </table>
                   </div>
@@ -55,7 +58,10 @@ export default function DocContent({ title, content }: DocContentProps) {
               // Style table headers
               th({ node, className, children, ...props }) {
                 return (
-                  <th className="border border-border bg-muted p-2 text-left font-semibold" {...props}>
+                  <th
+                    className="border border-border bg-muted p-2 text-left font-semibold"
+                    {...props}
+                  >
                     {children}
                   </th>
                 );

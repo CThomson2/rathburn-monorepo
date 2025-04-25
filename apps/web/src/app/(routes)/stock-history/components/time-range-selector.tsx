@@ -1,17 +1,14 @@
 "use client";
 
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/core/ui/toggle-group";
-import { Button } from "@/components/core/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/core/ui/popover";
-import { Calendar } from "@/components/core/ui/calendar";
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";

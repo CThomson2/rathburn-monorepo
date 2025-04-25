@@ -6,7 +6,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/core/ui/card";
+} from "@/components/ui/card";
 import { useMemo } from "react";
 import { OrdersOverviewWidgetProps } from "@/database/models/types/orders";
 import {

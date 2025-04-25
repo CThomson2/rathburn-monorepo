@@ -3,7 +3,7 @@ import {
   TableHead,
   TableHeader as ShadTableHeader,
   TableRow,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 /**

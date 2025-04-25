@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { Button } from "@/components/core/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/core/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 /**
  * Mobile navigation component with responsive menu

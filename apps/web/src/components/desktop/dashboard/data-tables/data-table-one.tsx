@@ -8,7 +8,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 
 interface DataTableProps {
   columns: any[];

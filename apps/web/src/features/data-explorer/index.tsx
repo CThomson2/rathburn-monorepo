@@ -2,24 +2,15 @@
 
 import { useState, Suspense } from "react";
 import dynamic from "next/dynamic";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/core/ui/tabs";
-import { Button } from "@/components/core/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import {
   PlusCircle,
   TableProperties,
   Database,
   AlertCircle,
 } from "lucide-react";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/core/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Development feature flag
 const isDevelopment = process.env.NODE_ENV === "development";

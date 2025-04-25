@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -19,7 +19,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 import {
   Pagination,
   PaginationContent,
@@ -27,7 +27,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/core/ui/pagination";
+} from "@/components/ui/pagination";
 import {
   ChevronDown,
   ChevronUp,
@@ -45,11 +45,7 @@ import {
 } from "../constants/tables";
 import { useColumns } from "../hooks/use-columns";
 import { Database } from "@/types/models/supabase";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/core/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 /**
  * SpreadsheetView is a React component that renders a data table with pagination,

@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
+} from "@/components/ui/select";
 
 // Define device options with specific types
 const deviceOptions = [

@@ -1,12 +1,12 @@
 import React from "react";
 import { DrumStatus } from "@/types/models/drums/constant";
-import { Checkbox } from "@/components/core/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/core/ui/dropdown-menu";
-import { Button } from "@/components/core/ui/button";
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 

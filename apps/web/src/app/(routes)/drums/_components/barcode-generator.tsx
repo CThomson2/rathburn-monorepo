@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
-import { Label } from "@/components/core/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const BarcodeGenerator = () => {
   const [material, setMaterial] = useState("");

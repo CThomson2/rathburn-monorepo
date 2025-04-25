@@ -4,8 +4,8 @@
 import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { ColumnSort, StatusFilter } from "@/components/core/patterns/table";
-import { Badge } from "@/components/core/ui/badge";
-import { Button } from "@/components/core/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Download, FileDown } from "lucide-react";
 import { format } from "date-fns";
 import type { DrumBatch } from "@/types/models";

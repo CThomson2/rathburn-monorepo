@@ -6,7 +6,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/core/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
 // Import utility functions and types
 import { cn } from "@/lib/utils";

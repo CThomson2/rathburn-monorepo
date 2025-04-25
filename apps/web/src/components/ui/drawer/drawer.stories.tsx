@@ -1,6 +1,6 @@
 import { Meta, StoryObj } from "@storybook/react";
 
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import { useDisclosure } from "@/hooks/use-disclosure";
 
 import {

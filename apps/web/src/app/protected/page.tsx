@@ -12,9 +12,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { updatePhoneAction } from "../actions";
-import { Input } from "@/components/core/ui/input";
+import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/desktop/layout/auth/submit-button";
-import { Label } from "@/components/core/ui/label";
+import { Label } from "@/components/ui/label";
 import {
   FormMessage,
   Message,

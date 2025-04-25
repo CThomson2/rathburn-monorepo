@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import { Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 

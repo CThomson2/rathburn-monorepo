@@ -1,9 +1,11 @@
+"use client";
+
 import { ArrowUpDown, Filter } from "lucide-react";
 import { useState } from "react";
 
 import { BatchesTable } from "./batches-table";
 import { Button } from "@/components/ui/button";
-import { useBatches } from "@/hooks/use-batches";
+import { useBatches } from "@/features/batches/hooks/use-batches";
 import { BatchesFilter } from "./batches-filter";
 
 export default function BatchesContent() {

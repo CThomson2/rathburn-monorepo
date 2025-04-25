@@ -5,8 +5,8 @@ import {
   Message,
 } from "@/components/desktop/layout/auth/form-message";
 import { SubmitButton } from "@/components/desktop/layout/auth/submit-button";
-import { Input } from "@/components/core/ui/input";
-import { Label } from "@/components/core/ui/label";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image";
 

@@ -2,11 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { AlertCircle } from "lucide-react";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/core/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Dynamically import the DataExplorerPage component with error handling in a client component
 const DataExplorerPage = dynamic(

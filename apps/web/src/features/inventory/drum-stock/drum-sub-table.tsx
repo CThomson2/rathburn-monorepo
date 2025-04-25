@@ -21,9 +21,9 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "@/components/core/ui/table";
-import { Input } from "@/components/core/ui/input";
-import { Button } from "@/components/core/ui/button";
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Download, FileDown, Search } from "lucide-react";
 
 import { type DrumRecord } from "./data-utils";

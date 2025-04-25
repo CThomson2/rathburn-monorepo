@@ -13,16 +13,16 @@ import {
   Brush,
   ReferenceLine,
 } from "recharts";
-import { Card, CardContent } from "@/components/core/ui/card";
-import { Skeleton } from "@/components/core/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
-import { Button } from "@/components/core/ui/button";
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { CalendarIcon, Loader2 } from "lucide-react";
 
 // Type definitions based on our database schema

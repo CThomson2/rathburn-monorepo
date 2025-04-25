@@ -2,24 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
-import { Label } from "@/components/core/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/core/ui/radio-group";
-import { Separator } from "@/components/core/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
+} from "@/components/ui/select";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/core/ui/accordion";
+} from "@/components/ui/accordion";
 
 interface FilterControlsProps {
   filters: {

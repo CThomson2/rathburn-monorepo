@@ -6,13 +6,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/core/ui/dialog";
-import { Button } from "@/components/core/ui/button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Download, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import type { Stock } from "@/types/models";
 import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/core/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface GridModalProps {
   /** The order data to display */

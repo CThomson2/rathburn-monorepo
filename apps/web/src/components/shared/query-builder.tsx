@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/core/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
-import { Checkbox } from "@/components/core/ui/checkbox";
-import { Input } from "@/components/core/ui/input";
-import { Button } from "@/components/core/ui/button";
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -22,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 
 /**
  * Types for database schema and query operations

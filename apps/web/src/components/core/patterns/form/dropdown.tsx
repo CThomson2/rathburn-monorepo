@@ -1,11 +1,11 @@
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/core/ui/popover";
+} from "@/components/ui/popover";
 import {
   Command,
   CommandInput,
@@ -13,7 +13,7 @@ import {
   CommandGroup,
   CommandItem,
   CommandList,
-} from "@/components/core/ui/command";
+} from "@/components/ui/command";
 
 /**
  * Props for the Dropdown component.

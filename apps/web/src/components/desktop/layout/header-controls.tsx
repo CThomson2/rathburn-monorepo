@@ -1,12 +1,11 @@
 "use client";
 
-import { ThemeToggle } from "@/components/core/ui/theme-toggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Database, Target } from "lucide-react";
-import { Button } from "@/components/core/ui/button";
+import { Database } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 import { useWorkflow } from "@/context/workflow-context";
 
 interface HeaderControlsProps {
@@ -14,13 +13,24 @@ interface HeaderControlsProps {
   className?: string;
 }
 
+/**
+ * A component that renders a theme toggle and a database button.
+ *
+ * The theme toggle is always rendered.
+ *
+ * The database button is only rendered if the current route is not a mobile route.
+ * The database button navigates to the database path when clicked.
+ *
+ * @param databasePath - The path to navigate to when the database button is clicked.
+ * @param className - The class name to apply to the component.
+ */
 export function HeaderControls({
   databasePath = "/database",
   className,
 }: HeaderControlsProps) {
   const pathname = usePathname();
   const isMobileRoute = pathname.includes("/mobile");
-  const { showWorkflowCards, toggleWorkflowCards } = useWorkflow();
+  const { showWorkflowCards } = useWorkflow();
 
   // Don't render on mobile routes
   if (isMobileRoute) {
@@ -28,44 +38,17 @@ export function HeaderControls({
   }
 
   return (
-    <div
-      className={cn(
-        "fixed top-4 z-[100] left-1/2 -translate-x-1/2 flex items-center justify-center gap-2",
-        className
-      )}
-    >
+    <div className={cn("flex items-center gap-2", className)}>
       <ThemeToggle />
-
-      {/* Action Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={toggleWorkflowCards}
-        className={`relative h-12 w-12 rounded-full bg-background dark:bg-gray-800 border-border dark:border-gray-700 shadow-sm hover:shadow-md hover:scale-115 transition-all duration-300 ease-in-out ${
-          showWorkflowCards
-            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-            : ""
-        }`}
-      >
-        <Target className="h-[1.5rem] w-[1.5rem] transition-transform duration-300 ease-in-out hover:scale-115 text-foreground dark:text-gray-300" />
-        <span className="sr-only">Workflows</span>
-      </Button>
 
       <Button
         variant="outline"
         size="icon"
         asChild
-        className="relative h-10 overflow-hidden group bg-background dark:bg-gray-800 border-border dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
+        className="relative h-9 w-9 bg-background dark:bg-gray-800 border-border dark:border-gray-700 transition-all duration-300 ease-in-out"
       >
-        <Link
-          href={databasePath}
-          target="_blank"
-          className="flex items-center justify-start px-2 gap-2"
-        >
-          <Database className="h-[1.2rem] w-[1.2rem] transition-transform group-hover:scale-110" />
-          <span className="opacity-0 absolute left-10 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap font-medium">
-            DATABASE
-          </span>
+        <Link href={databasePath} target="_blank">
+          <Database className="h-[1.1rem] w-[1.1rem]" />
           <span className="sr-only">Database</span>
         </Link>
       </Button>

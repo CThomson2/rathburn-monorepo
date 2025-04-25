@@ -23,8 +23,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/core/ui/table";
-import { Badge } from "@/components/core/ui/badge";
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface StockHistoryStatsProps {
   materialCode: string | null;

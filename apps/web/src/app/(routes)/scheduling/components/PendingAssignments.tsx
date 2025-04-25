@@ -6,15 +6,15 @@ import {
   PendingAssignment,
   DrumAssignmentFilters,
 } from "@/features/drum-assignment/types";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,23 +22,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/core/ui/pagination";
+} from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/core/ui/card";
+} from "@/components/ui/card";
 import { CalendarIcon, FilterIcon, SearchIcon } from "lucide-react";
-import { Badge } from "@/components/core/ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 interface PendingAssignmentsProps {
   initialAssignments?: PendingAssignment[];

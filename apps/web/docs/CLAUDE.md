@@ -14,10 +14,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Code Style Guidelines
 
 - **Architecture**: Follow unidirectional flow (shared → features → app) with strict feature isolation
-- **Imports**: Use absolute imports with `@/` prefix (e.g., `@/components/core/ui/button`)
+- **Imports**: Use absolute imports with `@/` prefix (e.g., `@/components/ui/button`)
 - **Components**: Use PascalCase for component files (.tsx), kebab-case for folders
 - **TypeScript**: Always use proper typing with interfaces/types, strict mode enabled
-- **UI Components**: Use shadcn/ui components from `src/components/core/ui`
+- **UI Components**: Use shadcn/ui components from `src/components/ui`
 - **File naming**: PascalCase for components (.tsx), camelCase for utilities (.ts), kebab-case for folders
 - **Testing**: Place tests in `__tests__` folders with `.test.ts[x]` extension
 - **Error Handling**: Use try/catch blocks for async operations, React Error Boundary for components
@@ -28,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Code organized by features in `src/features/` folder
 - Feature folders include: api, components, hooks, types, utils
 - Avoid cross-feature imports; compose at application level
-- Shared components in `src/components/core/ui`
+- Shared components in `src/components/ui`
 
 ## Tools
 

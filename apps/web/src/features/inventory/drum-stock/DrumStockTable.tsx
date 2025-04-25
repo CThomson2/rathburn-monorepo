@@ -15,7 +15,7 @@ import {
 } from "@tanstack/react-table";
 
 // UI components
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableHeader,
@@ -23,7 +23,7 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "@/components/core/ui/table";
+} from "@/components/ui/table";
 import {
   ChevronDown,
   ChevronRight,
@@ -32,7 +32,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { Badge } from "@/components/core/ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 // Sub-table component
 import DrumSubTable from "./drum-sub-table";

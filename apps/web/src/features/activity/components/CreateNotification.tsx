@@ -9,19 +9,19 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
-} from "@/components/core/ui/card";
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
-import { Textarea } from "@/components/core/ui/textarea";
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "@/components/core/ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 
 interface CreateNotificationProps {

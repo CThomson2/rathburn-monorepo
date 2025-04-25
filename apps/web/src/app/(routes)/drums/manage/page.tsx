@@ -10,8 +10,8 @@ import {
   Calendar,
   AlertCircle,
 } from "lucide-react";
-import { Button } from "@/components/core/ui/button";
-import { Input } from "@/components/core/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -19,8 +19,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/core/ui/table";
-import { Badge } from "@/components/core/ui/badge";
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   Pagination,
   PaginationContent,
@@ -28,12 +28,12 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/core/ui/pagination";
+} from "@/components/ui/pagination";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/core/ui/popover";
+} from "@/components/ui/popover";
 import { DrumDetailsModal } from "@/components/desktop/dashboard/drums/details-modal";
 import { DrumFilterBar } from "@/components/desktop/dashboard/drums/filter-bar";
 

@@ -1,93 +1,82 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   name: string;
+  url: string;
   icon: LucideIcon;
 }
 
 interface NavBarProps {
   items: NavItem[];
-  activeView?: string;
-  onViewChange?: (viewName: string) => void;
   className?: string;
-  showLabels?: boolean;
 }
 
 /**
  * A responsive navigation bar for Tubelight.
  * Can be used for view switching with animations.
  *
- * @param {{ items: NavItem[]; activeView?: string; onViewChange?: (viewName: string) => void; className?: string; showLabels?: boolean }} props
+ * @param {{ items: NavItem[]; className?: string }} props
  * @param {NavItem[]} props.items - Navigation items to display
- * @param {string} [props.activeView] - Currently active view name
- * @param {function} [props.onViewChange] - Callback when view is changed
  * @param {string} [props.className] - Additional CSS classes
- * @param {boolean} [props.showLabels] - Whether to show text labels next to icons
  *
  * @returns {JSX.Element}
  *
  * @example
  * <NavBar
  *   items={[
- *     { name: "Transport", icon: ForkliftIcon },
- *     { name: "Production", icon: AtomIcon },
+ *     { name: "Transport", url: "/transport", icon: ForkliftIcon },
+ *     { name: "Production", url: "/production", icon: AtomIcon },
  *   ]}
- *   activeView="Transport"
- *   onViewChange={(view) => setActiveView(view)}
  *   className="bg-background"
- *   showLabels={false}
  * />
  */
-export function NavBar({
-  items,
-  activeView,
-  onViewChange,
-  className,
-  showLabels = false,
-}: NavBarProps) {
-  const [activeTab, setActiveTab] = useState(activeView || items[0].name);
+export function NavBar({ items, className }: NavBarProps) {
+  const [activeTab, setActiveTab] = useState(items[0]?.name || "");
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    if (activeView) {
-      setActiveTab(activeView);
-    }
-  }, [activeView]);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
 
-  const handleTabChange = (tabName: string) => {
-    setActiveTab(tabName);
-    if (onViewChange) {
-      onViewChange(tabName);
-    }
-  };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 right-0 z-40 flex justify-center mb-10 mt-4",
+        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6",
         className
       )}
     >
-      <div className="flex items-center gap-2 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg mx-auto">
+      <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.name;
 
           return (
-            <button
+            <Link
               key={item.name}
-              onClick={() => handleTabChange(item.name)}
+              href={item.url}
+              onClick={() => setActiveTab(item.name)}
               className={cn(
-                "relative cursor-pointer text-sm font-semibold px-4 py-1.5 rounded-full transition-colors",
-                "text-foreground/80 hover:text-primary dark:text-foreground/60 dark:hover:text-primary",
-                isActive && "bg-muted text-primary dark:bg-muted/20"
+                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
+                "text-foreground/80 hover:text-primary",
+                isActive && "bg-muted text-primary"
               )}
-              title={item.name}
             >
-              {showLabels && <span className="mr-1.5">{item.name}</span>}
-              <Icon size={18} strokeWidth={2} />
+              <span className="hidden md:inline">{item.name}</span>
+              <span className="md:hidden">
+                <Icon size={18} strokeWidth={2.5} />
+              </span>
               {isActive && (
                 <motion.div
                   layoutId="lamp"
@@ -106,7 +95,7 @@ export function NavBar({
                   </div>
                 </motion.div>
               )}
-            </button>
+            </Link>
           );
         })}
       </div>

@@ -9,10 +9,10 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
-} from "@/components/core/ui/card";
-import { Badge } from "@/components/core/ui/badge";
-import { Button } from "@/components/core/ui/button";
-import { ScrollArea } from "@/components/core/ui/scroll-area";
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistance } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 

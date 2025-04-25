@@ -6,9 +6,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/core/ui/card";
+} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/core/ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 export type WorkflowRole = "admin" | "operator" | "manager" | "all";
 

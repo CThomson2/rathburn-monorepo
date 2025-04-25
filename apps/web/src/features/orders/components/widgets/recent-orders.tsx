@@ -6,12 +6,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/core/ui/card";
-import { Badge } from "@/components/core/ui/badge";
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { CalendarIcon, PackageIcon, TruckIcon, FilterIcon } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/core/ui/button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { OrdersOverviewWidgetProps } from "@/database/models/types/orders";
 

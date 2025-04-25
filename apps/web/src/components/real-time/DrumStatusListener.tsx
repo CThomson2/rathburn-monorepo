@@ -2,13 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useDrumEvents } from "@/hooks/useDrumEvents";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/core/ui/card";
-import { Badge } from "@/components/core/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * DrumStatusListener component demonstrates real-time status updates for drums.
