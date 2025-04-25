@@ -63,6 +63,12 @@ const FloatingNavMenu = ({
       path: "/",
     },
     { id: "search", label: "Search", icon: <Search size={20} /> },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: <Settings size={20} />,
+      path: "/settings",
+    },
   ];
 
   const toggleMenu = () => {

@@ -6,9 +6,11 @@ import {
   Users,
   MapPin,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ScanContext } from "@/contexts/scan-context";
+import { motion, AnimatePresence } from "framer-motion";
 
 const statusColors = {
   transport: {
@@ -31,6 +33,8 @@ const statusColors = {
 export function TransportView() {
   // Get the scanned drums from context
   const { scannedDrums, resetScannedDrums } = useContext(ScanContext);
+  // State for the selected job to display in modal
+  const [selectedJob, setSelectedJob] = useState<number | null>(null);
 
   // Sample production jobs data with properly typed processedDrums
   const [productionJobs, setProductionJobs] = useState([
@@ -205,12 +209,14 @@ export function TransportView() {
     })();
   }, []);
 
-  const toggleExpand = (id: number) => {
-    setProductionJobs((jobs) =>
-      jobs.map((job) =>
-        job.id === id ? { ...job, expanded: !job.expanded } : job
-      )
-    );
+  // Open job details modal
+  const openJobDetails = (id: number) => {
+    setSelectedJob(id);
+  };
+
+  // Close job details modal
+  const closeJobDetails = () => {
+    setSelectedJob(null);
   };
 
   // Function to render drum ID chips
@@ -296,26 +302,27 @@ export function TransportView() {
             key={job.id}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
             style={{ borderLeftWidth: "4px", borderLeftColor: job.color }}
+            onClick={() => openJobDetails(job.id)}
           >
-            <div className="p-4">
+            <div className="p-3">
               <div className="flex justify-between items-start mb-1">
                 <div>
                   <h3 className="font-bold text-gray-800 dark:text-gray-100">
                     {job.name}
                   </h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">
                     {job.manufacturer}
                   </p>
                 </div>
-                <div className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full flex items-center space-x-1">
-                  <span className="text-gray-700 dark:text-gray-300 text-sm">
+                <div className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                  <span className="text-gray-700 dark:text-gray-300 text-xs">
                     {job.containerType} × {job.containers}
                   </span>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-3 relative">
+              <div className="mt-2 relative">
                 <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
@@ -334,110 +341,191 @@ export function TransportView() {
                 </div>
               </div>
             </div>
-
-            <div className="flex justify-end px-4 py-2 border-t border-gray-100 dark:border-gray-700">
-              <button
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-                onClick={() => toggleExpand(job.id)}
-                aria-label={
-                  job.expanded ? "Collapse details" : "Expand details"
-                }
-              >
-                {job.expanded ? (
-                  <ChevronUp size={20} />
-                ) : (
-                  <ChevronDown size={20} />
-                )}
-              </button>
-            </div>
-
-            {/* Expanded Details */}
-            {job.expanded && (
-              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="flex items-center">
-                    <Calendar
-                      size={16}
-                      className="text-gray-500 dark:text-gray-400 mr-2"
-                    />
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Created
-                      </p>
-                      <p className="text-sm">{job.dateCreated}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar
-                      size={16}
-                      className="text-gray-500 dark:text-gray-400 mr-2"
-                    />
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Scheduled
-                      </p>
-                      <p className="text-sm font-bold text-blue-700 dark:text-blue-400">
-                        {job.dateScheduled}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-center mb-2">
-                    <Users
-                      size={16}
-                      className="text-gray-500 dark:text-gray-400 mr-2"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Assigned Workers
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {job.assignedWorkers.map((worker, index) => (
-                      <div
-                        key={index}
-                        className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-sm py-1 px-3 rounded-full"
-                      >
-                        {worker}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Still Assignment
-                  </p>
-                  <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 inline-block text-sm py-1 px-3 rounded-md font-medium">
-                    {job.still}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-center mb-2">
-                    <MapPin
-                      size={16}
-                      className="text-gray-500 dark:text-gray-400 mr-2"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Location
-                    </p>
-                  </div>
-                  <p className="text-sm">{renderLocation(job.location)}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Drum IDs
-                  </p>
-                  {renderDrumChips(job.drumIds, job.processedDrums)}
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>
+
+      {/* Job Details Modal */}
+      <AnimatePresence>
+        {selectedJob !== null && (
+          <>
+            {/* Modal Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={closeJobDetails}
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="fixed left-[10%] top-[10%] right-[10%] bottom-[10%] bg-white dark:bg-gray-800 z-50 rounded-xl shadow-xl overflow-auto"
+            >
+              {/* Modal Header with Close Button */}
+              <div className="sticky top-0 flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {productionJobs.find((job) => job.id === selectedJob)?.name}
+                </h2>
+                <button
+                  onClick={closeJobDetails}
+                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                  aria-label="Close details"
+                  title="Close details"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-4">
+                {productionJobs
+                  .filter((job) => job.id === selectedJob)
+                  .map((job) => (
+                    <div key={job.id} className="space-y-4">
+                      {/* Progress Info */}
+                      <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-750 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                            Progress
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {job.processedDrums.length} of {job.containers}{" "}
+                            drums scanned
+                          </p>
+                        </div>
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {job.progress}%
+                        </div>
+                      </div>
+
+                      {/* Dates */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-start">
+                          <Calendar
+                            size={18}
+                            className="text-gray-500 dark:text-gray-400 mt-0.5 mr-2 shrink-0"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                              Created
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {job.dateCreated}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <Calendar
+                            size={18}
+                            className="text-blue-500 dark:text-blue-400 mt-0.5 mr-2 shrink-0"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                              Scheduled
+                            </p>
+                            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                              {job.dateScheduled}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Assigned Workers */}
+                      <div>
+                        <div className="flex items-center mb-2">
+                          <Users
+                            size={18}
+                            className="text-gray-500 dark:text-gray-400 mr-2"
+                          />
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                            Assigned Workers
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 ml-7">
+                          {job.assignedWorkers.map((worker, index) => (
+                            <div
+                              key={index}
+                              className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm py-1 px-3 rounded-full"
+                            >
+                              {worker}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Still Assignment */}
+                      <div className="flex items-start">
+                        <div className="bg-indigo-100 dark:bg-indigo-900/20 p-1 rounded-md mr-2">
+                          <div className="w-5 h-5 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <span className="text-sm font-bold">S</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                            Still Assignment
+                          </p>
+                          <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                            {job.still}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Location */}
+                      <div className="flex items-start">
+                        <MapPin
+                          size={18}
+                          className="text-gray-500 dark:text-gray-400 mt-0.5 mr-2 shrink-0"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                            Location
+                          </p>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {renderLocation(job.location)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Drum IDs */}
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                          Drum IDs
+                        </p>
+                        {renderDrumChips(job.drumIds, job.processedDrums)}
+                      </div>
+
+                      {/* Container Info */}
+                      <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-750 rounded-lg mt-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                            Container Type
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {job.containerType}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                            Quantity
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 text-right">
+                            {job.containers}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Display Goods Inwards data if available */}
       {goodsInwards.length > 0 && (
@@ -449,24 +537,24 @@ export function TransportView() {
             {goodsInwards.map((item, index) => (
               <div
                 key={index}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3"
               >
                 <div className="flex justify-between items-start mb-1">
                   <div>
                     <h3 className="font-bold text-gray-800 dark:text-gray-100">
                       {item.item}
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">
                       {item.supplier}
                     </p>
                   </div>
-                  <div className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
-                    <span className="text-gray-700 dark:text-gray-300 text-sm">
+                  <div className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                    <span className="text-gray-700 dark:text-gray-300 text-xs">
                       Qty: {item.quantity}
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 text-sm">
+                <div className="mt-2 text-xs">
                   <div className="flex gap-4">
                     <div>
                       <span className="text-gray-500 dark:text-gray-400">

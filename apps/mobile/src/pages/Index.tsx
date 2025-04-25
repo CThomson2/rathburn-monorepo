@@ -22,9 +22,11 @@ import FloatingNavMenu from "@/components/layout/FloatingNavMenu";
 import TopNavbar from "@/components/navbar/top-navbar";
 import { TransportView } from "@/components/views/TransportView";
 import { ProductionView } from "@/components/views/ProductionView";
+import { TransportSettingsView } from "@/components/views/TransportSettingsView";
 import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
+import { ModalProvider, useModal } from "@/contexts/modal-context";
 
 // import { getDirection } from "@/utils/view-direction";
 import { ScanContext } from "@/contexts/scan-context";
@@ -57,7 +59,7 @@ const statusColors = {
  * navigation bar for quick access to stats, team, and settings.
  * Uses view-switching navigation rather than route changes
  */
-const Index = () => {
+const IndexContent = () => {
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("Transport");
   const [isLoading, setIsLoading] = useState(true);
@@ -71,6 +73,7 @@ const Index = () => {
   const scanFeedbackTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const { isSettingsModalOpen, openSettingsModal } = useModal();
 
   // Navigation handler for the floating menu
   const handleNavigation = (itemId: string) => {
@@ -93,7 +96,7 @@ const Index = () => {
         startSearchTimeout();
         break;
       case "settings":
-        setActiveView("Settings");
+        openSettingsModal();
         break;
       default:
         navigate("/");
@@ -274,27 +277,58 @@ const Index = () => {
   const navLinks = [
     { name: "Transport", icon: Forklift },
     { name: "Production", icon: Atom },
-    { name: "Settings", icon: Settings },
+    { name: "Transport Settings", icon: Settings },
   ];
 
+  // Track previous view for animation direction
+  const [prevView, setPrevView] = useState(activeView);
+
+  // Update prevView whenever activeView changes
+  useEffect(() => {
+    if (prevView !== activeView) {
+      setPrevView(activeView);
+    }
+  }, [activeView, prevView]);
+
   const handleViewChange = (viewName: string) => {
+    // Calculate direction before changing the view
+    const oldIndex = navLinks.findIndex((link) => link.name === activeView);
+    const newIndex = navLinks.findIndex((link) => link.name === viewName);
+    const direction = newIndex - oldIndex;
+
+    // Store the swipe direction in state
+    setSwipeDirection(direction);
+
+    // Update the active view
     setActiveView(viewName);
   };
 
+  // State to track the swipe direction
+  const [swipeDirection, setSwipeDirection] = useState(0);
+
   const handlers = useSwipeable({
-    onSwipedLeft: () =>
-      handleViewChange(
-        navLinks[(navLinks.map((n) => n.name).indexOf(activeView) + 1) % 3].name
-      ),
-    onSwipedRight: () =>
-      handleViewChange(
-        navLinks[
-          (navLinks.map((n) => n.name).indexOf(activeView) -
-            1 +
-            navLinks.length) %
-            navLinks.length
-        ].name
-      ),
+    onSwipedLeft: () => {
+      const currentIndex = navLinks.findIndex(
+        (link) => link.name === activeView
+      );
+      const nextIndex = (currentIndex + 1) % navLinks.length;
+      const nextView = navLinks[nextIndex].name;
+
+      // Set direction for left swipe (positive - move right)
+      setSwipeDirection(1);
+      setActiveView(nextView);
+    },
+    onSwipedRight: () => {
+      const currentIndex = navLinks.findIndex(
+        (link) => link.name === activeView
+      );
+      const nextIndex = (currentIndex - 1 + navLinks.length) % navLinks.length;
+      const nextView = navLinks[nextIndex].name;
+
+      // Set direction for right swipe (negative - move left)
+      setSwipeDirection(-1);
+      setActiveView(nextView);
+    },
   });
 
   // Animation variants for the view transitions
@@ -313,15 +347,6 @@ const Index = () => {
     }),
   };
 
-  // Get the direction of the swipe based on the old and new view index
-  const getDirection = (newView: string) => {
-    const oldIndex = navLinks.findIndex((link) => link.name === activeView);
-    const newIndex = navLinks.findIndex((link) => link.name === newView);
-    console.log("Old index:", oldIndex, "New index:", newIndex);
-    console.log("Direction:", newIndex - oldIndex > 0 ? "right" : "left");
-    return newIndex - oldIndex;
-  };
-
   // Function to reset scanned drums
   const resetScannedDrums = () => {
     console.log("Resetting scanned drums");
@@ -338,13 +363,11 @@ const Index = () => {
    * @returns {JSX.Element}
    */
   const renderView = () => {
-    const direction = getDirection(activeView);
-
     return (
-      <AnimatePresence initial={false} mode="wait" custom={direction}>
+      <AnimatePresence initial={false} mode="wait" custom={swipeDirection}>
         <motion.div
           key={activeView}
-          custom={direction}
+          custom={swipeDirection}
           variants={variants}
           initial="enter"
           animate="center"
@@ -353,7 +376,7 @@ const Index = () => {
             x: { type: "spring", stiffness: 300, damping: 30 },
             opacity: { duration: 0.2 },
           }}
-          className="w-full h-[75%] overflow-auto pb-20"
+          className="w-full h-[100%] overflow-auto pb-20"
         >
           <ScanContext.Provider
             value={{
@@ -364,7 +387,7 @@ const Index = () => {
           >
             {activeView === "Transport" && <TransportView />}
             {activeView === "Production" && <ProductionView />}
-            {activeView === "Settings" && <SettingsView />}
+            {activeView === "Transport Settings" && <TransportSettingsView />}
           </ScanContext.Provider>
         </motion.div>
       </AnimatePresence>
@@ -455,14 +478,30 @@ const Index = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Settings Modal */}
+        <AnimatePresence>
+          {isSettingsModalOpen && <SettingsView />}
+        </AnimatePresence>
       </div>
 
       {/* Floating navigation menu */}
+      {/* <div className="fixed w-16 h-16 bottom-1 left-1 right-0 z-50 border-b-2 rounded-[50%] bg-slate-200 dark:bg-gray-800"> */}
       <FloatingNavMenu
         onNavigate={handleNavigation}
         onMenuToggle={handleMenuToggle}
       />
+      {/* </div> */}
     </div>
+  );
+};
+
+// Wrapper component to provide the modal context
+const Index = () => {
+  return (
+    <ModalProvider>
+      <IndexContent />
+    </ModalProvider>
   );
 };
 

@@ -4,12 +4,23 @@ import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { executeDbOperation } from "@/lib/database";
+import nextCors from "nextjs-cors";
+
+type ScanAction =
+  | "context_get"
+  | "context_set"
+  | "transport"
+  | "location_set"
+  | "barcode_scan"
+  | "cancel_scan"
+  | "fast_forward"
+  | "bulk";
 
 type DrumScanBody = {
-  rawBarcode: string;
-  deviceId: string;
-  actionType: string;
-  metadata?: Record<string, any>;
+  barcode: string;           // raw_barcode
+  jobId: number;             // for metadata.job_id
+  action: ScanAction;  // determines action_type
+  deviceId?: string;         // device identifier
 };
 
 /**
@@ -72,10 +83,10 @@ export async function OPTIONS(req: NextRequest) {
  *
  * @param {NextRequest} req - The request object containing:
  *   @param {Object} req.body - Request body
- *   @param {string} req.body.rawBarcode - Raw barcode data from the scan
- *   @param {string} req.body.deviceId - Identifier for the scanning device
- *   @param {string} req.body.actionType - Type of action associated with the scan
- *   @param {Object} [req.body.metadata] - Optional additional metadata for the scan
+ *   @param {string} req.body.barcode - Raw barcode data from the scan
+ *   @param {number} req.body.jobId - Job ID associated with the scan
+ *   @param {string} req.body.action - Action type associated with the scan
+ *   @param {string} [req.body.deviceId] - Identifier for the scanning device
  *
  * @returns {Promise<NextResponse>} Response object with:
  *   - 201: Successfully logged scan
@@ -109,20 +120,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return setCorsHeaders(response);
     }
 
-    // 2) Insert directly with the Supabase client instead of using the helper
-    // to work around schema-qualified table names
+    // 2) Transform the request body to match your DB schema
+    const { barcode, jobId, action, deviceId = req.headers.get('user-agent') || "unknown" } = body;
+
+    // 3) Determine the action type for logs.drum_scan
+    const actionType = action === 'cancel_scan' ? 'cancel_scan' : 'barcode_scan';
+
+    // 4) Insert data with proper mapping
     const { data, error } = await supabase
       .from("logs.drum_scan")
-      .insert([
-        {
-          user_id: user.id,
-          device_id: body.deviceId,
-          raw_barcode: body.rawBarcode,
-          action_type: body.actionType,
-          metadata: body.metadata || {},
-          status: "processed",
-        },
-      ])
+      .insert({
+        user_id: user.id,
+        device_id: deviceId,
+        raw_barcode: barcode,
+        detected_drum: barcode, // Assuming barcode is the drum ID
+        action_type: actionType,
+        status: "processed",
+        metadata: {
+          job_id: jobId,
+          scan_method: action === 'bulk' ? 'bulk_registration' : 'single_scan',
+          app_version: '1.0.0'
+        }
+      })
       .select()
       .single();
 
@@ -135,7 +154,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return setCorsHeaders(response);
     }
 
-    // 3) Return the enriched row (with scan_id, timestamps, triggers fired)
+    // 5) Return the enriched row (with scan_id, timestamps, triggers fired)
     const response = NextResponse.json({ scan: data }, { status: 201 });
     return setCorsHeaders(response);
   } catch (error) {
