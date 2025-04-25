@@ -2,15 +2,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Order } from "@/features/production/types";
 import {
   AnimatedOrderCard,
   OrdersToolbar,
   CreateJobModal,
-  fetchProductionJobs,
 } from "@/features/production";
 import { useToast } from "@/hooks/use-toast";
+import { fetchProductionJobs } from "./actions/production";
+import type { Order } from "@/features/production/types";
 
+/**
+ * OrdersPage is a Next.js page that displays a list of orders.
+ * It loads data from the API on initial render and allows the user to search, filter, and sort the orders.
+ * It also shows a create job modal when the user clicks the "Create Order" button.
+ *
+ * @returns The JSX element for the OrdersPage component.
+ */
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +32,7 @@ const OrdersPage = () => {
     setLoading(true);
     try {
       const jobs = await fetchProductionJobs();
-      setOrders(jobs);
+      setOrders(jobs as Order[]);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast({

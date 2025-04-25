@@ -47,3 +47,16 @@ export const withSupabaseClient = async <T>(
     throw error;
   }
 };
+
+export const withViewSupabaseClient = async <T>(
+  operation: SupabaseOperationCallback<T>,
+): Promise<T> => {
+  const db = createClient();
+  try {
+    // Execute the provided operation with the SupabaseClient instance
+    return await operation(db);
+  } catch (error) {
+    console.error("Supabase operation failed:", error);
+    throw error;
+  }
+};

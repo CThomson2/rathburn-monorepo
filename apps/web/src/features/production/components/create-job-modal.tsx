@@ -21,41 +21,67 @@ import {
   createProductionJob,
   fetchAvailableBatches,
   fetchItems,
-} from "../services/production-service";
+} from "@/app/(routes)/production/actions/production";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Props for the CreateJobModal component
+ * @interface CreateJobModalProps
+ * @property {boolean} isOpen - Whether the modal is open
+ * @property {() => void} onClose - Function to call when the modal is closed
+ * @property {() => void} onJobCreated - Function to call when a job is successfully created
+ */
 type CreateJobModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onJobCreated: () => void;
 };
 
+/**
+ * Modal component for creating a new production job
+ * Allows users to select an item, input batch, scheduled date, and priority
+ *
+ * @component
+ * @param {CreateJobModalProps} props - Component props
+ * @returns {JSX.Element} The rendered modal component
+ */
 export const CreateJobModal = ({
   isOpen,
   onClose,
   onJobCreated,
 }: CreateJobModalProps) => {
+  // State for items and batches fetched from the server
   const [items, setItems] = useState<any[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Form state with default values
   const [formData, setFormData] = useState({
     itemId: "",
     batchId: "",
     plannedDate: "",
-    priority: "5",
+    priority: "5", // Default priority is medium (5)
   });
+
   const { toast } = useToast();
 
-  // Fetch items and batches when modal opens
+  /**
+   * Fetch items and batches when the modal opens
+   */
   useEffect(() => {
     if (isOpen) {
       fetchData();
     }
   }, [isOpen]);
 
+  /**
+   * Fetches items and available batches from the server
+   * Sets loading state and handles errors
+   */
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      // Fetch items and batches in parallel for better performance
       const [itemsData, batchesData] = await Promise.all([
         fetchItems(),
         fetchAvailableBatches(),
@@ -73,6 +99,12 @@ export const CreateJobModal = ({
     }
   };
 
+  /**
+   * Updates form data when a field changes
+   *
+   * @param {string} key - The form field to update
+   * @param {string} value - The new value for the field
+   */
   const handleChange = (key: string, value: string) => {
     setFormData({
       ...formData,
@@ -80,16 +112,23 @@ export const CreateJobModal = ({
     });
   };
 
+  /**
+   * Handles form submission to create a new production job
+   * Validates input and shows appropriate toast messages
+   *
+   * @param {React.FormEvent} e - The form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Create the job
+      // Use provided date or default to current date
       const plannedDate = formData.plannedDate
         ? new Date(formData.plannedDate)
         : new Date();
 
+      // Create the job with the API
       const jobId = await createProductionJob(
         formData.itemId,
         formData.batchId,
@@ -98,13 +137,15 @@ export const CreateJobModal = ({
       );
 
       if (jobId) {
+        // Success case
         toast({
           title: "Job created successfully",
           description: `Job ID: ${jobId}`,
         });
-        onJobCreated();
-        onClose();
+        onJobCreated(); // Trigger refresh of parent component
+        onClose(); // Close the modal
       } else {
+        // API returned but no job ID
         toast({
           title: "Failed to create job",
           description: "An error occurred while creating the job",
@@ -112,6 +153,7 @@ export const CreateJobModal = ({
         });
       }
     } catch (error) {
+      // Exception occurred during API call
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -130,6 +172,7 @@ export const CreateJobModal = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Item selection field */}
           <div className="space-y-2">
             <Label htmlFor="item">Material/Item</Label>
             <Select
@@ -150,6 +193,7 @@ export const CreateJobModal = ({
             </Select>
           </div>
 
+          {/* Batch selection field */}
           <div className="space-y-2">
             <Label htmlFor="batch">Input Batch</Label>
             <Select
@@ -170,6 +214,7 @@ export const CreateJobModal = ({
             </Select>
           </div>
 
+          {/* Date/time picker for scheduling */}
           <div className="space-y-2">
             <Label htmlFor="plannedDate">Scheduled Date</Label>
             <Input
@@ -181,6 +226,7 @@ export const CreateJobModal = ({
             />
           </div>
 
+          {/* Priority selection field */}
           <div className="space-y-2">
             <Label htmlFor="priority">Priority (1-10)</Label>
             <Select
@@ -201,6 +247,7 @@ export const CreateJobModal = ({
             </Select>
           </div>
 
+          {/* Form action buttons */}
           <DialogFooter className="mt-6">
             <Button
               type="button"

@@ -27,9 +27,11 @@ export type Order = {
   }[];
 }
 
+export type JobStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'paused' | 'completed' | 'failed' | 'cancelled';
+
 // Mapping from database status to UI status
 export const mapJobStatusToOrderStatus = (
-  status: string
+  status: JobStatus
 ): OrderStatus => {
   switch (status) {
     case 'scheduled':

@@ -70,7 +70,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const pathname = usePathname();
 
   const navItems: NavItem[] = [
-    { name: "Production", icon: Home, url: "/", level: 1 },
+    { name: "Dashboard", icon: Home, url: "/", level: 1 },
     { name: "Orders", icon: Clipboard, url: "/orders", level: 2 },
     {
       name: "Inventory",
@@ -79,18 +79,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       level: 2,
     },
     {
-      name: "Documentation",
-      icon: File,
-      url: "/docs",
-      level: 4,
-    },
-    {
-      name: "Account",
-      icon: User,
-      url: "/protected",
+      name: "Production",
+      icon: Home,
+      url: "/production",
       level: 5,
     },
-    // { name: "Orders", icon: Clipboard, url: "/orders" },
   ];
 
   const closeSidebar = () => {
