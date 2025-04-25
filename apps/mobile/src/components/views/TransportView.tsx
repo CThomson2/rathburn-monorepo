@@ -1,14 +1,22 @@
-import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, Calendar, Users, MapPin } from "lucide-react";
+import { useState, useEffect, useContext } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Users,
+  MapPin,
+  RefreshCw,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ScanContext } from "@/pages/Index";
 
 const statusColors = {
   transport: {
     pending: "#03045e",
-    inProgress: "##0077B6",
+    inProgress: "#0077B6",
   },
   production: {
-    pending: "##82E3FC",
+    pending: "#82E3FC",
     inProgress: "#00b4d8",
   },
   shared: {
@@ -21,13 +29,16 @@ const statusColors = {
  * Extracted from the original Index component
  */
 export function TransportView() {
-  // Sample production jobs data
+  // Get the scanned drums from context
+  const { scannedDrums, resetScannedDrums } = useContext(ScanContext);
+
+  // Sample production jobs data with properly typed processedDrums
   const [productionJobs, setProductionJobs] = useState([
     {
       id: 1,
       name: "Pentane",
       manufacturer: "Caldic",
-      containers: 2,
+      containers: 5,
       containerType: "Drums",
       progress: 0,
       color: statusColors.transport.pending,
@@ -38,12 +49,13 @@ export function TransportView() {
       drumIds: ["17583", "17584", "17585", "17586", "17587"],
       still: "Still B",
       location: "Old Site",
+      processedDrums: [] as string[],
     },
     {
       id: 2,
       name: "Acetic Acid",
       manufacturer: "Univar",
-      containers: 1,
+      containers: 12,
       containerType: "Drums",
       progress: 0,
       color: statusColors.transport.pending,
@@ -67,8 +79,92 @@ export function TransportView() {
       ],
       still: "Still G",
       location: "New Site",
+      processedDrums: [] as string[],
     },
   ]);
+
+  // Add debug info to track state changes
+  useEffect(() => {
+    console.log("Current production jobs state:", productionJobs);
+  }, [productionJobs]);
+
+  // Update progress when scannedDrums changes
+  useEffect(() => {
+    if (scannedDrums.length === 0) {
+      // Reset all progress if scannedDrums is empty
+      setProductionJobs((prev) =>
+        prev.map((job) => ({
+          ...job,
+          progress: 0,
+          color: statusColors.transport.pending,
+          processedDrums: [],
+        }))
+      );
+      return;
+    }
+
+    console.log("TransportView: scannedDrums changed:", scannedDrums);
+
+    // Create a fresh copy of the production jobs array to ensure state update
+    const updatedJobs = [...productionJobs];
+    let hasChanges = false;
+
+    // Map over jobs and update them
+    const newJobs = updatedJobs.map((job) => {
+      // Get list of drums that are in scannedDrums but not yet in processedDrums
+      const newScannedDrums = scannedDrums.filter(
+        (drumId) =>
+          job.drumIds.includes(drumId) && !job.processedDrums.includes(drumId)
+      );
+
+      // If no new scans for this job, leave it unchanged
+      if (newScannedDrums.length === 0) {
+        return job;
+      }
+
+      // Mark that we have changes to apply
+      hasChanges = true;
+      console.log(
+        `TransportView: Job ${job.id} (${job.name}) - found ${newScannedDrums.length} newly scanned drums:`,
+        newScannedDrums
+      );
+
+      // Calculate new processed drums
+      const processedDrums = [...job.processedDrums, ...newScannedDrums];
+
+      // Calculate progress percentage based on containers
+      const progressPercentage = Math.min(
+        100,
+        Math.round((processedDrums.length / job.containers) * 100)
+      );
+
+      console.log(
+        `TransportView: Job ${job.id} - progress updated from ${job.progress}% to ${progressPercentage}%`
+      );
+
+      // Determine color based on progress
+      let color = job.color;
+      if (progressPercentage === 100) {
+        color = statusColors.shared.completed;
+      } else if (progressPercentage > 0) {
+        color = statusColors.transport.inProgress;
+      }
+
+      // Return updated job
+      return {
+        ...job,
+        progress: progressPercentage,
+        color,
+        processedDrums,
+      };
+    });
+
+    // Only update state if changes were made
+    if (hasChanges) {
+      console.log("TransportView: Updating state with new jobs:", newJobs);
+      setProductionJobs(newJobs);
+    }
+  }, [scannedDrums]);
 
   // Define the type for goods inwards
   type GoodsInData = {
@@ -118,14 +214,18 @@ export function TransportView() {
   };
 
   // Function to render drum ID chips
-  const renderDrumChips = (drums: string[]) => {
+  const renderDrumChips = (drums: string[], processedDrums: string[]) => {
     const displayDrums = drums.slice(0, 8);
     return (
       <div className="grid grid-cols-4 gap-2">
         {displayDrums.map((drum, index) => (
           <div
             key={index}
-            className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm py-1 px-2 rounded text-center"
+            className={`${
+              processedDrums.includes(drum)
+                ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            } text-sm py-1 px-2 rounded text-center`}
           >
             {drum}
           </div>
@@ -158,15 +258,36 @@ export function TransportView() {
 
   return (
     <div className="w-full">
-      {/* Section Header */}
+      {/* Section Header with Reset Button */}
       <div className="flex justify-between items-center px-6 py-4">
         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
           Goods in Transport
         </h2>
-        <button className="text-blue-600 dark:text-blue-400 font-medium">
-          View All
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={resetScannedDrums}
+            className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1"
+            title="Reset scanned drums"
+          >
+            <RefreshCw size={18} />
+            <span className="text-sm">Reset</span>
+          </button>
+          <button className="text-blue-600 dark:text-blue-400 font-medium">
+            View All
+          </button>
+        </div>
       </div>
+
+      {/* Progress Indicator */}
+      {scannedDrums.length > 0 && (
+        <div className="px-6 mb-4">
+          <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded-md">
+            <p className="text-sm font-medium">
+              Scanned drums: {scannedDrums.length}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Production Jobs List */}
       <div className="px-4 space-y-3">
@@ -202,7 +323,14 @@ export function TransportView() {
                       width: `${job.progress}%`,
                       backgroundColor: job.color,
                     }}
-                  />
+                  ></div>
+                </div>
+                {/* Progress percentage indicator */}
+                <div className="text-right mt-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {job.processedDrums.length}/{job.containers} ({job.progress}
+                    %)
+                  </span>
                 </div>
               </div>
             </div>
@@ -303,7 +431,7 @@ export function TransportView() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     Drum IDs
                   </p>
-                  {renderDrumChips(job.drumIds)}
+                  {renderDrumChips(job.drumIds, job.processedDrums)}
                 </div>
               </div>
             )}
