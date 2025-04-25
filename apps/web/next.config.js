@@ -82,7 +82,7 @@ const nextConfig = {
   },
   // Ignore specific paths during build
   poweredByHeader: false,
-  transpilePackages: [],
+  transpilePackages: ["@rathburn/mobile"],
   // Other method to exclude files: create .babelignore in project root
 };
 

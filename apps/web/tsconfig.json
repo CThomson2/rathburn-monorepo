@@ -17,6 +17,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/config/*": ["./config/*"],
+      "@rathburn/mobile/*": ["../mobile/*"],
       "react": ["./node_modules/@types/react"]
     },
     "types": ["node", "react-dom/canary"],

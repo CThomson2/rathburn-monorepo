@@ -1,136 +1,177 @@
-import { createClient } from "@/lib/supabase/client";
+// /src/lib/supabase/auth.ts
+import { createClient, User, Session, SupabaseClient } from '@supabase/supabase-js';
+
+// Get Supabase URL and Anon Key from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Define the type for the auth result
+interface AuthResult {
+  session: Session | null;
+  user: User | null;
+  error: Error | null;
+}
+
+// Create a Supabase client singleton
+let supabaseClient: SupabaseClient | null = null;
 
 /**
- * Get the Supabase JWT token for the current session
- * This can be used to authenticate API requests to the backend
+ * Get the Supabase client instance
  * 
- * @returns {Promise<string>} The JWT token or empty string if not authenticated
+ * @returns The Supabase client
  */
-export async function getSupabaseToken(): Promise<string> {
-  try {
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.getSession();
-    
-    if (error || !data.session) {
-      console.error("Error getting Supabase token:", error);
-      return "";
-    }
-    
-    return data.session.access_token;
-  } catch (error) {
-    console.error("Unexpected error getting Supabase token:", error);
-    return "";
+export function getSupabase() {
+  if (!supabaseClient) {
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        storage: localStorage, // Use localStorage for session persistence
+      },
+    });
   }
+  
+  return supabaseClient;
 }
 
 /**
- * Get the current user session
+ * Get the current authentication state
  * 
- * @returns {Promise<{ user: any | null, session: any | null, error: any | null }>}
+ * @returns A promise that resolves to the auth result
  */
-export async function getCurrentSession() {
+export async function getSupabaseAuth(): Promise<AuthResult> {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.getSession();
+    const supabase = getSupabase();
+    
+    // Get the current session
+    const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
-      return { user: null, session: null, error };
+      return { session: null, user: null, error };
     }
     
-    return { 
-      user: data.session?.user || null, 
-      session: data.session, 
-      error: null 
+    // Get the current user if we have a session
+    if (session) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        return { session, user: null, error: userError };
+      }
+      
+      return { session, user, error: null };
+    }
+    
+    return { session: null, user: null, error: null };
+    
+  } catch (error) {
+    return {
+      session: null,
+      user: null,
+      error: error instanceof Error ? error : new Error(String(error)),
     };
-  } catch (error) {
-    console.error("Error getting current session:", error);
-    return { user: null, session: null, error };
   }
 }
 
 /**
- * Get user details from Supabase Auth
+ * Sign in with email and password
  * 
- * @returns {Promise<{ user: any | null, error: any | null }>}
+ * @param email The user's email
+ * @param password The user's password
+ * @returns A promise that resolves to the auth result
  */
-export async function getUserDetails() {
+export async function signIn(email: string, password: string): Promise<AuthResult> {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.getUser();
+    const supabase = getSupabase();
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     
     if (error) {
-      return { user: null, error };
+      return { session: null, user: null, error };
     }
     
-    return { user: data.user, error: null };
+    return {
+      session: data.session,
+      user: data.user,
+      error: null,
+    };
+    
   } catch (error) {
-    console.error("Error getting user details:", error);
-    return { user: null, error };
+    return {
+      session: null,
+      user: null,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
   }
 }
 
 /**
- * Refresh the current session
+ * Sign out the current user
  * 
- * @returns {Promise<{ session: any | null, error: any | null }>}
+ * @returns A promise that resolves to a boolean indicating success
  */
-export async function refreshSession() {
+export async function signOut(): Promise<boolean> {
   try {
-    const supabase = createClient();
+    const supabase = getSupabase();
+    
+    const { error } = await supabase.auth.signOut();
+    
+    return !error;
+    
+  } catch (error) {
+    console.error('Error signing out:', error);
+    return false;
+  }
+}
+
+/**
+ * Refresh the session token
+ * 
+ * @returns A promise that resolves to the auth result
+ */
+export async function refreshSession(): Promise<AuthResult> {
+  try {
+    const supabase = getSupabase();
+    
     const { data, error } = await supabase.auth.refreshSession();
     
     if (error) {
-      return { session: null, error };
+      return { session: null, user: null, error };
     }
     
-    return { session: data.session, error: null };
+    return {
+      session: data.session,
+      user: data.user,
+      error: null,
+    };
+    
   } catch (error) {
-    console.error("Error refreshing session:", error);
-    return { session: null, error };
+    return {
+      session: null,
+      user: null,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
   }
 }
 
 /**
- * Set the auth session from a URL hash - useful for handling OAuth redirects
- * or magic link authentications
+ * Set up an auth state change listener
  * 
- * @param {string} url The URL containing the session information
- * @returns {Promise<{ session: any | null, error: any | null }>}
+ * @param callback Function to call when auth state changes
+ * @returns A function to remove the listener
  */
-export async function setSessionFromUrl(url: string) {
-  try {
-    const supabase = createClient();
-    // Extract hash from the URL
-    const hash = new URL(url).hash;
-    
-    if (!hash) {
-      return { session: null, error: new Error("No hash found in URL") };
+export function onAuthStateChange(callback: (session: Session | null) => void): () => void {
+  const supabase = getSupabase();
+  
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    (_event: string, session: Session | null) => {
+      callback(session);
     }
-    
-    const { data, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      return { session: null, error };
-    }
-    
-    return { session: data.session, error: null };
-  } catch (error) {
-    console.error("Error setting session from URL:", error);
-    return { session: null, error };
-  }
+  );
+  
+  // Return a function to unsubscribe
+  return () => {
+    subscription.unsubscribe();
+  };
 }
-
-/**
- * Check if the user is authenticated
- * 
- * @returns {Promise<boolean>}
- */
-export async function isAuthenticated(): Promise<boolean> {
-  try {
-    const { session, error } = await getCurrentSession();
-    return !!session && !error;
-  } catch (error) {
-    console.error("Error checking authentication:", error);
-    return false;
-  }
-} 
