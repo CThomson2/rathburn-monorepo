@@ -1,0 +1,51 @@
+name: Notify Manager on Main Branch Updates
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  notify:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get commit details
+        id: commit-details
+        run: |
+          echo "::set-output name=subject::$(git log -1 --pretty=%s)"
+          echo "::set-output name=body::$(git log -1 --pretty=%B | tail -n +3)"
+          echo "::set-output name=author::$(git log -1 --pretty=%an)"
+          echo "::set-output name=sha::$(git log -1 --pretty=%h)"
+
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[Production Update] ${{ steps.commit-details.outputs.subject }}"
+          body: |
+            A new update has been deployed to the production environment.
+
+            Commit: ${{ steps.commit-details.outputs.subject }}
+            Author: ${{ steps.commit-details.outputs.author }}
+            Commit ID: ${{ steps.commit-details.outputs.sha }}
+
+            Details:
+            ${{ steps.commit-details.outputs.body }}
+
+            View changes: ${{ github.event.repository.html_url }}/commit/${{ github.sha }}
+            from: ${{ secrets.SMTP_SENDER }}
+            to: conrad.thom14@gmail.com
+            content_type: text/plain

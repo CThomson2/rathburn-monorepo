@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, createContext } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   //   Scan,
@@ -24,22 +24,13 @@ import { TransportView } from "@/components/views/TransportView";
 import { ProductionView } from "@/components/views/ProductionView";
 import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSwipeable } from "react-swipeable";
+
+// import { getDirection } from "@/utils/view-direction";
+import { ScanContext } from "@/contexts/scan-context";
 // import { IntegratedNav } from "@/components/navbar/integrated-nav";
 // import { BottomTabBar } from "@/components/navbar/bottom-tab-bar";
 // import { CombinedNavigation } from "@/components/layout/combined-navigation";
-
-// Create a context for sharing the scanned drums state
-export interface ScanContextType {
-  scannedDrums: string[];
-  handleDrumScan: (scannedValue: string) => void;
-  resetScannedDrums: () => void;
-}
-
-export const ScanContext = createContext<ScanContextType>({
-  scannedDrums: [],
-  handleDrumScan: () => {},
-  resetScannedDrums: () => {},
-});
 
 const statusColors = {
   transport: {
@@ -80,6 +71,34 @@ const Index = () => {
   const scanFeedbackTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  // Navigation handler for the floating menu
+  const handleNavigation = (itemId: string) => {
+    switch (itemId) {
+      case "stats":
+        navigate("/");
+        break;
+      case "team":
+        navigate("/team");
+        break;
+      case "scan":
+        navigate("/scan");
+        break;
+      case "search":
+        setIsSearchVisible(true);
+        // Focus the search input after it's visible
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 100);
+        startSearchTimeout();
+        break;
+      case "settings":
+        setActiveView("Settings");
+        break;
+      default:
+        navigate("/");
+    }
+  };
 
   // Handle barcode scan input
   const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,34 +219,6 @@ const Index = () => {
     };
   }, []);
 
-  // Navigation handler for the floating menu
-  const handleNavigation = (itemId: string) => {
-    switch (itemId) {
-      case "stats":
-        navigate("/");
-        break;
-      case "team":
-        navigate("/team");
-        break;
-      case "scan":
-        navigate("/scan");
-        break;
-      case "search":
-        setIsSearchVisible(true);
-        // Focus the search input after it's visible
-        setTimeout(() => {
-          searchInputRef.current?.focus();
-        }, 100);
-        startSearchTimeout();
-        break;
-      case "settings":
-        setActiveView("Settings");
-        break;
-      default:
-        navigate("/");
-    }
-  };
-
   const startSearchTimeout = () => {
     // Clear any existing timeout
     if (searchTimeoutRef.current) {
@@ -275,10 +266,10 @@ const Index = () => {
     };
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
+  // const handleLogout = async () => {
+  //   await logout();
+  //   navigate("/login");
+  // };
 
   const navLinks = [
     { name: "Transport", icon: Forklift },
@@ -289,6 +280,22 @@ const Index = () => {
   const handleViewChange = (viewName: string) => {
     setActiveView(viewName);
   };
+
+  const handlers = useSwipeable({
+    onSwipedLeft: () =>
+      handleViewChange(
+        navLinks[(navLinks.map((n) => n.name).indexOf(activeView) + 1) % 3].name
+      ),
+    onSwipedRight: () =>
+      handleViewChange(
+        navLinks[
+          (navLinks.map((n) => n.name).indexOf(activeView) -
+            1 +
+            navLinks.length) %
+            navLinks.length
+        ].name
+      ),
+  });
 
   // Animation variants for the view transitions
   const variants = {
@@ -310,6 +317,8 @@ const Index = () => {
   const getDirection = (newView: string) => {
     const oldIndex = navLinks.findIndex((link) => link.name === activeView);
     const newIndex = navLinks.findIndex((link) => link.name === newView);
+    console.log("Old index:", oldIndex, "New index:", newIndex);
+    console.log("Direction:", newIndex - oldIndex > 0 ? "right" : "left");
     return newIndex - oldIndex;
   };
 
@@ -319,11 +328,15 @@ const Index = () => {
     setScannedDrums([]);
   };
 
-  // Reset scanned drums when component mounts (page reload)
-  useEffect(() => {
-    resetScannedDrums();
-  }, []);
-
+  /**
+   * Renders the currently active view.
+   *
+   * Uses AnimatePresence and motion.div to animate the view transitions.
+   * The direction of the swipe is determined by the old and new view index,
+   * and is passed to the custom property of the AnimatePresence component.
+   *
+   * @returns {JSX.Element}
+   */
   const renderView = () => {
     const direction = getDirection(activeView);
 
@@ -359,31 +372,24 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col pt-10 bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
+    <div
+      className="h-screen w-full flex flex-col pt-10 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
+      {...handlers}
+    >
       {/* Barcode input field - visible for testing */}
       <div className="fixed bottom-28 left-0 right-0 px-4 z-50 flex flex-col items-center gap-2">
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 w-full max-w-md flex gap-2">
-          <input
-            ref={barcodeInputRef}
-            type="text"
-            value={barcodeInput}
-            onChange={handleBarcodeInput}
-            onKeyDown={handleBarcodeKeyDown}
-            className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Type or scan barcode here"
-            autoFocus
-            aria-label="Barcode Scanner Input"
-          />
-          <button
-            onClick={() => processBarcodeScan(barcodeInput)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md"
-          >
-            Scan
-          </button>
-        </div>
-        <div className="text-sm text-center text-gray-500 dark:text-gray-400">
-          Try typing "17583" or "16120" and press Enter or click Scan
-        </div>
+        {/* <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 w-full max-w-md flex gap-2"> */}
+        <input
+          ref={barcodeInputRef}
+          type="text"
+          value={barcodeInput}
+          onChange={handleBarcodeInput}
+          onKeyDown={handleBarcodeKeyDown}
+          className="sr-only"
+          autoFocus
+          inputMode="none"
+          aria-label="Barcode Scanner Input"
+        />
       </div>
 
       {/* Navigation Bar */}

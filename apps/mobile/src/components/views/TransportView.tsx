@@ -8,7 +8,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ScanContext } from "@/pages/Index";
+import { ScanContext } from "@/contexts/scan-context";
 
 const statusColors = {
   transport: {
