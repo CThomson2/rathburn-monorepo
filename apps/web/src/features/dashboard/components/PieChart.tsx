@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useColorScheme } from "../utils/theme-colors";
+import { useColorScheme, getChartCssVariables } from "../utils/theme-colors";
 
 interface PieChartProps {
   data: number[];
@@ -15,12 +15,25 @@ export function PieChart({
   labels,
 }: PieChartProps) {
   const { theme } = useTheme();
-  const colors = useColorScheme(theme);
-  
-  // Use provided colors or default from theme
-  const chartColors = customColors || 
-    (theme === "dark" ? colors.pieColors : colors.pieColors);
-    
+  const colors = useColorScheme();
+
+  // Define chart colors - use custom colors or generate from CSS variables
+  const chartCssVars = getChartCssVariables();
+  const defaultColors = [
+    "var(--chart-hydrocarbon)",
+    "var(--chart-solvent)",
+    "var(--chart-aromatic)",
+    "var(--chart-success)",
+    "var(--chart-warning)",
+    "var(--chart-error)",
+    "hsl(var(--primary))",
+    "hsl(var(--secondary))",
+    "hsl(var(--accent))",
+  ];
+
+  // Use provided colors or default colors
+  const chartColors = customColors || defaultColors;
+
   // Simple pie chart implementation
   const total = data.reduce((sum, value) => sum + value, 0);
 
@@ -29,7 +42,7 @@ export function PieChart({
       <svg width="100%" height="85%" viewBox="0 0 100 100">
         {data.map((value, index) => {
           if (value === 0) return null;
-          
+
           const percentage = value / total;
           const startAngle = data
             .slice(0, index)
@@ -58,26 +71,23 @@ export function PieChart({
           );
         })}
       </svg>
-      
+
       {labels && (
         <div className="flex flex-wrap justify-center gap-4 mt-2">
-          {labels.map((label, index) => (
-            data[index] > 0 && (
-              <div key={label} className="flex items-center">
-                <div
-                  className="w-3 h-3 rounded-full mr-2"
-                  style={{
-                    backgroundColor: chartColors[index % chartColors.length]
-                  }}
-                />
-                <span
-                  className={`text-sm ${theme === "dark" ? colors.textColor : colors.textColor}`}
-                >
-                  {label}
-                </span>
-              </div>
-            )
-          ))}
+          {labels.map(
+            (label, index) =>
+              data[index] > 0 && (
+                <div key={label} className="flex items-center">
+                  <div
+                    className="w-3 h-3 rounded-full mr-2"
+                    style={{
+                      backgroundColor: chartColors[index % chartColors.length],
+                    }}
+                  />
+                  <span className="text-sm text-foreground">{label}</span>
+                </div>
+              )
+          )}
         </div>
       )}
     </div>

@@ -16,6 +16,21 @@ interface SummaryCardProps {
   items: SummaryItemProps[];
 }
 
+/**
+ * A card component for summarizing data, with a title and a list of items with
+ * labels and values. The values are displayed as a bar chart, with the width of
+ * each bar representing the proportion of the total that the item represents.
+ * The bars are colored based on the value of the item, with three levels of
+ * severity: errors (red), warnings (amber), and normal (blue).
+ *
+ * @param title - The title of the card.
+ * @param items - An array of objects with the following properties:
+ *   - label - The label for the item.
+ *   - value - The value for the item.
+ *   - total - The total value of the items.
+ *   - isError - If true, the bar for this item will be red.
+ *   - isWarning - If true, the bar for this item will be amber.
+ */
 export function SummaryCard({ title, items }: SummaryCardProps) {
   const colors = useColorScheme();
 
@@ -23,11 +38,11 @@ export function SummaryCard({ title, items }: SummaryCardProps) {
     <div
       className={cn(
         "rounded-lg p-6 shadow-sm border",
-        colors.cardBackground,
-        colors.borderColor
+        colors.card,
+        colors.border
       )}
     >
-      <h2 className={cn("text-lg font-semibold mb-4", colors.headingColor)}>
+      <h2 className={cn("text-lg font-semibold mb-4", colors.foreground)}>
         {title}
       </h2>
 
@@ -35,7 +50,7 @@ export function SummaryCard({ title, items }: SummaryCardProps) {
         {items.map((item, index) => (
           <div key={index}>
             <div className="flex justify-between items-center mb-1">
-              <span className={colors.textColor}>{item.label}</span>
+              <span className={colors.foreground}>{item.label}</span>
               <span
                 className={cn(
                   "font-semibold",
@@ -43,7 +58,7 @@ export function SummaryCard({ title, items }: SummaryCardProps) {
                     ? "text-red-600 dark:text-red-400"
                     : item.isWarning
                       ? "text-amber-600 dark:text-amber-400"
-                      : colors.headingColor
+                      : colors.foreground
                 )}
               >
                 {item.value}

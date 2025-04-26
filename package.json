@@ -2,6 +2,8 @@
   "name": "rathburn-ops-monorepo",
   "private": true,
   "scripts": {
+    "install": "turbo run install",
+    "install:prod": "pnpm install --filter=!@rathburn/mcp-server",
     "build": "turbo run build --filter=@rathburn/web --filter=@rathburn/mobile",
     "build:web": "turbo run build --filter=@rathburn/web",
     "start:web": "turbo run start --filter=@rathburn/web",

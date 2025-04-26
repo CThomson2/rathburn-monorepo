@@ -14,6 +14,7 @@ Local env files
 
 # Testing
 coverage
+sql/
 
 # Turbo
 .turbo
@@ -26,6 +27,7 @@ coverage
 out/
 build
 dist
+pnpm-lock.yaml
 
 # Debug
 npm-debug.log*
