@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DrumInventory } from "../types";
+import { useTheme } from "next-themes";
 
 /**
  * Redesigned ChemicalInventoryDashboard with improved color palette,
@@ -50,9 +51,72 @@ interface ChemicalInventoryDashboardProps {
   initialData: DrumInventory[];
 }
 
+// Define color schemes for light and dark modes
+const colorSchemes = {
+  light: {
+    background: "bg-white",
+    cardBackground: "bg-white",
+    chartColors: ["#2563eb", "#4338ca", "#0369a1", "#0891b2", "#0c4a6e"],
+    pieColors: ["#2563eb", "#4338ca", "#0369a1", "#0891b2", "#0c4a6e"],
+    textColor: "text-gray-700",
+    headingColor: "text-gray-900",
+    borderColor: "border-gray-200",
+    gridColor: "#e2e8f0",
+    cardBg: "bg-white",
+    cardBorder: "border-slate-100",
+    chartGrid: "#e2e8f0",
+    chartAxis: "#94a3b8",
+    chartText: "#1e293b",
+    chartTooltipBorder: "#e2e8f0",
+    chartTooltipBg: "#ffffff",
+    headingText: "text-slate-800",
+    subheadingText: "text-slate-700",
+    bodyText: "text-slate-500",
+    groups: {
+      Hydrocarbons: "#3b82f6",
+      Aromatics: "#ef4444",
+      "Gen Solvents": "#10b981",
+      reproHydrocarbons: "#1d4ed8",
+      reproAromatics: "#b91c1c",
+      reproGenSolvents: "#047857",
+    },
+    threshold: "#f59e0b",
+  },
+  dark: {
+    background: "bg-gray-950",
+    cardBackground: "bg-gray-900",
+    chartColors: ["#3b82f6", "#6366f1", "#06b6d4", "#22d3ee", "#38bdf8"],
+    pieColors: ["#3b82f6", "#6366f1", "#06b6d4", "#22d3ee", "#38bdf8"],
+    textColor: "text-gray-300",
+    headingColor: "text-white",
+    borderColor: "border-gray-800",
+    gridColor: "#1f2937",
+    cardBg: "bg-gray-800",
+    cardBorder: "border-gray-700",
+    chartGrid: "#374151",
+    chartAxis: "#9ca3af",
+    chartText: "#f3f4f6",
+    chartTooltipBorder: "#4b5563",
+    chartTooltipBg: "#1f2937",
+    headingText: "text-gray-100",
+    subheadingText: "text-gray-200",
+    bodyText: "text-gray-400",
+    groups: {
+      Hydrocarbons: "#60a5fa", // brighter blue
+      Aromatics: "#f87171", // brighter red
+      "Gen Solvents": "#34d399", // brighter green
+      reproHydrocarbons: "#93c5fd", // lighter blue
+      reproAromatics: "#fca5a5", // lighter red
+      reproGenSolvents: "#6ee7b7", // lighter green
+    },
+    threshold: "#fbbf24", // amber for threshold
+  },
+};
+
 export default function ChemicalInventoryDashboard({
   initialData,
 }: ChemicalInventoryDashboardProps) {
+  const { theme } = useTheme();
   const [inventory] = useState<DrumInventory[]>(initialData);
   const [filteredInventory, setFilteredInventory] =
     useState<DrumInventory[]>(initialData);
@@ -64,6 +128,22 @@ export default function ChemicalInventoryDashboard({
   const [selectedItem, setSelectedItem] = useState<DrumInventory | null>(null);
   const [showLowStock, setShowLowStock] = useState(false);
   const [isChartExpanded, setIsChartExpanded] = useState(false);
+
+  // Get color scheme based on theme
+  const colors = theme === "dark" ? colorSchemes.dark : colorSchemes.light;
+
+  // Get theme appropriate bar color
+  const getThemeBarColor = (group: string, isRepro: boolean) => {
+    const colorKey = isRepro ? `repro${group}` : group;
+
+    // Type-safe check if the key exists in the colors.groups
+    if (colorKey in colors.groups) {
+      return colors.groups[colorKey as keyof typeof colors.groups];
+    }
+
+    // Return default fallback colors for repro and new
+    return isRepro ? "#93c5fd" : "#60a5fa";
+  };
 
   // Fixed constants for chart dimensions
   const CHART_BAR_HEIGHT = 25; // Height of each bar
@@ -202,144 +282,518 @@ export default function ChemicalInventoryDashboard({
 
   // No loading or error states needed since data is pre-fetched server-side
 
-  return (
-    <div className="p-3 max-w-full bg-slate-50">
-      <h2 className="text-xl font-semibold mb-4 text-slate-800">
-        Chemical Solvent Inventory
-      </h2>
+  // Add missing components
+  const PieChart = ({
+    data,
+    colors,
+    theme,
+  }: {
+    data: number[];
+    colors: string[];
+    theme: string;
+  }) => {
+    // Simple pie chart implementation
+    const total = data.reduce((sum, value) => sum + value, 0);
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm">Total Drums</h3>
-          <div className="flex items-center">
-            <Package className="mr-2 text-slate-700" size={18} />
-            <span className="text-2xl font-bold text-slate-800">
-              {totalStock}
-            </span>
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 100 100">
+        {data.map((value, index) => {
+          const percentage = value / total;
+          const startAngle = data
+            .slice(0, index)
+            .reduce((sum, v) => sum + (v / total) * 360, 0);
+          const endAngle = startAngle + percentage * 360;
+          const startRad = (startAngle - 90) * (Math.PI / 180);
+          const endRad = (endAngle - 90) * (Math.PI / 180);
+
+          const x1 = 50 + 40 * Math.cos(startRad);
+          const y1 = 50 + 40 * Math.sin(startRad);
+          const x2 = 50 + 40 * Math.cos(endRad);
+          const y2 = 50 + 40 * Math.sin(endRad);
+
+          const largeArcFlag = percentage > 0.5 ? 1 : 0;
+
+          const pathData = `M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+          return (
+            <path
+              key={index}
+              d={pathData}
+              fill={colors[index]}
+              stroke={theme === "dark" ? "#1f2937" : "#fff"}
+              strokeWidth="0.5"
+            />
+          );
+        })}
+      </svg>
+    );
+  };
+
+  const LineChart = ({
+    data,
+    colors,
+    gridColor,
+    textColor,
+    theme,
+  }: {
+    data: { month: string; value: number }[];
+    colors: string[];
+    gridColor: string;
+    textColor: string;
+    theme: string;
+  }) => {
+    // Simple line chart implementation
+    const maxValue = Math.max(...data.map((item) => item.value));
+    const padding = 10;
+    const chartWidth = 100 - padding * 2;
+    const chartHeight = 80 - padding * 2;
+
+    const points = data.map((item, index) => ({
+      x: padding + index * (chartWidth / (data.length - 1)),
+      y: 100 - padding - (item.value / maxValue) * chartHeight,
+    }));
+
+    const pathData = points
+      .map((point, i) => `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+      .join(" ");
+
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 100 100">
+        {/* Grid lines */}
+        <line
+          x1={padding}
+          y1={padding}
+          x2={padding}
+          y2={100 - padding}
+          stroke={gridColor}
+          strokeWidth="0.2"
+        />
+        <line
+          x1={padding}
+          y1={100 - padding}
+          x2={100 - padding}
+          y2={100 - padding}
+          stroke={gridColor}
+          strokeWidth="0.2"
+        />
+
+        {/* Horizontal grid lines */}
+        {[0.25, 0.5, 0.75].map((ratio, i) => (
+          <line
+            key={i}
+            x1={padding}
+            y1={100 - padding - chartHeight * ratio}
+            x2={100 - padding}
+            y2={100 - padding - chartHeight * ratio}
+            stroke={gridColor}
+            strokeWidth="0.2"
+            strokeDasharray="1,1"
+          />
+        ))}
+
+        {/* Line */}
+        <path d={pathData} fill="none" stroke={colors[0]} strokeWidth="1.5" />
+
+        {/* Data points */}
+        {points.map((point, i) => (
+          <circle
+            key={i}
+            cx={point.x}
+            cy={point.y}
+            r="1.5"
+            fill={theme === "dark" ? "#fff" : colors[0]}
+            stroke={colors[0]}
+            strokeWidth="1"
+          />
+        ))}
+
+        {/* X-axis labels */}
+        {data.map((item, i) => (
+          <text
+            key={i}
+            x={padding + i * (chartWidth / (data.length - 1))}
+            y={100 - padding / 2}
+            textAnchor="middle"
+            fill={textColor}
+            fontSize="3"
+          >
+            {item.month.substring(0, 3)}
+          </text>
+        ))}
+      </svg>
+    );
+  };
+
+  // Add missing variables/data
+  const outOfStockItems = filteredInventory.filter(
+    (item) => item.newStock + item.reproStock === 0
+  );
+
+  // Chemical group distribution data
+  const stockStatusLabels = [
+    "Hydrocarbons",
+    "Gen Solvents",
+    "Aromatics",
+    "Out of Stock",
+  ];
+  const stockGroupData = [
+    filteredInventory.filter((item) => item.chGroup === "Hydrocarbons").length,
+    filteredInventory.filter((item) => item.chGroup === "Gen Solvents").length,
+    filteredInventory.filter((item) => item.chGroup === "Aromatics").length,
+    outOfStockItems.length,
+  ];
+
+  const usageTrendsData = [
+    { month: "January", value: 42 },
+    { month: "February", value: 53 },
+    { month: "March", value: 58 },
+    { month: "April", value: 69 },
+    { month: "May", value: 52 },
+    { month: "June", value: 47 },
+  ];
+
+  return (
+    <div
+      className={`${theme === "light" ? colorSchemes.light.background : colorSchemes.dark.background} transition-colors duration-200 p-6 rounded-lg`}
+    >
+      <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
+        <div>
+          <h1
+            className={`text-2xl font-bold ${theme === "light" ? colorSchemes.light.headingColor : colorSchemes.dark.headingColor}`}
+          >
+            Chemical Solvent Inventory
+          </h1>
+          <p
+            className={`${theme === "light" ? colorSchemes.light.textColor : colorSchemes.dark.textColor}`}
+          >
+            Monitor your chemical inventory levels and usage trends
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="relative w-full md:w-64">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search chemicals..."
+              className={`w-full px-4 py-2 rounded-md border ${theme === "light" ? colorSchemes.light.borderColor : colorSchemes.dark.borderColor} ${theme === "light" ? "bg-white" : "bg-gray-800"} ${theme === "light" ? "text-gray-700" : "text-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <Search
+                size={20}
+                className={`h-5 w-5 ${theme === "light" ? "text-gray-400" : "text-gray-500"}`}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              aria-label="Sort by"
+              value={sortConfig.key}
+              onChange={(e) =>
+                setSortConfig({
+                  key: e.target.value,
+                  direction: sortConfig.direction,
+                })
+              }
+              className={`px-4 py-2 rounded-md border ${theme === "light" ? colorSchemes.light.borderColor : colorSchemes.dark.borderColor} ${theme === "light" ? "bg-white" : "bg-gray-800"} ${theme === "light" ? "text-gray-700" : "text-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            >
+              <option value="name">Name</option>
+              <option value="currentStock">Current Stock</option>
+              <option value="reorderLevel">Reorder Level</option>
+              <option value="usageRate">Usage Rate</option>
+            </select>
+            <button
+              onClick={() =>
+                setSortConfig({
+                  key: sortConfig.key,
+                  direction: sortConfig.direction === "asc" ? "desc" : "asc",
+                })
+              }
+              className={`p-2 rounded-md border ${theme === "light" ? colorSchemes.light.borderColor : colorSchemes.dark.borderColor} ${theme === "light" ? "bg-white" : "bg-gray-800"} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            >
+              {sortConfig.direction === "asc" ? (
+                <ArrowUpDown
+                  size={16}
+                  className={`h-5 w-5 ${theme === "light" ? "text-gray-700" : "text-gray-300"}`}
+                />
+              ) : (
+                <ArrowUpDown
+                  size={16}
+                  className={`h-5 w-5 ${theme === "light" ? "text-gray-700" : "text-gray-300"}`}
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setShowLowStock(!showLowStock)}
+              className={`p-2 rounded-md border ${showLowStock ? "border-red-500" : theme === "light" ? colorSchemes.light.borderColor : colorSchemes.dark.borderColor} ${
+                showLowStock
+                  ? theme === "light"
+                    ? "bg-red-50"
+                    : "bg-red-900/20"
+                  : theme === "light"
+                    ? "bg-white"
+                    : "bg-gray-800"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              title={
+                showLowStock ? "Show all items" : "Show only low stock items"
+              }
+            >
+              <AlertTriangle
+                size={16}
+                className={`h-5 w-5 ${showLowStock ? "text-red-500" : theme === "light" ? "text-gray-400" : "text-gray-500"}`}
+              />
+            </button>
           </div>
         </div>
+      </div>
 
-        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm">New Drums</h3>
+      {/* New Top Cards for Total New and Repro Stock */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div
+          className={`${theme === "light" ? "bg-white" : "bg-gray-800"} p-3 rounded-lg shadow-sm border ${theme === "light" ? "border-slate-100" : "border-gray-700"}`}
+        >
+          <h3
+            className={`${theme === "light" ? "text-slate-500" : "text-gray-400"} text-sm`}
+          >
+            New Drums
+          </h3>
           <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-2 bg-gradient-to-r from-blue-500 to-blue-600"></div>
-            <span className="text-2xl font-bold text-slate-800">
+            <div
+              className={`w-4 h-4 rounded mr-2 ${theme === "light" ? "bg-gradient-to-r from-blue-500 to-blue-600" : "bg-gradient-to-r from-blue-600 to-blue-700"}`}
+            ></div>
+            <span
+              className={`text-2xl font-bold ${theme === "light" ? "text-slate-800" : "text-gray-100"}`}
+            >
               {totalNew}
             </span>
           </div>
         </div>
 
-        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm">Repro Drums</h3>
+        <div
+          className={`${theme === "light" ? "bg-white" : "bg-gray-800"} p-3 rounded-lg shadow-sm border ${theme === "light" ? "border-slate-100" : "border-gray-700"}`}
+        >
+          <h3
+            className={`${theme === "light" ? "text-slate-500" : "text-gray-400"} text-sm`}
+          >
+            Repro Drums
+          </h3>
           <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-2 bg-gradient-to-r from-blue-700 to-blue-800"></div>
-            <span className="text-2xl font-bold text-slate-800">
+            <div
+              className={`w-4 h-4 rounded mr-2 ${theme === "light" ? "bg-gradient-to-r from-blue-700 to-blue-800" : "bg-gradient-to-r from-blue-800 to-blue-900"}`}
+            ></div>
+            <span
+              className={`text-2xl font-bold ${theme === "light" ? "text-slate-800" : "text-gray-100"}`}
+            >
               {totalRepro}
             </span>
           </div>
         </div>
 
-        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm">Low Stock Alert</h3>
+        <div
+          className={`${theme === "light" ? "bg-white" : "bg-gray-800"} p-3 rounded-lg shadow-sm border ${theme === "light" ? "border-slate-100" : "border-gray-700"}`}
+        >
+          <h3
+            className={`${theme === "light" ? "text-slate-500" : "text-gray-400"} text-sm`}
+          >
+            Total Drums
+          </h3>
           <div className="flex items-center">
-            <AlertTriangle className="mr-2 text-amber-500" size={18} />
-            <span className="text-2xl font-bold text-slate-800">
+            <div
+              className={`w-4 h-4 rounded mr-2 ${theme === "light" ? "bg-gradient-to-r from-green-500 to-green-600" : "bg-gradient-to-r from-green-600 to-green-700"}`}
+            ></div>
+            <span
+              className={`text-2xl font-bold ${theme === "light" ? "text-slate-800" : "text-gray-100"}`}
+            >
+              {totalStock}
+            </span>
+          </div>
+        </div>
+
+        <div
+          className={`${theme === "light" ? "bg-white" : "bg-gray-800"} p-3 rounded-lg shadow-sm border ${theme === "light" ? "border-slate-100" : "border-gray-700"}`}
+        >
+          <h3
+            className={`${theme === "light" ? "text-slate-500" : "text-gray-400"} text-sm`}
+          >
+            Low Stock Items
+          </h3>
+          <div className="flex items-center">
+            <div
+              className={`w-4 h-4 rounded mr-2 ${lowStockCount > 0 ? "bg-gradient-to-r from-amber-500 to-amber-600" : "bg-gradient-to-r from-green-500 to-green-600"}`}
+            ></div>
+            <span
+              className={`text-2xl font-bold ${lowStockCount > 0 ? (theme === "light" ? "text-amber-600" : "text-amber-400") : theme === "light" ? "text-slate-800" : "text-gray-100"}`}
+            >
               {lowStockCount}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-3 mb-4">
-        <div className="flex items-center bg-white rounded-lg shadow-sm border border-slate-100 px-3 py-2 flex-grow">
-          <Search className="text-slate-400 mr-2" size={16} />
-          <input
-            type="text"
-            placeholder="Search by name, code or chemical group..."
-            className="flex-grow focus:outline-none text-sm text-slate-800"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div
+          className={`col-span-1 rounded-lg ${theme === "light" ? colorSchemes.light.cardBackground : colorSchemes.dark.cardBackground} p-6 shadow-sm border ${theme === "light" ? colorSchemes.light.borderColor : colorSchemes.dark.borderColor}`}
+        >
+          <h2
+            className={`text-lg font-semibold mb-4 ${theme === "light" ? colorSchemes.light.headingColor : colorSchemes.dark.headingColor}`}
+          >
+            Inventory Summary
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <span
+                  className={`${theme === "light" ? colorSchemes.light.textColor : colorSchemes.dark.textColor}`}
+                >
+                  Total Chemicals
+                </span>
+                <span
+                  className={`font-semibold ${theme === "light" ? colorSchemes.light.headingColor : colorSchemes.dark.headingColor}`}
+                >
+                  {filteredInventory.length}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div
+                  className="bg-blue-600 h-2 rounded-full"
+                  style={{ width: "100%" }}
+                ></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <span
+                  className={`${theme === "light" ? colorSchemes.light.textColor : colorSchemes.dark.textColor}`}
+                >
+                  Low Stock Items
+                </span>
+                <span
+                  className={`font-semibold ${lowStockCount > 0 ? "text-amber-600 dark:text-amber-400" : theme === "light" ? colorSchemes.light.headingColor : colorSchemes.dark.headingColor}`}
+                >
+                  {lowStockCount}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div
+                  className={`${lowStockCount > 0 ? "bg-amber-500" : "bg-green-500"} h-2 rounded-full`}
+                  style={{
+                    width: `${(lowStockCount / filteredInventory.length) * 100}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <span
+                  className={`${theme === "light" ? colorSchemes.light.textColor : colorSchemes.dark.textColor}`}
+                >
+                  Out of Stock
+                </span>
+                <span
+                  className={`font-semibold ${outOfStockItems.length > 0 ? "text-red-600 dark:text-red-400" : theme === "light" ? colorSchemes.light.headingColor : colorSchemes.dark.headingColor}`}
+                >
+                  {outOfStockItems.length}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div
+                  className={`${outOfStockItems.length > 0 ? "bg-red-500" : "bg-green-500"} h-2 rounded-full`}
+                  style={{
+                    width: `${(outOfStockItems.length / filteredInventory.length) * 100}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          <button
-            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
-              sortConfig.key === "name"
-                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                : "bg-white text-slate-700 border border-slate-100"
-            }`}
-            onClick={() => handleSort("name")}
+        <div
+          className={`col-span-1 rounded-lg ${theme === "light" ? colorSchemes.light.cardBackground : colorSchemes.dark.cardBackground} p-6 shadow-sm border ${theme === "light" ? colorSchemes.light.borderColor : colorSchemes.dark.borderColor}`}
+        >
+          <h2
+            className={`text-lg font-semibold mb-4 ${theme === "light" ? colorSchemes.light.headingColor : colorSchemes.dark.headingColor}`}
           >
-            <ArrowUpDown size={16} className="mr-1.5" />
-            Sort by Name
-          </button>
+            Chemical Group Distribution
+          </h2>
+          <div className="h-48 flex items-center justify-center">
+            <PieChart
+              data={stockGroupData}
+              colors={
+                theme === "light"
+                  ? colorSchemes.light.pieColors
+                  : colorSchemes.dark.pieColors
+              }
+              theme={theme || "light"}
+            />
+          </div>
+          <div className="flex flex-wrap justify-center gap-4 mt-4">
+            {stockStatusLabels.map((label, index) => (
+              <div key={label} className="flex items-center">
+                <div
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{
+                    backgroundColor:
+                      theme === "light"
+                        ? colorSchemes.light.pieColors[index]
+                        : colorSchemes.dark.pieColors[index],
+                  }}
+                ></div>
+                <span
+                  className={`text-sm ${theme === "light" ? colorSchemes.light.textColor : colorSchemes.dark.textColor}`}
+                >
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <button
-            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
-              sortConfig.key === "code"
-                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                : "bg-white text-slate-700 border border-slate-100"
-            }`}
-            onClick={() => handleSort("code")}
+        <div
+          className={`col-span-1 rounded-lg ${theme === "light" ? colorSchemes.light.cardBackground : colorSchemes.dark.cardBackground} p-6 shadow-sm border ${theme === "light" ? colorSchemes.light.borderColor : colorSchemes.dark.borderColor}`}
+        >
+          <h2
+            className={`text-lg font-semibold mb-4 ${theme === "light" ? colorSchemes.light.headingColor : colorSchemes.dark.headingColor}`}
           >
-            <ArrowUpDown size={16} className="mr-1.5" />
-            Sort by Code
-          </button>
-
-          <button
-            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
-              sortConfig.key === "total"
-                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                : "bg-white text-slate-700 border border-slate-100"
-            }`}
-            onClick={() => handleSort("total")}
-          >
-            <ArrowUpDown size={16} className="mr-1.5" />
-            Sort by Total
-          </button>
-
-          <button
-            className={`flex items-center rounded-lg shadow-sm px-3 py-1.5 text-sm ${
-              showLowStock
-                ? "bg-amber-50 text-amber-700 border border-amber-200"
-                : "bg-white text-slate-700 border border-slate-100"
-            }`}
-            onClick={() => setShowLowStock(!showLowStock)}
-          >
-            <Filter size={16} className="mr-1.5" />
-            {showLowStock ? "All Items" : "Below Threshold"}
-          </button>
-
-          <button
-            className="flex items-center bg-white rounded-lg shadow-sm px-3 py-1.5 text-sm text-slate-700 border border-slate-100"
-            onClick={() => setIsChartExpanded(!isChartExpanded)}
-          >
-            {isChartExpanded ? (
-              <>
-                <Minimize2 size={16} className="mr-1.5" />
-                Collapse Chart
-              </>
-            ) : (
-              <>
-                <Maximize2 size={16} className="mr-1.5" />
-                Expand Chart
-              </>
-            )}
-          </button>
+            Monthly Usage Trends
+          </h2>
+          <div className="h-48">
+            <LineChart
+              data={usageTrendsData}
+              colors={
+                theme === "light"
+                  ? colorSchemes.light.chartColors
+                  : colorSchemes.dark.chartColors
+              }
+              gridColor={
+                theme === "light"
+                  ? colorSchemes.light.gridColor
+                  : colorSchemes.dark.gridColor
+              }
+              textColor={
+                theme === "light"
+                  ? colorSchemes.light.textColor
+                  : colorSchemes.dark.textColor
+              }
+              theme={theme || "light"}
+            />
+          </div>
         </div>
       </div>
 
       {/* Main Chart Area */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 mb-4">
-        <h2 className="text-lg font-semibold mb-4 text-slate-800">
+      <div
+        className={cn(
+          "p-4 rounded-lg shadow-sm border mb-4",
+          colors.cardBg,
+          colors.cardBorder
+        )}
+      >
+        <h2 className={cn("text-lg font-semibold mb-4", colors.headingText)}>
           Solvent Drum Inventory
         </h2>
 
         {filteredInventory.length === 0 ? (
-          <div className="text-center py-16 text-slate-500">
+          <div className={cn("text-center py-16", colors.bodyText)}>
             No matching inventory items found.
           </div>
         ) : (
@@ -366,17 +820,24 @@ export default function ChemicalInventoryDashboard({
                 barGap={0}
                 className="transition-none" // Prevent any transitions on the chart itself
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={colors.chartGrid}
+                />
                 <XAxis
                   type="number"
                   label={{
                     value: "Number of Drums",
                     position: "insideBottom",
                     offset: -5,
-                    style: { fill: "#64748b", fontWeight: 500 },
+                    style: {
+                      fill: theme === "dark" ? "#9ca3af" : "#64748b",
+                      fontWeight: 500,
+                    },
                   }}
-                  stroke="#94a3b8"
-                  tickLine={{ stroke: "#94a3b8" }}
+                  stroke={colors.chartAxis}
+                  tickLine={{ stroke: colors.chartAxis }}
+                  tick={{ fill: colors.chartText }}
                 />
                 <YAxis
                   type="category"
@@ -384,7 +845,7 @@ export default function ChemicalInventoryDashboard({
                   tick={{
                     fontSize: 12,
                     textAnchor: "end",
-                    fill: "#1e293b",
+                    fill: colors.chartText,
                   }}
                   tickFormatter={(value) =>
                     value.toUpperCase().replace(/\s/g, "\u00A0")
@@ -402,7 +863,7 @@ export default function ChemicalInventoryDashboard({
                     );
                     if (item) handleBarClick(item);
                   }}
-                  stroke="#94a3b8"
+                  stroke={colors.chartAxis}
                 />
 
                 {/* Add a second axis that shows categories in collapsed view */}
@@ -420,7 +881,7 @@ export default function ChemicalInventoryDashboard({
                     tick={{
                       fontSize: 10,
                       textAnchor: "start",
-                      fill: "#64748b",
+                      fill: theme === "dark" ? "#9ca3af" : "#64748b",
                     }}
                     tickFormatter={(value) => {
                       if (!value) return "";
@@ -446,15 +907,17 @@ export default function ChemicalInventoryDashboard({
                   labelFormatter={tooltipLabelFormatter}
                   contentStyle={{
                     borderRadius: "6px",
-                    border: "1px solid #e2e8f0",
+                    border: `1px solid ${colors.chartTooltipBorder}`,
                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    backgroundColor: colors.chartTooltipBg,
+                    color: colors.chartText,
                   }}
                 />
                 <Legend
                   wrapperStyle={{
                     paddingTop: 15,
                     paddingBottom: 5,
-                    borderTop: "1px solid #e2e8f0",
+                    borderTop: `1px solid ${colors.chartGrid}`,
                   }}
                   layout="horizontal"
                   verticalAlign="bottom"
@@ -465,21 +928,21 @@ export default function ChemicalInventoryDashboard({
                     {
                       value: "Hydrocarbons",
                       type: "circle",
-                      color: colorPalette.new.Hydrocarbons,
+                      color: colors.groups.Hydrocarbons,
                       id: "hydrocarbons",
                     },
                     // General Solvents
                     {
                       value: "General Solvents",
                       type: "circle",
-                      color: colorPalette.new["Gen Solvents"],
+                      color: colors.groups["Gen Solvents"],
                       id: "generalSolvents",
                     },
                     // Aromatics
                     {
                       value: "Aromatics",
                       type: "circle",
-                      color: colorPalette.new.Aromatics,
+                      color: colors.groups.Aromatics,
                       id: "aromatics",
                     },
                   ]}
@@ -496,7 +959,11 @@ export default function ChemicalInventoryDashboard({
                   {filteredInventory.map((entry, index) => (
                     <Cell
                       key={`new-${index}`}
-                      fill={entry.groupColour.new}
+                      fill={
+                        theme === "dark"
+                          ? getThemeBarColor(entry.chGroup, false)
+                          : entry.groupColour.new
+                      }
                       onClick={() => handleBarClick(entry)}
                       style={{ cursor: "pointer" }}
                     />
@@ -514,7 +981,11 @@ export default function ChemicalInventoryDashboard({
                   {filteredInventory.map((entry, index) => (
                     <Cell
                       key={`repro-${index}`}
-                      fill={entry.groupColour.repro}
+                      fill={
+                        theme === "dark"
+                          ? getThemeBarColor(entry.chGroup, true)
+                          : entry.groupColour.repro
+                      }
                       onClick={() => handleBarClick(entry)}
                       style={{ cursor: "pointer" }}
                     />
@@ -527,7 +998,7 @@ export default function ChemicalInventoryDashboard({
                     key={`threshold-${index}`}
                     y={entry.name}
                     x={entry.threshold}
-                    stroke={colorPalette.ui.threshold}
+                    stroke={colors.threshold}
                     strokeDasharray="3 3"
                     strokeWidth={1.5}
                     ifOverflow="extendDomain"
@@ -541,20 +1012,33 @@ export default function ChemicalInventoryDashboard({
 
       {/* Detail Panel (conditionally rendered) */}
       {selectedItem && (
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 transition-all duration-300">
+        <div
+          className={cn(
+            "p-4 rounded-lg shadow-sm border transition-all duration-300",
+            colors.cardBg,
+            colors.cardBorder
+          )}
+        >
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+              <h2
+                className={cn(
+                  "text-lg font-semibold flex items-center",
+                  colors.headingText
+                )}
+              >
                 {selectedItem.code} - {selectedItem.name}
               </h2>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className={cn("text-sm mt-1", colors.bodyText)}>
                 {selectedItem.category}
               </p>
             </div>
             <button
               type="button"
               title="Close"
-              className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+              className={cn(
+                "text-slate-400 hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
+              )}
               onClick={() => setSelectedItem(null)}
             >
               <svg
@@ -577,41 +1061,57 @@ export default function ChemicalInventoryDashboard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <h3 className="text-base font-medium text-slate-700 flex items-center">
+                <h3
+                  className={cn(
+                    "text-base font-medium flex items-center",
+                    colors.subheadingText
+                  )}
+                >
                   <ChevronRight className="mr-1" size={18} />
                   Inventory Details
                 </h3>
 
-                <div className="bg-slate-50 rounded-md p-3 space-y-2">
+                <div
+                  className={cn(
+                    "rounded-md p-3 space-y-2",
+                    theme === "dark" ? "bg-gray-900" : "bg-slate-50"
+                  )}
+                >
                   <div className="grid grid-cols-2 gap-x-4 text-sm">
-                    <div className="text-slate-500">New Drums:</div>
-                    <div className="font-medium text-slate-800">
+                    <div className={colors.bodyText}>New Drums:</div>
+                    <div className={cn("font-medium", colors.headingText)}>
                       {selectedItem.newStock}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-4 text-sm">
-                    <div className="text-slate-500">Repro Drums:</div>
-                    <div className="font-medium text-slate-800">
+                    <div className={colors.bodyText}>Repro Drums:</div>
+                    <div className={cn("font-medium", colors.headingText)}>
                       {selectedItem.reproStock}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-x-4 text-sm border-t border-slate-200 pt-2 mt-2">
-                    <div className="text-slate-500">Total Stock:</div>
-                    <div className="font-medium text-slate-800">
+                  <div
+                    className={cn(
+                      "grid grid-cols-2 gap-x-4 text-sm border-t pt-2 mt-2",
+                      theme === "dark" ? "border-gray-700" : "border-slate-200"
+                    )}
+                  >
+                    <div className={colors.bodyText}>Total Stock:</div>
+                    <div className={cn("font-medium", colors.headingText)}>
                       {selectedItem.total}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-4 text-sm">
-                    <div className="text-slate-500">Threshold Level:</div>
+                    <div className={colors.bodyText}>Threshold Level:</div>
                     <div
-                      className={`font-medium ${
+                      className={cn(
+                        "font-medium",
                         selectedItem.total < (selectedItem.threshold || 0)
-                          ? "text-amber-600"
-                          : "text-slate-800"
-                      }`}
+                          ? "text-amber-600 dark:text-amber-400"
+                          : colors.headingText
+                      )}
                     >
                       {selectedItem.threshold}
                     </div>
@@ -619,12 +1119,12 @@ export default function ChemicalInventoryDashboard({
                 </div>
 
                 {selectedItem.total < (selectedItem.threshold || 0) && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center text-sm">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md flex items-center text-sm">
                     <AlertTriangle
-                      className="text-amber-500 mr-2 flex-shrink-0"
+                      className="text-amber-500 dark:text-amber-400 mr-2 flex-shrink-0"
                       size={16}
                     />
-                    <span className="text-amber-700">
+                    <span className="text-amber-700 dark:text-amber-300">
                       This item is below the reorder threshold and may need to
                       be restocked soon.
                     </span>
@@ -633,19 +1133,28 @@ export default function ChemicalInventoryDashboard({
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-base font-medium text-slate-700 flex items-center">
+                <h3
+                  className={cn(
+                    "text-base font-medium flex items-center",
+                    colors.subheadingText
+                  )}
+                >
                   <ChevronRight className="mr-1" size={18} />
                   Actions
                 </h3>
 
                 <div className="flex flex-wrap gap-2">
-                  <button className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors">
+                  <button className="px-3 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-md text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-800/50 transition-colors">
                     View History
                   </button>
-                  <button className="px-3 py-1.5 bg-green-50 text-green-700 rounded-md text-sm font-medium hover:bg-green-100 transition-colors">
+                  <button className="px-3 py-1.5 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded-md text-sm font-medium hover:bg-green-100 dark:hover:bg-green-800/50 transition-colors">
                     Place Order
                   </button>
-                  <button className="px-3 py-1.5 bg-slate-50 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-100 transition-colors">
+                  <button
+                    className={cn(
+                      "px-3 py-1.5 bg-slate-50 dark:bg-gray-700 text-slate-700 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-slate-100 dark:hover:bg-gray-600 transition-colors"
+                    )}
+                  >
                     Generate Report
                   </button>
                 </div>
@@ -653,12 +1162,22 @@ export default function ChemicalInventoryDashboard({
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-base font-medium text-slate-700 flex items-center">
+              <h3
+                className={cn(
+                  "text-base font-medium flex items-center",
+                  colors.subheadingText
+                )}
+              >
                 <ChevronRight className="mr-1" size={18} />
                 Stock Distribution
               </h3>
 
-              <div className="bg-slate-50 rounded-md p-3 h-64">
+              <div
+                className={cn(
+                  "rounded-md p-3 h-64",
+                  theme === "dark" ? "bg-gray-900" : "bg-slate-50"
+                )}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={[
@@ -671,38 +1190,58 @@ export default function ChemicalInventoryDashboard({
                     ]}
                     margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="name" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={colors.chartGrid}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      stroke={colors.chartAxis}
+                      tick={{ fill: colors.chartText }}
+                    />
+                    <YAxis
+                      stroke={colors.chartAxis}
+                      tick={{ fill: colors.chartText }}
+                    />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "6px",
-                        border: "1px solid #e2e8f0",
+                        border: `1px solid ${colors.chartTooltipBorder}`,
                         boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        backgroundColor: colors.chartTooltipBg,
+                        color: colors.chartText,
                       }}
                     />
                     <Legend verticalAlign="top" height={36} />
                     <Bar
                       dataKey="New"
                       name="New Drums"
-                      fill={getBarColor(selectedItem.chGroup, false)}
+                      fill={
+                        theme === "dark"
+                          ? getThemeBarColor(selectedItem.chGroup, false)
+                          : getBarColor(selectedItem.chGroup, false)
+                      }
                       radius={[4, 4, 0, 0]}
                     />
                     <Bar
                       dataKey="Repro"
                       name="Repro Drums"
-                      fill={getBarColor(selectedItem.chGroup, true)}
+                      fill={
+                        theme === "dark"
+                          ? getThemeBarColor(selectedItem.chGroup, true)
+                          : getBarColor(selectedItem.chGroup, true)
+                      }
                       radius={[4, 4, 0, 0]}
                     />
                     <ReferenceLine
                       y={selectedItem.threshold}
-                      stroke={colorPalette.ui.threshold}
+                      stroke={colors.threshold}
                       strokeDasharray="5 5"
                       strokeWidth={2}
                       label={{
                         value: "Threshold",
                         position: "right",
-                        fill: "#737373",
+                        fill: theme === "dark" ? "#d1d5db" : "#737373",
                         fontSize: 12,
                       }}
                     />
@@ -710,9 +1249,9 @@ export default function ChemicalInventoryDashboard({
                 </ResponsiveContainer>
               </div>
 
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md text-sm text-blue-700 dark:text-blue-300">
                 <p className="font-medium mb-1">Inventory Status</p>
-                <p className="text-blue-600">
+                <p className="text-blue-600 dark:text-blue-200">
                   {selectedItem.total >= (selectedItem.threshold || 0) * 1.5
                     ? "Stock levels are healthy and well above threshold."
                     : selectedItem.total >= (selectedItem.threshold || 0)

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { ReactNode, useState } from "react";
@@ -22,17 +21,19 @@ import {
   DatabaseBackup,
   DatabaseZap,
   Atom,
+  LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOutAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import { NavBar } from "@/components/ui/tubelight-navbar";
+import { NavBar } from "@/components/ui/navbar";
 import { WorkflowProvider } from "@/context/workflow-context";
 import { WorkflowMenu } from "@/components/core/patterns/workflow/workflow-menu";
-import { FloatingNav } from "@/components/desktop/layout/auth/floating-nav";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useNavigationLoading } from "@/hooks/use-navigation-loading";
+
 // TypeScript workaround for React 18 vs React 19 type compatibility issue
 // @ts-ignore
 const SafeLink = Link;
@@ -43,10 +44,8 @@ interface DashboardLayoutProps {
 
 interface NavItem {
   name: string;
-  // @ts-ignore - Type compatibility issue between types
-  icon: React.ElementType;
   url: string;
-  level: number;
+  icon: LucideIcon;
 }
 
 declare module "lucide-react" {
@@ -69,21 +68,21 @@ declare module "lucide-react" {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const isNavigating = useNavigationLoading();
 
   const navItems: NavItem[] = [
-    { name: "Dashboard", icon: Home, url: "/", level: 1 },
-    { name: "Orders", icon: Clipboard, url: "/orders", level: 2 },
+    { name: "Dashboard", icon: Home, url: "/" },
+    { name: "Orders", icon: Clipboard, url: "/orders" },
     {
       name: "Production",
       icon: Atom,
       url: "/production",
-      level: 2,
     },
     {
       name: "Inventory",
       icon: Package,
       url: "/inventory",
-      level: 2,
     },
   ];
 
@@ -93,6 +92,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const openSidebar = () => {
     setSidebarOpen(true);
+  };
+
+  // Custom navigation handler for sidebar items
+  const handleNavigation = (url: string) => {
+    // Only trigger navigation if not already on that page
+    if (pathname !== url && !(url !== "/" && pathname.startsWith(url))) {
+      closeSidebar();
+      router.push(url);
+    } else {
+      closeSidebar(); // Just close sidebar if already on that page
+    }
   };
 
   return (
@@ -135,18 +145,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
                 const Icon = item.icon;
                 const previousItem = index > 0 ? navItems[index - 1] : null;
-                const shouldAddDivider =
-                  previousItem && previousItem.level !== item.level;
 
                 return (
                   <div key={item.name}>
-                    {shouldAddDivider && (
-                      <div className="h-px bg-gray-200 dark:bg-gray-700 my-2" />
+                    {previousItem && previousItem.url === item.url && (
+                      <div className="h-px bg-gray-200 dark:bg-gray-700"></div>
                     )}
-                    <SafeLink
-                      href={item.url}
+                    <button
+                      onClick={() => handleNavigation(item.url)}
+                      data-nav-url={item.url}
                       className={cn(
-                        "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
+                        "group flex items-center px-3 py-2 text-sm font-medium rounded-md w-full text-left",
                         isActive
                           ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                           : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50"
@@ -162,7 +171,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                         )}
                       />
                       {item.name}
-                    </SafeLink>
+                    </button>
                   </div>
                 );
               })}
@@ -203,7 +212,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         {/* Top Floating NavBar */}
-        <NavBar items={navItems} />
+        <NavBar items={navItems} isLoading={isNavigating} />
         {/* Main content */}
         <div className={cn("lg:pl-64 flex flex-col min-h-screen")}>
           {/* Top header */}
@@ -239,7 +248,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <WorkflowMenu />
 
           {/* Page content */}
-          <main className="flex-1 pt-2">{children}</main>
+          <main className="flex-1 pt-2">
+            {isNavigating ? (
+              <div className="p-4 space-y-6">
+                {/* Skeleton loading state */}
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-md w-1/3 animate-pulse"></div>
+                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-md w-full animate-pulse"></div>
+                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-md w-full animate-pulse"></div>
+                <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-md w-full animate-pulse"></div>
+              </div>
+            ) : (
+              children
+            )}
+          </main>
         </div>
       </div>
     </WorkflowProvider>

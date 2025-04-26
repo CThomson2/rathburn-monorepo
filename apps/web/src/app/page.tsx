@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getBarColor } from "@/features/inventory/utils/colors";
-import ChemicalInventoryDashboardClient from "./(routes)/client";
+import ChemicalInventoryDashboard from "@/features/inventory/dashboard";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -54,7 +54,7 @@ export default async function InventoryDashboardPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
+      <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-6">
         Inventory Dashboard
       </h1>
 
@@ -87,7 +87,7 @@ export default async function InventoryDashboardPage() {
       </div> */}
 
       {/* Chemical Inventory Dashboard with pre-fetched data */}
-      <ChemicalInventoryDashboardClient initialData={drumInventoryData} />
+      <ChemicalInventoryDashboard initialData={drumInventoryData} />
     </div>
   );
 }

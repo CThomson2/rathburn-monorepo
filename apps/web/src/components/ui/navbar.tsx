@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { Button } from "@/components/ui/button";
 interface NavItem {
   name: string;
   url: string;
@@ -43,7 +43,10 @@ interface NavBarProps {
  */
 export function NavBar({ items, className, isLoading = false }: NavBarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  const [manualNavigation, setManualNavigation] = useState(false);
+  const activeItemRef = useRef<string | null>(null);
 
   // Find the active item based on the current pathname
   const getActiveItem = () => {
@@ -59,10 +62,18 @@ export function NavBar({ items, className, isLoading = false }: NavBarProps) {
 
   const [activeTab, setActiveTab] = useState(getActiveItem);
 
-  // Update active tab when pathname changes
+  // Update active tab when pathname changes, but only if not manually navigating
   useEffect(() => {
-    setActiveTab(getActiveItem());
-  }, [pathname]);
+    if (!manualNavigation) {
+      setActiveTab(getActiveItem());
+    } else {
+      // Reset the manual navigation flag after the URL has updated
+      setManualNavigation(false);
+    }
+
+    // Always update the active item reference
+    activeItemRef.current = getActiveItem() || null;
+  }, [pathname, manualNavigation]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -73,6 +84,19 @@ export function NavBar({ items, className, isLoading = false }: NavBarProps) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Handle direct tab click with animation
+  const handleTabClick = (item: NavItem) => {
+    if (activeTab !== item.name) {
+      setManualNavigation(true);
+      setActiveTab(item.name);
+
+      // Navigate to the new URL after a small delay to allow animation to start
+      setTimeout(() => {
+        router.push(item.url);
+      }, 10);
+    }
+  };
 
   return (
     <div
@@ -88,13 +112,12 @@ export function NavBar({ items, className, isLoading = false }: NavBarProps) {
           const shouldShowSkeleton = isLoading && isActive;
 
           return (
-            <Link
+            <Button
               key={item.name}
-              href={item.url}
-              onClick={() => setActiveTab(item.name)}
+              onClick={() => handleTabClick(item)}
               className={cn(
-                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
-                "text-foreground/80 hover:text-primary",
+                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors border-0 bg-transparent",
+                "text-foreground/80 hover:text-primary hover:bg-primary/10",
                 isActive && "bg-muted text-primary",
                 shouldShowSkeleton && "pointer-events-none"
               )}
@@ -125,6 +148,7 @@ export function NavBar({ items, className, isLoading = false }: NavBarProps) {
                     type: "spring",
                     stiffness: 300,
                     damping: 30,
+                    duration: 0.3,
                   }}
                 >
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-t-full">
@@ -134,7 +158,7 @@ export function NavBar({ items, className, isLoading = false }: NavBarProps) {
                   </div>
                 </motion.div>
               )}
-            </Link>
+            </Button>
           );
         })}
       </div>
