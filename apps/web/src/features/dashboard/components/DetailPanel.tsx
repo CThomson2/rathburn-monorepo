@@ -14,7 +14,7 @@ import {
 import { ChevronRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { DrumInventory } from "../../types";
+import { DrumInventory } from "../types";
 import { useColorScheme, getThemeBarColor } from "../utils/theme-colors";
 
 interface DetailPanelProps {
@@ -24,7 +24,7 @@ interface DetailPanelProps {
 
 export function DetailPanel({ item, onClose }: DetailPanelProps) {
   const { theme } = useTheme();
-  const colors = useColorScheme(theme);
+  const colors = useColorScheme();
 
   return (
     <div
@@ -44,9 +44,7 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
           >
             {item.code} - {item.name}
           </h2>
-          <p className={cn("text-sm mt-1", colors.bodyText)}>
-            {item.category}
-          </p>
+          <p className={cn("text-sm mt-1", colors.bodyText)}>{item.category}</p>
         </div>
         <button
           type="button"
@@ -135,16 +133,16 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
 
             {item.total < (item.threshold || 0) && (
               <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md flex items-center text-sm">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="16" 
-                  height="16" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   className="text-amber-500 dark:text-amber-400 mr-2 flex-shrink-0"
                 >
                   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
@@ -152,8 +150,8 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
                 <span className="text-amber-700 dark:text-amber-300">
-                  This item is below the reorder threshold and may need to
-                  be restocked soon.
+                  This item is below the reorder threshold and may need to be
+                  restocked soon.
                 </span>
               </div>
             )}
@@ -243,21 +241,13 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
                 <Bar
                   dataKey="New"
                   name="New Drums"
-                  fill={
-                    theme === "dark"
-                      ? getThemeBarColor(item.chGroup, false, theme)
-                      : item.groupColour?.new || getThemeBarColor(item.chGroup, false, theme)
-                  }
+                  fill={getThemeBarColor(item.category, false)}
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar
                   dataKey="Repro"
                   name="Repro Drums"
-                  fill={
-                    theme === "dark"
-                      ? getThemeBarColor(item.chGroup, true, theme)
-                      : item.groupColour?.repro || getThemeBarColor(item.chGroup, true, theme)
-                  }
+                  fill={getThemeBarColor(item.category, true)}
                   radius={[4, 4, 0, 0]}
                 />
                 <ReferenceLine

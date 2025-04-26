@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { DrumInventory } from "../types";
+import { DrumInventory } from "./types";
 
 // Import components
 import { StatCard } from "./components/StatCard";
@@ -40,7 +40,7 @@ export default function ChemicalInventoryDashboard({
   initialData,
 }: ChemicalInventoryDashboardProps) {
   const { theme } = useTheme();
-  const colors = useColorScheme(theme);
+  const colors = useColorScheme();
 
   const [inventory] = useState<DrumInventory[]>(initialData);
   const [filteredInventory, setFilteredInventory] =
@@ -135,19 +135,19 @@ export default function ChemicalInventoryDashboard({
   const stockStatusLabels = ["Hydrocarbons", "Gen Solvents", "Aromatics"];
   const stockGroupData = [
     filteredInventory.reduce((acc, item) => {
-      if (item.chGroup === "Hydrocarbons") {
+      if (item.category === "Hydrocarbons") {
         return acc + (item.newStock + item.reproStock);
       }
       return acc;
     }, 0),
     filteredInventory.reduce((acc, item) => {
-      if (item.chGroup === "Gen Solvents") {
+      if (item.category === "Gen Solvents") {
         return acc + (item.newStock + item.reproStock);
       }
       return acc;
     }, 0),
     filteredInventory.reduce((acc, item) => {
-      if (item.chGroup === "Aromatics") {
+      if (item.category === "Aromatics") {
         return acc + (item.newStock + item.reproStock);
       }
       return acc;

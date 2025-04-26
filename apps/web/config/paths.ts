@@ -36,22 +36,19 @@ export const paths = {
 
   inventory: {
     root: {
-      getHref: () => "/inventory",
+      getHref: () => "/",
     },
     dashboard: {
-      getHref: () => "/inventory/dashboard",
+      getHref: () => "/dashboard",
     },
     drumStock: {
-      getHref: () => "/inventory/drum-stock",
+      getHref: () => "/drum-stock",
     },
     orders: {
-      getHref: () => "/inventory/orders",
-    },
-    newOrder: {
-      getHref: () => "/inventory/orders",
+      getHref: () => "/orders",
     },
     activity: {
-      getHref: () => "/inventory/activity",
+      getHref: () => "/activity",
     },
   },
 

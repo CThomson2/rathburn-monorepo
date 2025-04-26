@@ -29,7 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-import { ReproStock } from "../../inventory/types";
+import { ReproStock } from "../types";
 import { MaterialFilter } from "./material-filter";
 import { createColumns } from "./columns";
 

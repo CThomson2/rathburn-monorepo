@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getBarColor } from "@/features/inventory/utils/colors";
-import ChemicalInventoryDashboard from "@/features/inventory/dashboard";
 import { SupabaseClient } from "@supabase/supabase-js";
+import ChemicalInventoryDashboard from "@/features/dashboard";
 
 /**
  * Server-side function to fetch dashboard data with pre-calculated colors
@@ -31,14 +30,8 @@ async function fetchDashboardData() {
       newStock: item.raw_drums || 0,
       reproStock: item.repro_drums || 0,
       category: item.ch_group,
-      chGroup: item.ch_group,
       threshold: item.threshold || 10,
       total: (item.raw_drums || 0) + (item.repro_drums || 0),
-      // Pre-calculate colors for server-side rendering
-      groupColour: {
-        new: getBarColor(item.ch_group, false),
-        repro: getBarColor(item.ch_group, true),
-      },
     }));
 
     return { drumInventoryData: transformedData };

@@ -16,8 +16,8 @@ export async function GET(request: Request) {
 
   if (redirectTo) {
     // Ensure the redirect path is valid
-    const validRedirectPaths = ["/reset-password", "/", "/inventory", "/orders"];
-    const defaultRedirect = "/inventory";
+    const validRedirectPaths = ["/reset-password", "/", "/dashboard", "/orders"];
+    const defaultRedirect = "/";
 
     // Check if the redirectTo path is in our valid paths, otherwise use default
     const isValidPath = validRedirectPaths.some((path) =>
@@ -29,5 +29,5 @@ export async function GET(request: Request) {
   }
 
   // Default redirect after sign in/up
-  return NextResponse.redirect(`https://rathburn.app/inventory`);
+  return NextResponse.redirect(`https://rathburn.app/`);
 }

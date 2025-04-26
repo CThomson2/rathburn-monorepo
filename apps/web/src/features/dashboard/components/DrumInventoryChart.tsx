@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { DrumInventory } from "../../types";
+import { DrumInventory } from "../types";
 import { useColorScheme, getThemeBarColor } from "../utils/theme-colors";
 
 interface DrumInventoryChartProps {
@@ -30,8 +30,8 @@ export function DrumInventoryChart({
   onItemClick,
 }: DrumInventoryChartProps) {
   const { theme } = useTheme();
-  const colors = useColorScheme(theme);
-  
+  const colors = useColorScheme();
+
   // Fixed constants for chart dimensions
   const CHART_BAR_HEIGHT = 25; // Height of each bar
   const CHART_BAR_GAP = 5; // Gap between bars
@@ -71,9 +71,7 @@ export function DrumInventoryChart({
       )}
       style={{
         // Fixed size container to prevent layout shift
-        height: isExpanded
-          ? `${calculateChartContainerHeight()}px`
-          : "75vh",
+        height: isExpanded ? `${calculateChartContainerHeight()}px` : "75vh",
       }}
     >
       {/* Important: Setting width/height to 100% and avoiding animation makes the chart stable */}
@@ -87,10 +85,7 @@ export function DrumInventoryChart({
           barGap={0}
           className="transition-none" // Prevent any transitions on the chart itself
         >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke={colors.chartGrid}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.chartGrid} />
           <XAxis
             type="number"
             label={{
@@ -118,16 +113,10 @@ export function DrumInventoryChart({
               value.toUpperCase().replace(/\s/g, "\u00A0")
             }
             width={120}
-            interval={
-              isExpanded
-                ? 0
-                : Math.ceil(inventory.length / 15)
-            }
+            interval={isExpanded ? 0 : Math.ceil(inventory.length / 15)}
             onClick={(data) => {
               // Find the corresponding inventory item by name
-              const item = inventory.find(
-                (entry) => entry.name === data
-              );
+              const item = inventory.find((entry) => entry.name === data);
               if (item) onItemClick(item);
             }}
             stroke={colors.chartAxis}
@@ -158,9 +147,7 @@ export function DrumInventoryChart({
               }}
               onClick={(data) => {
                 // Find the corresponding inventory item by name
-                const item = inventory.find(
-                  (entry) => entry.name === data
-                );
+                const item = inventory.find((entry) => entry.name === data);
                 if (item) onItemClick(item);
               }}
               width={80}
@@ -226,11 +213,7 @@ export function DrumInventoryChart({
             {inventory.map((entry, index) => (
               <Cell
                 key={`new-${index}`}
-                fill={
-                  theme === "dark"
-                    ? getThemeBarColor(entry.chGroup, false, theme)
-                    : entry.groupColour?.new || getThemeBarColor(entry.chGroup, false, theme)
-                }
+                fill={getThemeBarColor(entry.category, false)}
                 onClick={() => onItemClick(entry)}
                 style={{ cursor: "pointer" }}
               />
@@ -248,11 +231,7 @@ export function DrumInventoryChart({
             {inventory.map((entry, index) => (
               <Cell
                 key={`repro-${index}`}
-                fill={
-                  theme === "dark"
-                    ? getThemeBarColor(entry.chGroup, true, theme)
-                    : entry.groupColour?.repro || getThemeBarColor(entry.chGroup, true, theme)
-                }
+                fill={getThemeBarColor(entry.category, true)}
                 onClick={() => onItemClick(entry)}
                 style={{ cursor: "pointer" }}
               />
