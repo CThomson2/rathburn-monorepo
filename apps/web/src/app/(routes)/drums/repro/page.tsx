@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import path from "path";
 import fs from "fs/promises";
 import { parseCSV } from "@/utils/csv";
-import { ReproStockTable } from "@/features/inventory/repro-stock";
+import { ReproStockTable } from "@/features/batches/repro-stock";
 import type { ReproStock } from "@/features/inventory/types";
 
 export const metadata: Metadata = {
