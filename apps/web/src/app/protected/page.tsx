@@ -13,12 +13,9 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { updatePhoneAction } from "../actions";
 import { Input } from "@/components/ui/input";
-import { SubmitButton } from "@/components/desktop/layout/auth/submit-button";
+import { SubmitButton } from "@/components/layout/auth/submit-button";
 import { Label } from "@/components/ui/label";
-import {
-  FormMessage,
-  Message,
-} from "@/components/desktop/layout/auth/form-message";
+import { FormMessage, Message } from "@/components/layout/auth/form-message";
 
 export default async function ProtectedPage({
   searchParams,

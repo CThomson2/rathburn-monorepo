@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Metadata } from "next";
 
 import BatchesContent from "@/features/batches/batches-content";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/sidebar/page-header";
 import { BatchesContentSkeleton } from "@/components/core/patterns/skeletons/batches-content";
 
 export const metadata: Metadata = {

@@ -15,7 +15,8 @@ export default function Page() {
     <Suspense
       fallback={<div className="p-8 text-center">Loading Data Explorer...</div>}
     >
-      <DataExplorerClient />
+      {/* <DataExplorerClient /> */}
+      <h1 className="text-2xl font-bold">Business Views</h1>
     </Suspense>
   );
 }

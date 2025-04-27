@@ -5,8 +5,8 @@ import { LiveActivitySidebar } from "./LiveActivitySidebar";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { ActivityOverview } from "./ActivityOverview";
 import { CreateNotification } from "./CreateNotification";
-import DrumStatusListener from "@/components/real-time/DrumStatusListener";
-import OrderUpdatesListener from "@/components/real-time/OrderUpdatesListener";
+import DrumStatusListener from "@/components/realtime/DrumStatusListener";
+import OrderUpdatesListener from "@/components/realtime/OrderUpdatesListener";
 
 interface ActivityDashboardProps {
   className?: string;

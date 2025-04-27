@@ -89,3 +89,30 @@ export const getPriorityFromJob = (
   
   return 'medium';
 };
+
+// Add these new types for distillation schedules
+export type DistillationStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface DistillationScheduleItem {
+  id: number;
+  scheduled_date: string;
+  material: {
+    name: string;
+    type: string;
+  };
+  status: DistillationStatus;
+  operator?: {
+    name: string;
+    id: number;
+  };
+  still_id?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DistillationScheduleDay {
+  date: string;
+  formattedDate: string; // e.g., "Mon, Jan 1"
+  schedules: DistillationScheduleItem[];
+}

@@ -34,8 +34,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { DrumDetailsModal } from "@/components/desktop/dashboard/drums/details-modal";
-import { DrumFilterBar } from "@/components/desktop/dashboard/drums/filter-bar";
+import { DrumDetailsModal } from "@/components/core/patterns/dashboard/drums/details-modal";
+import { DrumFilterBar } from "@/components/core/patterns/dashboard/drums/filter-bar";
 
 // Mock data for demonstration
 const mockDrums = Array.from({ length: 20 }).map((_, i) => ({

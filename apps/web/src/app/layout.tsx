@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Inter, Alfa_Slab_One } from "next/font/google";
 import { headers } from "next/headers";
 
-import { RouteAwareControls } from "@/components/desktop/layout/route-aware-controls";
+import { RouteAwareControls } from "@/components/layout/route-aware-controls";
 import { Providers } from "./providers";
 import { cn } from "@/lib/utils";
-import DashboardLayout from "@/components/desktop/layout/dashboard-layout";
+import DashboardLayout from "@/components/layout/dashboard-layout";
 
 import "@/styles/globals.css";
 
@@ -83,7 +83,6 @@ export default function RootLayout({
             <>{children}</>
           ) : (
             <DashboardLayout>
-              <RouteAwareControls />
               <main>{children}</main>
             </DashboardLayout>
           )}

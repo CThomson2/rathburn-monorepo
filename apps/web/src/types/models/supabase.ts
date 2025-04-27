@@ -1466,14 +1466,17 @@ export type Database = {
         Row: {
           name: string
           supplier_id: string
+          email: string | null
         }
         Insert: {
           name: string
           supplier_id?: string
+          email?: string | null
         }
         Update: {
           name?: string
           supplier_id?: string
+          email?: string | null
         }
         Relationships: []
       }
@@ -1498,6 +1501,9 @@ export type Database = {
         | "transport"
         | "location_set"
         | "barcode_scan"
+        | "cancel_scan"
+        | "fast_forward"
+        | "bulk"
       batch_type: "new" | "repro"
       drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
     }
@@ -1582,6 +1588,7 @@ export type Database = {
           device_id: string
           error_code: string | null
           metadata: Json
+          parent_scan: number | null
           raw_barcode: string
           scan_id: number
           scanned_at: string
@@ -1594,6 +1601,7 @@ export type Database = {
           device_id: string
           error_code?: string | null
           metadata?: Json
+          parent_scan?: number | null
           raw_barcode: string
           scan_id?: number
           scanned_at?: string
@@ -1606,6 +1614,7 @@ export type Database = {
           device_id?: string
           error_code?: string | null
           metadata?: Json
+          parent_scan?: number | null
           raw_barcode?: string
           scan_id?: number
           scanned_at?: string
@@ -1619,6 +1628,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "devices"
             referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "drum_scan_parent_scan_fkey"
+            columns: ["parent_scan"]
+            isOneToOne: false
+            referencedRelation: "drum_scan"
+            referencedColumns: ["scan_id"]
           },
         ]
       }
@@ -1913,6 +1929,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      drum_inventory: {
+        Row: {
+          category: string | null
+          code: string | null
+          id: number
+          name: string
+          stock: number | null
+          threshold: number | null
+          type: string | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          id?: number
+          name: string
+          stock?: number | null
+          threshold?: number | null
+          type?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          id?: number
+          name?: string
+          stock?: number | null
+          threshold?: number | null
+          type?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1940,67 +1986,6 @@ export type Database = {
         }
         Relationships: []
       }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      create_mobile_app_passcode: {
-        Args: { p_user_name: string; p_passcode: string; p_user_id: string }
-        Returns: string
-      }
-      create_user_with_passcode: {
-        Args: { p_email: string; p_user_name: string; p_passcode: string }
-        Returns: string
-      }
-      query_batches_view: {
-        Args: {
-          p_search?: string
-          p_batch_type?: string
-          p_chemical_group?: string
-          p_date_from?: string
-          p_date_to?: string
-        }
-        Returns: {
-          batch_code: string | null
-          batch_id: string | null
-          batch_type: string | null
-          chemical_group: string | null
-          created_at: string | null
-          drum_count: number | null
-          drums_in_stock: number | null
-          input_recorded_at: string | null
-          item_name: string | null
-          material_name: string | null
-          po_number: string | null
-          supplier_name: string | null
-          total_volume: number | null
-          updated_at: string | null
-        }[]
-      }
-      request_passcode_reset: {
-        Args: { p_user_name: string }
-        Returns: boolean
-      }
-      reset_passcode_with_token: {
-        Args: { p_token: string; p_new_passcode: string }
-        Returns: boolean
-      }
-      validate_passcode: {
-        Args: { p_user_name: string; p_passcode: string }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  ui: {
-    Tables: {
-      [_ in never]: never
     }
     Views: {
       v_batches: {
@@ -2092,16 +2077,13 @@ export type Database = {
       v_production_jobs: {
         Row: {
           created_at: string | null
-          current_location: string | null
           current_volume: number | null
           drum_id: string | null
+          drum_quantity: number | null
           ended_at: string | null
-          input_batch_id: string | null
-          item_id: string | null
           item_name: string | null
           job_id: string | null
           location_name: string | null
-          op_id: string | null
           op_type: Database["production"]["Enums"]["op_type"] | null
           operation_status: Database["production"]["Enums"]["op_status"] | null
           planned_end: string | null
@@ -2116,27 +2098,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "jobs_input_batch_id_fkey"
-            columns: ["input_batch_id"]
-            isOneToOne: false
-            referencedRelation: "v_batches"
-            referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "jobs_input_batch_id_fkey"
-            columns: ["input_batch_id"]
-            isOneToOne: false
-            referencedRelation: "v_batches_with_drums"
-            referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "jobs_input_batch_id_fkey"
-            columns: ["input_batch_id"]
-            isOneToOne: false
-            referencedRelation: "v_distillation_schedule"
-            referencedColumns: ["batch_id"]
-          },
-          {
             foreignKeyName: "operation_drums_drum_id_fkey"
             columns: ["drum_id"]
             isOneToOne: false
@@ -2147,7 +2108,51 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      create_mobile_app_passcode: {
+        Args: { p_user_name: string; p_passcode: string; p_user_id: string }
+        Returns: string
+      }
+      create_user_with_passcode: {
+        Args: { p_email: string; p_user_name: string; p_passcode: string }
+        Returns: string
+      }
+      query_batches_view: {
+        Args: {
+          p_search?: string
+          p_batch_type?: string
+          p_chemical_group?: string
+          p_date_from?: string
+          p_date_to?: string
+        }
+        Returns: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_type: string | null
+          chemical_group: string | null
+          created_at: string | null
+          drum_count: number | null
+          drums_in_stock: number | null
+          input_recorded_at: string | null
+          item_name: string | null
+          material_name: string | null
+          po_number: string | null
+          supplier_name: string | null
+          total_volume: number | null
+          updated_at: string | null
+        }[]
+      }
+      request_passcode_reset: {
+        Args: { p_user_name: string }
+        Returns: boolean
+      }
+      reset_passcode_with_token: {
+        Args: { p_token: string; p_new_passcode: string }
+        Returns: boolean
+      }
+      validate_passcode: {
+        Args: { p_user_name: string; p_passcode: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -2294,6 +2299,9 @@ export const Constants = {
         "transport",
         "location_set",
         "barcode_scan",
+        "cancel_scan",
+        "fast_forward",
+        "bulk",
       ],
       batch_type: ["new", "repro"],
       drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
@@ -2335,9 +2343,6 @@ export const Constants = {
     },
   },
   public: {
-    Enums: {},
-  },
-  ui: {
     Enums: {},
   },
 } as const

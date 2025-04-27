@@ -16,46 +16,47 @@ export async function fetchProductionJobs(): Promise<Order[]> {
     return await executeServerDbOperation(async (supabase: SupabaseClient) => {
       // Fetch jobs using an RPC function that accesses the view
       const { data: jobs, error } = await supabase
-      // .from('v_production_jobs')
+      .schema('production')
+      .from('jobs')
+      // .rpc('get_production_jobs')
+      .select(`
+        job_id,
+        item_id,
+        input_batch_id,
+        status,
+        priority,
+        planned_start,
+        planned_end,
+        created_at,
+        updated_at,
+        items:item_id (
+          name,
+          suppliers:supplier_id (
+            name
+          )
+        ),
+        operations!job_id (
+          op_id,
+          op_type,
+          status,
+          scheduled_start,
+          started_at,
+          ended_at,
+          operation_drums!op_id (
+            drum_id,
+            drums!drum_id (
+              serial_number,
+              current_volume,
+              current_location,
+              locations!current_location (
+                name
+              )
+            )
+          )
+        )
+      `)
       // .select('*')
-      // .order('created_at', { ascending: false });
-      .rpc('get_production_jobs')
-      // .select(`
-      //   job_id,
-      //   item_id,
-      //   input_batch_id,
-      //   status,
-      //   priority,
-      //   planned_start,
-      //   planned_end,
-      //   created_at,
-      //   updated_at,
-      //   items:item_id (
-      //     name,
-      //     suppliers:supplier_id (
-      //       name
-      //     )
-      //   ),
-      //   operations!job_id (
-      //     op_id,
-      //     op_type,
-      //     status,
-      //     scheduled_start,
-      //     started_at,
-      //     ended_at,
-      //     operation_drums!op_id (
-      //       drum_id,
-      //       drums!drum_id (
-      //         serial_number,
-      //         current_volume,
-      //         current_location,
-      //         locations!current_location (
-      //           name
-      //         )
-      //       )
-      //     )
-      //   )
-      // `)
+      .order('created_at', { ascending: false });
         
       // If the RPC function is not available, you need to create it first:
       // CREATE OR REPLACE FUNCTION get_production_jobs()
@@ -79,9 +80,9 @@ export async function fetchProductionJobs(): Promise<Order[]> {
         
         return {
           id: `ORD-${job.job_id.substring(0, 8)}`,
-          itemName: job.inventory_items?.name || 'Unknown Item',
-          supplier: job.inventory_items?.supplier?.name || 'Unknown Supplier',
-          quantity: uniqueDrumIds.size,
+          itemName: job.item_name || 'Unknown Item',
+          supplier: job.supplier_name || 'Unknown Supplier',
+          quantity: job.drum_quantity || 0,
           scheduledDate: job.planned_start || job.created_at,
           status: mapJobStatusToOrderStatus(job.status),
           progress: getProgressFromStatus(job.status),
