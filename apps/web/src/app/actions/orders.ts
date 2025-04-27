@@ -35,13 +35,13 @@ export async function fetchOrders(): Promise<OrdersView[]> {
  * Fetches all materials for dropdown selection
  * Returns a simplified list of materials with id and name
  */
-export async function fetchMaterials(): Promise<Array<{id: string, name: string}>> {
+export async function fetchItems(): Promise<Array<{id: string, name: string}>> {
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     const { data, error } = await supabase
       .schema('inventory')
       .from('materials')
-      .select('material_id, material_name')
-      .order('material_name');
+      .select('material_id, name')
+      .order('name');
     
     if (error) {
       console.error('Error fetching materials:', error);
@@ -50,7 +50,7 @@ export async function fetchMaterials(): Promise<Array<{id: string, name: string}
     
     return data.map(material => ({
       id: material.material_id.toString(),
-      name: material.material_name
+      name: material.name
     }));
   });
 }
@@ -59,15 +59,15 @@ export async function fetchMaterials(): Promise<Array<{id: string, name: string}
  * Searches materials with a prefix filter
  * Much faster than a full text search for autocomplete purposes
  */
-export async function searchMaterials(prefix: string): Promise<Array<{id: string, name: string}>> {
+export async function searchItems(prefix: string): Promise<Array<{id: string, name: string}>> {
   // If empty prefix, return first 10 materials alphabetically
   if (!prefix.trim()) {
     return await executeServerDbOperation(async (supabase: SupabaseClient) => {
       const { data, error } = await supabase
         .schema('inventory')
         .from('materials')
-        .select('material_id, material_name')
-        .order('material_name')
+        .select('material_id, name')
+        .order('name')
         .limit(10);
       
       if (error) {
@@ -77,7 +77,7 @@ export async function searchMaterials(prefix: string): Promise<Array<{id: string
       
       return data.map(material => ({
         id: material.material_id.toString(),
-        name: material.material_name
+        name: material.name
       }));
     });
   }
@@ -87,9 +87,9 @@ export async function searchMaterials(prefix: string): Promise<Array<{id: string
     const { data, error } = await supabase
       .schema('inventory')
       .from('materials')
-      .select('material_id, material_name')
-      .ilike('material_name', `${prefix}%`) 
-      .order('material_name')
+      .select('material_id, name')
+      .ilike('name', `${prefix}%`) 
+      .order('name')
       .limit(10);
     
     if (error) {
@@ -99,7 +99,94 @@ export async function searchMaterials(prefix: string): Promise<Array<{id: string
     
     return data.map(material => ({
       id: material.material_id.toString(),
-      name: material.material_name
+      name: material.name
+    }));
+  });
+}
+
+/**
+ * Fetches items (supplier-specific materials) for a specific supplier
+ * Returns a list of items with id and name
+ */
+export async function fetchItemsBySupplier(supplierId: string): Promise<Array<{id: string, name: string}>> {
+  if (!supplierId) {
+    return [];
+  }
+  
+  return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+    const { data, error } = await supabase
+      .schema('inventory')
+      .from('items')
+      .select('item_id, name, material_id')
+      .eq('supplier_id', supplierId)
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching items by supplier:', error);
+      return [];
+    }
+    
+    return data.map(item => ({
+      id: item.item_id,
+      name: item.name,
+      materialId: item.material_id
+    }));
+  });
+}
+
+/**
+ * Searches items (supplier-specific materials) for a specific supplier with a prefix filter
+ * Returns a filtered list of items with id and name
+ */
+export async function searchItemsBySupplier(supplierId: string, prefix: string): Promise<Array<{id: string, name: string, materialId: string}>> {
+  if (!supplierId) {
+    return [];
+  }
+  
+  // If empty prefix, return first 10 items for this supplier
+  if (!prefix.trim()) {
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+      const { data, error } = await supabase
+        .schema('inventory')
+        .from('items')
+        .select('item_id, name, material_id')
+        .eq('supplier_id', supplierId)
+        .order('name')
+        .limit(10);
+      
+      if (error) {
+        console.error('Error fetching items by supplier:', error);
+        return [];
+      }
+      
+      return data.map(item => ({
+        id: item.item_id,
+        name: item.name,
+        materialId: item.material_id
+      }));
+    });
+  }
+  
+  // Otherwise search with prefix
+  return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+    const { data, error } = await supabase
+      .schema('inventory')
+      .from('items')
+      .select('item_id, name, material_id')
+      .eq('supplier_id', supplierId)
+      .ilike('name', `${prefix}%`)
+      .order('name')
+      .limit(10);
+    
+    if (error) {
+      console.error('Error searching items by supplier:', error);
+      return [];
+    }
+    
+    return data.map(item => ({
+      id: item.item_id,
+      name: item.name,
+      materialId: item.material_id
     }));
   });
 }
@@ -111,9 +198,10 @@ export async function searchMaterials(prefix: string): Promise<Array<{id: string
 export async function fetchSuppliers(): Promise<Array<{id: string, name: string}>> {
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     const { data, error } = await supabase
-      .from('ref_suppliers')
-      .select('supplier_id, supplier_name')
-      .order('supplier_name');
+      .schema('inventory')  
+      .from('suppliers')
+      .select('supplier_id, name')
+      .order('name');
     
     if (error) {
       console.error('Error fetching suppliers:', error);
@@ -122,7 +210,7 @@ export async function fetchSuppliers(): Promise<Array<{id: string, name: string}
     
     return data.map(supplier => ({
       id: supplier.supplier_id.toString(),
-      name: supplier.supplier_name
+      name: supplier.name
     }));
   });
 }
@@ -136,9 +224,10 @@ export async function searchSuppliers(prefix: string): Promise<Array<{id: string
   if (!prefix.trim()) {
     return await executeServerDbOperation(async (supabase: SupabaseClient) => {
       const { data, error } = await supabase
-        .from('ref_suppliers')
-        .select('supplier_id, supplier_name')
-        .order('supplier_name')
+        .schema('inventory')  
+        .from('suppliers')
+        .select('supplier_id, name')
+        .order('name')
         .limit(10);
       
       if (error) {
@@ -148,7 +237,7 @@ export async function searchSuppliers(prefix: string): Promise<Array<{id: string
       
       return data.map(supplier => ({
         id: supplier.supplier_id.toString(),
-        name: supplier.supplier_name
+        name: supplier.name
       }));
     });
   }
@@ -156,10 +245,11 @@ export async function searchSuppliers(prefix: string): Promise<Array<{id: string
   // Otherwise search with prefix
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     const { data, error } = await supabase
-      .from('ref_suppliers')
-      .select('supplier_id, supplier_name')
-      .ilike('supplier_name', `${prefix}%`)
-      .order('supplier_name')
+      .schema('inventory')  
+      .from('suppliers')
+      .select('supplier_id, name')
+      .ilike('name', `${prefix}%`)
+      .order('name')
       .limit(10);
     
     if (error) {
@@ -169,7 +259,7 @@ export async function searchSuppliers(prefix: string): Promise<Array<{id: string
     
     return data.map(supplier => ({
       id: supplier.supplier_id.toString(),
-      name: supplier.supplier_name
+      name: supplier.name
     }));
   });
 }
@@ -178,7 +268,7 @@ export async function searchSuppliers(prefix: string): Promise<Array<{id: string
  * Types for order form data
  */
 interface OrderMaterial {
-  materialId: string;
+  itemId: string;
   quantity: number;
   weight?: number;
 }
@@ -188,7 +278,7 @@ interface OrderData {
   supplierId: string;
   orderDate: string;
   etaDate?: string;
-  materials: OrderMaterial[];
+  items: OrderMaterial[];
 }
 
 /**
@@ -207,7 +297,7 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
       const etaDate = formData.get('etaDate') as string || null;
       
       // Count how many materials are in the form by looking for material names
-      const materialEntries = Array.from(formData.entries())
+      const itemEntries = Array.from(formData.entries())
         .filter(([key]) => key.startsWith('material') && key.includes('name'))
         .map(([key]) => {
           // Extract index from key name (e.g., "material-1-name" -> "1")
@@ -215,20 +305,20 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
           return index;
         });
         
-      // Create materials array
-      const materials: OrderMaterial[] = [];
+      // Create items array
+      const items: OrderMaterial[] = [];
       
-      for (const index of materialEntries) {
-        const materialId = formData.get(`material-${index}-id`) as string;
+      for (const index of itemEntries) {
+        const itemId = formData.get(`material-${index}-id`) as string;
         const quantity = parseInt(formData.get(`material-${index}-quantity`) as string, 10);
         
         // Weight is optional
         const weightStr = formData.get(`material-${index}-weight`) as string;
         const weight = weightStr ? parseFloat(weightStr) : undefined;
         
-        if (materialId && !isNaN(quantity) && quantity > 0) {
-          materials.push({
-            materialId,
+        if (itemId && !isNaN(quantity) && quantity > 0) {
+          items.push({
+            itemId,
             quantity,
             weight
           });
@@ -236,7 +326,7 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
       }
       
       // Validate required fields
-      if (!poNumber || !supplierId || !orderDate || materials.length === 0) {
+      if (!poNumber || !supplierId || !orderDate || items.length === 0) {
         return {
           success: false, 
           message: 'Missing required fields for order creation'
@@ -266,10 +356,10 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
       }
       
       // Insert order lines
-      const orderLines = materials.map(material => ({
+      const orderLines = items.map(item => ({
         po_id: orderData.po_id,
-        item_id: material.materialId,
-        quantity: material.quantity
+        item_id: item.itemId,
+        quantity: item.quantity
       }));
       
       const { error: linesError } = await supabase
@@ -301,7 +391,6 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
     }
   });
 }
-
 
 export async function getNextPONumber(date: Date = new Date()) {
   try {

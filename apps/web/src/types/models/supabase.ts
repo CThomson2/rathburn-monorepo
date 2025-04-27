@@ -1391,18 +1391,21 @@ export type Database = {
           po_id: string
           pol_id: string
           quantity: number
+          unit_weight: number | null
         }
         Insert: {
           item_id: string
           po_id: string
           pol_id?: string
           quantity: number
+          unit_weight?: number | null
         }
         Update: {
           item_id?: string
           po_id?: string
           pol_id?: string
           quantity?: number
+          unit_weight?: number | null
         }
         Relationships: [
           {
@@ -1464,19 +1467,19 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          email: string | null
           name: string
           supplier_id: string
-          email: string | null
         }
         Insert: {
+          email?: string | null
           name: string
           supplier_id?: string
-          email?: string | null
         }
         Update: {
+          email?: string | null
           name?: string
           supplier_id?: string
-          email?: string | null
         }
         Relationships: []
       }
@@ -2161,6 +2164,23 @@ export type Database = {
       [_ in never]: never
     }
   }
+  ui: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DefaultSchema = Database[Extract<keyof Database, "public">]
@@ -2343,6 +2363,9 @@ export const Constants = {
     },
   },
   public: {
+    Enums: {},
+  },
+  ui: {
     Enums: {},
   },
 } as const

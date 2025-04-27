@@ -14,9 +14,9 @@ import {
 import {
   createOrder,
   fetchSuppliers,
-  fetchMaterials,
-  searchSuppliers,
-  searchMaterials,
+  fetchItemsBySupplier,
+  searchItemsBySupplier,
+  getNextPONumber,
 } from "@/app/actions/orders";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -41,17 +41,20 @@ import useSWR from "swr";
 interface Supplier {
   id: string;
   name: string;
+  email?: string;
 }
 
-interface Material {
+interface Item {
   id: string;
   name: string;
+  materialId: string;
+  supplierId?: string;
 }
 
 interface OrderMaterial {
   id: string;
-  materialId: string;
-  materialName: string;
+  itemId: string;
+  itemName: string;
   quantity: number;
   weight?: number;
 }
@@ -66,7 +69,10 @@ interface OrderFormProps {
 
 // Helper functions to fetch data with SWR
 const suppliersFetcher = async () => await fetchSuppliers();
-const materialsFetcher = async () => await fetchMaterials();
+const itemsBySupplierFetcher = async (supplierId: string) => {
+  if (!supplierId) return [];
+  return await fetchItemsBySupplier(supplierId);
+};
 
 /**
  * A form for creating a new purchase order.
@@ -88,8 +94,8 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
   const [materials, setMaterials] = useState<OrderMaterial[]>([
     {
       id: crypto.randomUUID(),
-      materialId: "",
-      materialName: "",
+      itemId: "",
+      itemName: "",
       quantity: 1,
     },
   ]);
@@ -105,97 +111,148 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
   // Fetch all suppliers and materials with SWR for caching
   const { data: allSuppliers, error: suppliersError } = useSWR(
     "all-suppliers",
-    suppliersFetcher,
+    suppliersFetcher
+  );
+
+  // Fetch items for the selected supplier
+  const { data: supplierItems, error: itemsError } = useSWR(
+    supplier ? `supplier-items-${supplier}` : null,
+    () => itemsBySupplierFetcher(supplier),
     { revalidateOnFocus: false }
   );
 
-  const { data: allMaterials, error: materialsError } = useSWR(
-    "all-materials",
-    materialsFetcher,
-    { revalidateOnFocus: false }
-  );
+  // Auto-generate PO number on load
+  useEffect(() => {
+    const fetchNextPONumber = async () => {
+      try {
+        const nextPoNumber = await getNextPONumber();
+        if (nextPoNumber) {
+          setPoNumber(nextPoNumber);
+        }
+      } catch (error) {
+        console.error("Error fetching next PO number:", error);
+      }
+    };
+
+    fetchNextPONumber();
+  }, []);
+
+  // Reset material selections when supplier changes
+  useEffect(() => {
+    if (supplier) {
+      // Reset all material selections when supplier changes
+      setMaterials((prev) =>
+        prev.map((mat) => ({
+          ...mat,
+          itemId: "",
+          itemName: "",
+        }))
+      );
+
+      // Clear filtered materials
+      setFilteredMaterials({});
+
+      // Reset search terms
+      setMaterialSearchTerms({});
+    }
+  }, [supplier]);
 
   // Filtered suppliers based on search term
   const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<
-    Record<string, Material[]>
+    Record<string, Item[]>
   >({});
 
-  // Debounced search for suppliers
-  const debouncedSupplierSearch = useCallback(
-    async (term: string) => {
-      if (!term.trim() && allSuppliers) {
-        // If empty term and we have all suppliers, use them (limited to 10)
-        setFilteredSuppliers(allSuppliers.slice(0, 10));
-        return;
-      }
+  // Filter suppliers client-side based on search term
+  useEffect(() => {
+    if (!allSuppliers) return;
 
-      // Otherwise call the search endpoint
-      try {
-        const results = await searchSuppliers(term);
-        setFilteredSuppliers(results);
-      } catch (error) {
-        console.error("Error searching suppliers:", error);
-        setFilteredSuppliers([]);
-      }
-    },
-    [allSuppliers]
-  );
+    if (!supplierSearchTerm.trim()) {
+      // Show all suppliers if no search term
+      setFilteredSuppliers(allSuppliers);
+      return;
+    }
 
-  // Debounced search for materials
-  const debouncedMaterialSearch = useCallback(
+    // Client-side filtering based on search term
+    const searchTermLower = supplierSearchTerm.toLowerCase();
+
+    const filtered = allSuppliers.filter((supplier) => {
+      const supplierNameLower = supplier.name.toLowerCase();
+      return supplierNameLower.includes(searchTermLower);
+    });
+
+    setFilteredSuppliers(filtered);
+  }, [supplierSearchTerm, allSuppliers]);
+
+  // Client-side filtering for items by supplier
+  const filterItemsBySearch = useCallback(
     async (id: string, term: string) => {
-      if (!term.trim() && allMaterials) {
-        // If empty term and we have all materials, use them (limited to 10)
+      if (!supplier) {
+        // If no supplier is selected, we can't search for items
         setFilteredMaterials((prev) => ({
           ...prev,
-          [id]: allMaterials.slice(0, 10),
+          [id]: [],
         }));
         return;
       }
 
-      // Otherwise call the search endpoint
-      try {
-        const results = await searchMaterials(term);
+      if (!term.trim() && supplierItems) {
+        // If empty term and we have supplier items, use them all
         setFilteredMaterials((prev) => ({
           ...prev,
-          [id]: results,
+          [id]: supplierItems as Item[],
+        }));
+        return;
+      }
+
+      // Client-side filtering for material items
+      if (supplierItems) {
+        const searchTermLower = term.toLowerCase();
+        const filtered = (supplierItems as Item[]).filter((item) =>
+          item.name.toLowerCase().includes(searchTermLower)
+        );
+        setFilteredMaterials((prev) => ({
+          ...prev,
+          [id]: filtered,
+        }));
+        return;
+      }
+
+      // Fallback to server search if supplierItems is not available
+      try {
+        const results = await searchItemsBySupplier(supplier, term);
+        setFilteredMaterials((prev) => ({
+          ...prev,
+          [id]: results as Item[],
         }));
       } catch (error) {
-        console.error("Error searching materials:", error);
+        console.error("Error searching items:", error);
         setFilteredMaterials((prev) => ({
           ...prev,
           [id]: [],
         }));
       }
     },
-    [allMaterials]
+    [supplier, supplierItems]
   );
 
-  // Update filtered suppliers when search term changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      debouncedSupplierSearch(supplierSearchTerm);
-    }, 300); // 300ms debounce
-
-    return () => clearTimeout(timer);
-  }, [supplierSearchTerm, debouncedSupplierSearch]);
-
-  // Load initial suppliers and materials
+  // Load initial suppliers
   useEffect(() => {
     if (allSuppliers) {
-      setFilteredSuppliers(allSuppliers.slice(0, 10));
+      setFilteredSuppliers(allSuppliers);
     }
+  }, [allSuppliers]);
 
-    // Initialize filteredMaterials for each material in the form
-    if (allMaterials) {
-      const initialFiltered: Record<string, Material[]> = {};
+  // Initialize filtered items when supplier items load
+  useEffect(() => {
+    if (supplierItems && supplier) {
+      const initialFiltered: Record<string, Item[]> = {};
       materials.forEach((mat) => {
-        initialFiltered[mat.id] = allMaterials.slice(0, 10);
+        initialFiltered[mat.id] = supplierItems as Item[];
       });
       setFilteredMaterials(initialFiltered);
     }
-  }, [allSuppliers, allMaterials, materials]);
+  }, [supplierItems, supplier, materials]);
 
   // Update material search terms when searching
   const handleMaterialSearch = (id: string, term: string) => {
@@ -204,11 +261,8 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
       [id]: term,
     }));
 
-    const timer = setTimeout(() => {
-      debouncedMaterialSearch(id, term);
-    }, 300); // 300ms debounce
-
-    return () => clearTimeout(timer);
+    // Call the search function immediately without debounce
+    filterItemsBySearch(id, term);
   };
 
   // Loading states
@@ -221,8 +275,8 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
       ...materials,
       {
         id: newId,
-        materialId: "",
-        materialName: "",
+        itemId: "",
+        itemName: "",
         quantity: 1,
       },
     ]);
@@ -238,11 +292,11 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
       [newId]: "",
     }));
 
-    // If we have all materials, initialize the filtered list for this new line
-    if (allMaterials) {
+    // If we have supplier items, initialize the filtered list for this new line
+    if (supplierItems) {
       setFilteredMaterials((prev) => ({
         ...prev,
-        [newId]: allMaterials.slice(0, 10),
+        [newId]: supplierItems as Item[],
       }));
     }
   };
@@ -299,13 +353,13 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
   // Set material with ID and name
   const setMaterialWithDetails = (
     id: string,
-    materialId: string,
-    materialName: string
+    itemId: string,
+    itemName: string
   ) => {
     setMaterials(
       materials.map((mat) => {
         if (mat.id === id) {
-          return { ...mat, materialId, materialName };
+          return { ...mat, itemId, itemName };
         }
         return mat;
       })
@@ -330,7 +384,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
       poNumber.trim() !== "" &&
       supplier !== "" &&
       orderDate !== undefined &&
-      materials.every((mat) => mat.materialId !== "" && mat.quantity > 0)
+      materials.every((mat) => mat.itemId !== "" && mat.quantity > 0)
     );
   };
 
@@ -361,8 +415,8 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
 
       // Add materials
       materials.forEach((mat, index) => {
-        formData.append(`material-${index + 1}-name`, mat.materialName);
-        formData.append(`material-${index + 1}-id`, mat.materialId);
+        formData.append(`material-${index + 1}-name`, mat.itemName);
+        formData.append(`material-${index + 1}-id`, mat.itemId);
         formData.append(
           `material-${index + 1}-quantity`,
           mat.quantity.toString()
@@ -419,7 +473,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
             id="poNumber"
             value={poNumber}
             onChange={(e) => setPoNumber(e.target.value)}
-            placeholder="e.g. PO-2025-001"
+            placeholder="e.g. 2023-04-27ARS"
             required
           />
         </div>
@@ -451,26 +505,28 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                 <CommandList>
                   <CommandEmpty>No suppliers found.</CommandEmpty>
                   <CommandGroup>
-                    {filteredSuppliers?.map((item) => (
-                      <CommandItem
-                        key={item.id}
-                        value={item.id}
-                        onSelect={() => {
-                          setSupplier(item.id);
-                          setSupplierName(item.name);
-                          setOpenSupplier(false);
-                          setSupplierSearchTerm("");
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            supplier === item.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {item.name}
-                      </CommandItem>
-                    ))}
+                    {filteredSuppliers?.map((item) => {
+                      return (
+                        <CommandItem
+                          key={item.id}
+                          value={item.name}
+                          onSelect={() => {
+                            setSupplier(item.id);
+                            setSupplierName(item.name);
+                            setOpenSupplier(false);
+                            setSupplierSearchTerm("");
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              supplier === item.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {item.name}
+                        </CommandItem>
+                      );
+                    })}
                   </CommandGroup>
                 </CommandList>
               </Command>
@@ -558,6 +614,12 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
           </Button>
         </div>
 
+        {!supplier && (
+          <div className="p-4 mb-4 border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-900 rounded-md text-yellow-800 dark:text-yellow-200">
+            Please select a supplier first to see available materials.
+          </div>
+        )}
+
         <div className="space-y-4">
           {materials.map((mat, index) => (
             <div
@@ -571,16 +633,27 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                 <Popover
                   open={openMaterial[mat.id]}
                   onOpenChange={(open) => {
+                    // Don't allow opening if no supplier selected
+                    if (!supplier && open) {
+                      toast({
+                        title: "Select Supplier First",
+                        description:
+                          "Please select a supplier before choosing materials",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
                     setOpenMaterial((prev) => ({ ...prev, [mat.id]: open }));
                     // Reset search and reload filtered materials when reopening
-                    if (open && allMaterials) {
+                    if (open && supplierItems) {
                       setMaterialSearchTerms((prev) => ({
                         ...prev,
                         [mat.id]: "",
                       }));
                       setFilteredMaterials((prev) => ({
                         ...prev,
-                        [mat.id]: allMaterials.slice(0, 10),
+                        [mat.id]: (supplierItems || []) as Item[],
                       }));
                     }
                   }}
@@ -591,8 +664,9 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                       role="combobox"
                       aria-expanded={openMaterial[mat.id]}
                       className="w-full justify-between"
+                      disabled={!supplier}
                     >
-                      {mat.materialName || "Select a material..."}
+                      {mat.itemName || "Select a material..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -606,12 +680,16 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                         }
                       />
                       <CommandList>
-                        <CommandEmpty>No materials found.</CommandEmpty>
+                        <CommandEmpty>
+                          {supplier
+                            ? "No materials found for this supplier."
+                            : "Please select a supplier first."}
+                        </CommandEmpty>
                         <CommandGroup>
                           {filteredMaterials[mat.id]?.map((item) => (
                             <CommandItem
                               key={item.id}
-                              value={item.id}
+                              value={item.name}
                               onSelect={() => {
                                 setMaterialWithDetails(
                                   mat.id,
@@ -623,7 +701,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  mat.materialId === item.id
+                                  mat.itemId === item.id
                                     ? "opacity-100"
                                     : "opacity-0"
                                 )}
