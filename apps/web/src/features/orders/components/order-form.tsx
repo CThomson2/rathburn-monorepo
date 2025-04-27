@@ -127,6 +127,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
       try {
         const nextPoNumber = await getNextPONumber();
         if (nextPoNumber) {
+          console.log("nextPoNumber", nextPoNumber);
           setPoNumber(nextPoNumber);
         }
       } catch (error) {

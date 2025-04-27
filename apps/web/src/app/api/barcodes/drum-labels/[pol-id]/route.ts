@@ -1,6 +1,5 @@
-// /app/api/barcodes/[order_line_id]/route.ts
 import { NextResponse } from "next/server";
-import { executeServerDbOperation } from "@/lib/database";
+import { fetchDrumLabelData, markDrumLabelsAsPrinted } from "@/app/actions/label-generation";
 import bwipjs from "bwip-js";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 // For convenience, helper to convert inches to PDF points (72pt = 1in)
@@ -10,61 +9,45 @@ import { inchesToPoints } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-// Example Postman API request (GET):
-// https://localhost:3000/api/barcodes/generate/12?material=Hexane&supplier=Caldic
-
 export async function GET(
   req: Request,
   {
-    params: { "order-line-id": order_line_id },
-  }: { params: { "order-line-id": string } }
+    params: { "pol-id": polId },
+  }: { params: { "pol-id": string } }
 ) {
   try {
-    const { material, supplier } = Object.fromEntries(
-      new URL(req.url).searchParams
-    );
-
-    if (!order_line_id) {
-      console.error("Missing order_line_id");
+    if (!polId) {
       return NextResponse.json(
-        { error: "Missing order_line_id" },
+        { error: "Missing purchase order line ID" },
         { status: 400 }
       );
     }
 
-    // 2) Fetch the newly-created drums
-    const drums = await executeServerDbOperation(async (client) => {
-      const { data, error } = await client
-        .schema("inventory")
-        .from("drums")
-        .select("drum_id")
-        .eq("pol_id", Number(order_line_id));
+    // Fetch drum label data from database
+    const drumLabels = await fetchDrumLabelData(polId);
 
-      if (error) {
-        throw error;
-      }
-      return data;
-    });
+    if (!drumLabels.length) {
+      return NextResponse.json(
+        { error: "No drum labels found for this purchase order line" },
+        { status: 404 }
+      );
+    }
 
-    // Convert the drum_ids into an array of numbers
-    const drumIds: number[] = drums.map((drum) => Number(drum.drum_id));
-
-    // 1) Create a PDF
+    // Create a PDF
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     // Page size for 6" x 4" label printing (landscape)
     const PAGE_WIDTH = inchesToPoints(6);
     const PAGE_HEIGHT = inchesToPoints(4);
 
     // For each drum, generate a barcode and a dedicated page in the PDF
-    for (const drum_id of drumIds) {
-      // Generate the barcode image (PNG) for `[drumId]~[order_line_id]`
-      const codeText = `${order_line_id}-H${drum_id}`;
-
+    for (const drum of drumLabels) {
+      // Generate the barcode image (PNG) for the serial number
       const barcodeBuffer = await bwipjs.toBuffer({
         bcid: "code128",
-        text: codeText,
+        text: `${polId}-${drum.serialNumber}`,
         scale: 3,
         height: 10,
         includetext: true,
@@ -76,17 +59,17 @@ export async function GET(
       const barcodeImage = await pdfDoc.embedPng(new Uint8Array(barcodeBuffer));
 
       // Add Supplier and Material text in bold
-      page.drawText(`Supplier: ${supplier}`, {
+      page.drawText(`Supplier: ${drum.supplierName}`, {
         x: 30,
         y: PAGE_HEIGHT - 30,
         size: 14,
-        font: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+        font: boldFont,
       });
-      page.drawText(`Material: ${material}`, {
+      page.drawText(`Material: ${drum.materialName}`, {
         x: 30,
         y: PAGE_HEIGHT - 50,
         size: 14,
-        font: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+        font: boldFont,
       });
 
       // Place the barcode image
@@ -95,16 +78,17 @@ export async function GET(
         y: 50,
       });
 
-      // Optional: Add some text
-      page.drawText(`Order ID: ${order_line_id}`, {
+      // Add serial number and PO information
+      page.drawText(`Serial Number: ${drum.serialNumber}`, {
         x: 30,
-        y: 20,
+        y: 200,
         size: 14,
         font,
       });
-      page.drawText(`Drum ID: ${drum_id}`, {
+      
+      page.drawText(`Order ID: ${drum.purchaseOrderId}`, {
         x: 30,
-        y: 200,
+        y: 20,
         size: 14,
         font,
       });
@@ -113,12 +97,15 @@ export async function GET(
     // Finalize PDF
     const pdfBytes = await pdfDoc.save();
 
+    // Mark labels as printed
+    await markDrumLabelsAsPrinted(polId);
+
     // Return PDF response
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="barcodes.pdf"',
+        "Content-Disposition": 'inline; filename="drum-labels.pdf"',
       },
     });
   } catch (err) {
@@ -128,4 +115,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+} 

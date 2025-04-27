@@ -1385,8 +1385,54 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_order_drums: {
+        Row: {
+          created_at: string
+          drum_id: string | null
+          is_printed: boolean
+          is_received: boolean
+          pod_id: string
+          pol_id: string
+          serial_number: string
+        }
+        Insert: {
+          created_at?: string
+          drum_id?: string | null
+          is_printed?: boolean
+          is_received?: boolean
+          pod_id?: string
+          pol_id: string
+          serial_number: string
+        }
+        Update: {
+          created_at?: string
+          drum_id?: string | null
+          is_printed?: boolean
+          is_received?: boolean
+          pod_id?: string
+          pol_id?: string
+          serial_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "drums"
+            referencedColumns: ["drum_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_drums_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["pol_id"]
+          },
+        ]
+      }
       purchase_order_lines: {
         Row: {
+          cost: number | null
           item_id: string
           po_id: string
           pol_id: string
@@ -1394,6 +1440,7 @@ export type Database = {
           unit_weight: number | null
         }
         Insert: {
+          cost?: number | null
           item_id: string
           po_id: string
           pol_id?: string
@@ -1401,6 +1448,7 @@ export type Database = {
           unit_weight?: number | null
         }
         Update: {
+          cost?: number | null
           item_id?: string
           po_id?: string
           pol_id?: string

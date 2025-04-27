@@ -1,7 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Printer } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { getPurchaseOrderLinesForLabels } from "@/app/actions/label-generation";
+import { useState, useEffect } from "react";
 
 interface OrderConfirmationProps {
   result: { success: boolean; orderId?: string; message?: string } | null;
@@ -24,9 +27,38 @@ export function OrderConfirmation({
   result,
   onClose,
 }: OrderConfirmationProps): JSX.Element | null {
+  const router = useRouter();
+  const [labelData, setLabelData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Fetch purchase order lines with pending labels
+  useEffect(() => {
+    const fetchLabelData = async () => {
+      if (result?.success && result.orderId) {
+        try {
+          setIsLoading(true);
+          const data = await getPurchaseOrderLinesForLabels(result.orderId);
+          setLabelData(data);
+        } catch (error) {
+          console.error("Error fetching label data:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchLabelData();
+  }, [result]);
+
   if (!result) {
     return null;
   }
+
+  // Generate and open barcode labels in a new tab
+  const generateBarcodeLabels = (polId: string) => {
+    const url = `/api/barcodes/drum-labels/${polId}`;
+    window.open(url, "_blank");
+  };
 
   return (
     <div className="flex flex-col items-center justify-center py-8">
@@ -46,6 +78,44 @@ export function OrderConfirmation({
               </span>
             )}
           </p>
+
+          {/* Label Generation Section */}
+          {labelData.length > 0 && (
+            <div className="w-full max-w-lg mt-4 mb-6">
+              <h4 className="text-md font-medium mb-2">
+                Generate Barcode Labels
+              </h4>
+              <div className="border rounded-md divide-y">
+                {labelData.map((item) => (
+                  <div
+                    key={item.purchaseOrderLineId}
+                    className="p-3 flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-medium">{item.materialName}</p>
+                      <p className="text-sm text-gray-500">
+                        {item.quantity} drums from {item.supplierName}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        generateBarcodeLabels(item.purchaseOrderLineId)
+                      }
+                      className="flex items-center gap-1"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Print Labels
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isLoading && (
+            <p className="text-sm text-gray-500 mb-4">Loading label data...</p>
+          )}
         </>
       ) : (
         <>

@@ -50,6 +50,7 @@ export function OrderModal({ open, onOpenChange }: OrderModalProps) {
   const handleOrderCreated = useCallback(
     (result: { success: boolean; orderId?: string; message?: string }) => {
       setOrderResult(result);
+      console.log("result", result);
       if (result.success) {
         setStep("confirmation");
       }

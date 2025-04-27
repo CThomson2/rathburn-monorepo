@@ -392,11 +392,11 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
   });
 }
 
-export async function getNextPONumber(date: Date = new Date()) {
+export async function getNextPONumber(date?: Date) {
   try {
     return executeServerDbOperation(async (supabase: SupabaseClient) => {
       // Get today's date in YYYY-MM-DD format for database query
-      const dateFormatted = formatDateYYYYMMDD(date); // yyyy-mm-dd
+      const dateFormatted = formatDateYYYYMMDD(date || new Date()); // yyyy-mm-dd
       
       // Query orders made today
       const startOfDay = `${dateFormatted}T00:00:00.000Z`;
