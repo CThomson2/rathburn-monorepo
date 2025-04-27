@@ -23,7 +23,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 
-import { NavMain } from "@/components/sidebar/nav-main";
+import { NavMain, SidebarItemAction } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
 import { NavUser } from "@/components/sidebar/nav-user";
 import { TeamSwitcher } from "@/components/sidebar/team-switcher";
@@ -69,15 +69,15 @@ const data = {
       items: [
         {
           title: "Place Order",
-          url: "#",
+          action: "place_order" as const,
         },
         {
           title: "Log Details",
-          url: "#",
+          action: "log_details" as const,
         },
         {
           title: "Print Labels",
-          url: "#",
+          action: "print_labels" as const,
         },
       ],
     },

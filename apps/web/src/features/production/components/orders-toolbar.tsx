@@ -1,32 +1,31 @@
-
 import { useState } from "react";
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  CalendarRange, 
-  SortDesc, 
-  Flag 
+import {
+  Search,
+  Plus,
+  Filter,
+  CalendarRange,
+  SortDesc,
+  Flag,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 type OrdersToolbarProps = {
   onSearch: (query: string) => void;
   onFilter: (filters: any) => void;
   onSort: (sortBy: string) => void;
   onNewOrder: () => void;
-}
+};
 
-export const OrdersToolbar = ({ 
-  onSearch, 
-  onFilter, 
-  onSort, 
-  onNewOrder
+export const OrdersToolbar = ({
+  onSearch,
+  onFilter,
+  onSort,
+  onNewOrder,
 }: OrdersToolbarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(searchQuery);
@@ -35,7 +34,7 @@ export const OrdersToolbar = ({
       description: `Showing results for "${searchQuery}"`,
     });
   };
-  
+
   const sortOptions = [
     { label: "Newest First", value: "date-desc" },
     { label: "Oldest First", value: "date-asc" },
@@ -87,11 +86,13 @@ export const OrdersToolbar = ({
             >
               <Filter size={18} />
             </button>
-            
+
             {showFilters && (
               <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-10">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Filter By:</h4>
-                
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Filter By:
+                </h4>
+
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -106,20 +107,20 @@ export const OrdersToolbar = ({
                       <option value="error">Error</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Date Range
                     </label>
                     <div className="flex items-center">
                       <CalendarRange size={14} className="mr-2 text-gray-500" />
-                      <input 
-                        type="date" 
-                        className="block w-full p-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700" 
+                      <input
+                        type="date"
+                        className="block w-full p-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700"
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Priority
@@ -135,9 +136,9 @@ export const OrdersToolbar = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 flex justify-end">
-                  <button 
+                  <button
                     className="px-3 py-1 text-xs bg-brand-blue text-white rounded hover:bg-blue-600 transition-colors"
                     onClick={() => {
                       setShowFilters(false);
@@ -150,11 +151,9 @@ export const OrdersToolbar = ({
               </div>
             )}
           </div>
-          
+
           <div className="relative">
-            <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-            >
+            <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600">
               <SortDesc size={18} />
             </button>
             {/* Sort dropdown would go here */}

@@ -7,7 +7,7 @@ import {
   OrdersToolbar,
   CreateJobModal,
 } from "@/features/production";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { fetchProductionJobs } from "./actions/production";
 import type { Order } from "@/features/production/types";
 

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { createDrumAssignment } from "@/features/drum-assignment/data-utils";
 import { DrumAssignmentFormData } from "@/features/drum-assignment/types";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
   CardContent,

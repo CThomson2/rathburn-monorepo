@@ -22,7 +22,7 @@ import {
   fetchAvailableBatches,
   fetchItems,
 } from "@/app/(routes)/production/actions/production";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 /**
  * Props for the CreateJobModal component
