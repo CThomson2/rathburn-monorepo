@@ -3,7 +3,7 @@
 import { executeServerDbOperation } from "@/lib/database";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { OrdersView, OrderStatus } from "@/features/orders/types";
-import { formatDate } from "@/utils/format-date";
+import { formatDate, formatDateYYYYMMDD } from "@/utils/format-date";
 import { revalidatePath } from "next/cache";
 
 /** 
@@ -23,9 +23,153 @@ export async function fetchOrders(): Promise<OrdersView[]> {
     }
     return orders.map((order) => ({
         ...order,
+        material: order.item,
         date_ordered: formatDate(order.order_date),
         status: order.status as OrderStatus,
         eta: order.eta_date ? formatDate(order.eta_date) : undefined,
+    }));
+  });
+}
+
+/**
+ * Fetches all materials for dropdown selection
+ * Returns a simplified list of materials with id and name
+ */
+export async function fetchMaterials(): Promise<Array<{id: string, name: string}>> {
+  return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+    const { data, error } = await supabase
+      .schema('inventory')
+      .from('materials')
+      .select('material_id, material_name')
+      .order('material_name');
+    
+    if (error) {
+      console.error('Error fetching materials:', error);
+      return [];
+    }
+    
+    return data.map(material => ({
+      id: material.material_id.toString(),
+      name: material.material_name
+    }));
+  });
+}
+
+/**
+ * Searches materials with a prefix filter
+ * Much faster than a full text search for autocomplete purposes
+ */
+export async function searchMaterials(prefix: string): Promise<Array<{id: string, name: string}>> {
+  // If empty prefix, return first 10 materials alphabetically
+  if (!prefix.trim()) {
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+      const { data, error } = await supabase
+        .schema('inventory')
+        .from('materials')
+        .select('material_id, material_name')
+        .order('material_name')
+        .limit(10);
+      
+      if (error) {
+        console.error('Error fetching materials:', error);
+        return [];
+      }
+      
+      return data.map(material => ({
+        id: material.material_id.toString(),
+        name: material.material_name
+      }));
+    });
+  }
+  
+  // Otherwise search with prefix
+  return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+    const { data, error } = await supabase
+      .schema('inventory')
+      .from('materials')
+      .select('material_id, material_name')
+      .ilike('material_name', `${prefix}%`) 
+      .order('material_name')
+      .limit(10);
+    
+    if (error) {
+      console.error('Error searching materials:', error);
+      return [];
+    }
+    
+    return data.map(material => ({
+      id: material.material_id.toString(),
+      name: material.material_name
+    }));
+  });
+}
+
+/**
+ * Fetches all suppliers for dropdown selection
+ * Returns a simplified list of suppliers with id and name
+ */
+export async function fetchSuppliers(): Promise<Array<{id: string, name: string}>> {
+  return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+    const { data, error } = await supabase
+      .from('ref_suppliers')
+      .select('supplier_id, supplier_name')
+      .order('supplier_name');
+    
+    if (error) {
+      console.error('Error fetching suppliers:', error);
+      return [];
+    }
+    
+    return data.map(supplier => ({
+      id: supplier.supplier_id.toString(),
+      name: supplier.supplier_name
+    }));
+  });
+}
+
+/**
+ * Searches suppliers with a prefix filter
+ * Much faster than a full text search for autocomplete purposes
+ */
+export async function searchSuppliers(prefix: string): Promise<Array<{id: string, name: string}>> {
+  // If empty prefix, return first 10 suppliers alphabetically
+  if (!prefix.trim()) {
+    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+      const { data, error } = await supabase
+        .from('ref_suppliers')
+        .select('supplier_id, supplier_name')
+        .order('supplier_name')
+        .limit(10);
+      
+      if (error) {
+        console.error('Error fetching suppliers:', error);
+        return [];
+      }
+      
+      return data.map(supplier => ({
+        id: supplier.supplier_id.toString(),
+        name: supplier.supplier_name
+      }));
+    });
+  }
+  
+  // Otherwise search with prefix
+  return await executeServerDbOperation(async (supabase: SupabaseClient) => {
+    const { data, error } = await supabase
+      .from('ref_suppliers')
+      .select('supplier_id, supplier_name')
+      .ilike('supplier_name', `${prefix}%`)
+      .order('supplier_name')
+      .limit(10);
+    
+    if (error) {
+      console.error('Error searching suppliers:', error);
+      return [];
+    }
+    
+    return data.map(supplier => ({
+      id: supplier.supplier_id.toString(),
+      name: supplier.supplier_name
     }));
   });
 }
@@ -156,4 +300,40 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
       };
     }
   });
+}
+
+
+export async function getNextPONumber(date: Date = new Date()) {
+  try {
+    return executeServerDbOperation(async (supabase: SupabaseClient) => {
+      // Get today's date in YYYY-MM-DD format for database query
+      const dateFormatted = formatDateYYYYMMDD(date); // yyyy-mm-dd
+      
+      // Query orders made today
+      const startOfDay = `${dateFormatted}T00:00:00.000Z`;
+      const endOfDay = `${dateFormatted}T23:59:59.999Z`;
+      
+      const { count, error } = await supabase
+        .from('purchase_orders')
+        .select('*', { count: 'exact', head: true })
+        .gte('date_ordered', startOfDay)
+        .lte('date_ordered', endOfDay);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Use count to determine letter (A, B, C)
+      const todayOrdersCount = count || 0;
+      const letterMap = ["A", "B", "C", "D", "E"];
+      const orderLetter = letterMap[todayOrdersCount] || "X";
+      
+      // Generate PO number in format YY-MM-DD-A-RS
+      return `${dateFormatted}${orderLetter}RS`; // TODO: Add manager initials as active user
+      
+    });
+  } catch (error) {
+    console.error('Error in getNextPONumber:', error);
+    return null;
+  }
 }

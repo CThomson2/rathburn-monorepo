@@ -8,10 +8,10 @@ export type OrderStatus = "pending" | "partially_received" | "complete";
  */
 export interface OrdersView {
   po_number: string;
-  item: string;
+  material: string;
   supplier: string;
   quantity: number;
-  order_date: string;
+  date_ordered: string;
   status: OrderStatus;
   eta_date?: string;
   eta?: string; // Formatted eta_date (populated by fetchOrders)

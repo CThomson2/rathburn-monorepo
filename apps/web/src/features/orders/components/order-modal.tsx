@@ -73,7 +73,7 @@ export function OrderModal({ open, onOpenChange }: OrderModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             {step === "preview" && "Recent Orders"}

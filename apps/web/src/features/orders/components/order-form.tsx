@@ -1,19 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, PlusCircle, Trash2 } from "lucide-react";
-import { createOrder } from "@/app/actions/orders";
+import {
+  Loader2,
+  PlusCircle,
+  Trash2,
+  Check,
+  ChevronsUpDown,
+} from "lucide-react";
+import {
+  createOrder,
+  fetchSuppliers,
+  fetchMaterials,
+  searchSuppliers,
+  searchMaterials,
+} from "@/app/actions/orders";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -23,6 +36,7 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import useSWR from "swr";
 
 interface Supplier {
   id: string;
@@ -50,6 +64,10 @@ interface OrderFormProps {
   }) => void;
 }
 
+// Helper functions to fetch data with SWR
+const suppliersFetcher = async () => await fetchSuppliers();
+const materialsFetcher = async () => await fetchMaterials();
+
 /**
  * A form for creating a new purchase order.
  *
@@ -64,6 +82,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
   // Form state
   const [poNumber, setPoNumber] = useState("");
   const [supplier, setSupplier] = useState("");
+  const [supplierName, setSupplierName] = useState("");
   const [orderDate, setOrderDate] = useState<Date>(new Date());
   const [etaDate, setEtaDate] = useState<Date | undefined>(undefined);
   const [materials, setMaterials] = useState<OrderMaterial[]>([
@@ -75,39 +94,182 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
     },
   ]);
 
-  // API data
-  const [suppliers, setSuppliers] = useState<Supplier[]>([
-    { id: "0e84084f-139e-44b5-8041-faabbad25166", name: "Acme Corp" },
-    { id: "1e84084f-139e-44b5-8041-faabbad25167", name: "Globex Industries" },
-    { id: "2e84084f-139e-44b5-8041-faabbad25168", name: "Initech" },
-  ]);
-  const [materialOptions, setMaterialOptions] = useState<Material[]>([
-    { id: "de651fa6-bcfd-4127-b266-8c23e473583e", name: "Acetone" },
-    { id: "de651fa6-bcfd-4127-b266-8c23e473583f", name: "Methanol" },
-    { id: "de651fa6-bcfd-4127-b266-8c23e473584g", name: "Ethanol" },
-  ]);
+  // State for searchable dropdowns
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
+  const [materialSearchTerms, setMaterialSearchTerms] = useState<
+    Record<string, string>
+  >({});
+  const [openSupplier, setOpenSupplier] = useState(false);
+  const [openMaterial, setOpenMaterial] = useState<Record<string, boolean>>({});
+
+  // Fetch all suppliers and materials with SWR for caching
+  const { data: allSuppliers, error: suppliersError } = useSWR(
+    "all-suppliers",
+    suppliersFetcher,
+    { revalidateOnFocus: false }
+  );
+
+  const { data: allMaterials, error: materialsError } = useSWR(
+    "all-materials",
+    materialsFetcher,
+    { revalidateOnFocus: false }
+  );
+
+  // Filtered suppliers based on search term
+  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
+  const [filteredMaterials, setFilteredMaterials] = useState<
+    Record<string, Material[]>
+  >({});
+
+  // Debounced search for suppliers
+  const debouncedSupplierSearch = useCallback(
+    async (term: string) => {
+      if (!term.trim() && allSuppliers) {
+        // If empty term and we have all suppliers, use them (limited to 10)
+        setFilteredSuppliers(allSuppliers.slice(0, 10));
+        return;
+      }
+
+      // Otherwise call the search endpoint
+      try {
+        const results = await searchSuppliers(term);
+        setFilteredSuppliers(results);
+      } catch (error) {
+        console.error("Error searching suppliers:", error);
+        setFilteredSuppliers([]);
+      }
+    },
+    [allSuppliers]
+  );
+
+  // Debounced search for materials
+  const debouncedMaterialSearch = useCallback(
+    async (id: string, term: string) => {
+      if (!term.trim() && allMaterials) {
+        // If empty term and we have all materials, use them (limited to 10)
+        setFilteredMaterials((prev) => ({
+          ...prev,
+          [id]: allMaterials.slice(0, 10),
+        }));
+        return;
+      }
+
+      // Otherwise call the search endpoint
+      try {
+        const results = await searchMaterials(term);
+        setFilteredMaterials((prev) => ({
+          ...prev,
+          [id]: results,
+        }));
+      } catch (error) {
+        console.error("Error searching materials:", error);
+        setFilteredMaterials((prev) => ({
+          ...prev,
+          [id]: [],
+        }));
+      }
+    },
+    [allMaterials]
+  );
+
+  // Update filtered suppliers when search term changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      debouncedSupplierSearch(supplierSearchTerm);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [supplierSearchTerm, debouncedSupplierSearch]);
+
+  // Load initial suppliers and materials
+  useEffect(() => {
+    if (allSuppliers) {
+      setFilteredSuppliers(allSuppliers.slice(0, 10));
+    }
+
+    // Initialize filteredMaterials for each material in the form
+    if (allMaterials) {
+      const initialFiltered: Record<string, Material[]> = {};
+      materials.forEach((mat) => {
+        initialFiltered[mat.id] = allMaterials.slice(0, 10);
+      });
+      setFilteredMaterials(initialFiltered);
+    }
+  }, [allSuppliers, allMaterials, materials]);
+
+  // Update material search terms when searching
+  const handleMaterialSearch = (id: string, term: string) => {
+    setMaterialSearchTerms((prev) => ({
+      ...prev,
+      [id]: term,
+    }));
+
+    const timer = setTimeout(() => {
+      debouncedMaterialSearch(id, term);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  };
 
   // Loading states
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Add additional material line
   const addMaterial = () => {
+    const newId = crypto.randomUUID();
     setMaterials([
       ...materials,
       {
-        id: crypto.randomUUID(),
+        id: newId,
         materialId: "",
         materialName: "",
         quantity: 1,
       },
     ]);
+
+    // Initialize the material search for this new line
+    setOpenMaterial((prev) => ({
+      ...prev,
+      [newId]: false,
+    }));
+
+    setMaterialSearchTerms((prev) => ({
+      ...prev,
+      [newId]: "",
+    }));
+
+    // If we have all materials, initialize the filtered list for this new line
+    if (allMaterials) {
+      setFilteredMaterials((prev) => ({
+        ...prev,
+        [newId]: allMaterials.slice(0, 10),
+      }));
+    }
   };
 
   // Remove material line
   const removeMaterial = (id: string) => {
     if (materials.length > 1) {
       setMaterials(materials.filter((mat) => mat.id !== id));
+
+      // Clean up state for this material line
+      setOpenMaterial((prev) => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+
+      setMaterialSearchTerms((prev) => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+
+      setFilteredMaterials((prev) => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
     } else {
       toast({
         title: "Cannot remove",
@@ -127,22 +289,39 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
     setMaterials(
       materials.map((mat) => {
         if (mat.id === id) {
-          if (field === "materialId") {
-            // When materialId changes, also update the materialName
-            const selectedMaterial = materialOptions.find(
-              (m) => m.id === value
-            );
-            return {
-              ...mat,
-              [field]: value,
-              materialName: selectedMaterial ? selectedMaterial.name : "",
-            };
-          }
           return { ...mat, [field]: value };
         }
         return mat;
       })
     );
+  };
+
+  // Set material with ID and name
+  const setMaterialWithDetails = (
+    id: string,
+    materialId: string,
+    materialName: string
+  ) => {
+    setMaterials(
+      materials.map((mat) => {
+        if (mat.id === id) {
+          return { ...mat, materialId, materialName };
+        }
+        return mat;
+      })
+    );
+
+    // Close the dropdown after selection
+    setOpenMaterial((prev) => ({
+      ...prev,
+      [id]: false,
+    }));
+
+    // Reset the search term
+    setMaterialSearchTerms((prev) => ({
+      ...prev,
+      [id]: "",
+    }));
   };
 
   // Form validation
@@ -250,18 +429,53 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
           <Label htmlFor="supplier" className="required">
             Supplier
           </Label>
-          <Select value={supplier} onValueChange={setSupplier} required>
-            <SelectTrigger id="supplier">
-              <SelectValue placeholder="Select a supplier" />
-            </SelectTrigger>
-            <SelectContent>
-              {suppliers.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={openSupplier} onOpenChange={setOpenSupplier}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openSupplier}
+                className="w-full justify-between"
+              >
+                {supplier ? supplierName : "Select a supplier..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+              <Command>
+                <CommandInput
+                  placeholder="Search suppliers..."
+                  value={supplierSearchTerm}
+                  onValueChange={setSupplierSearchTerm}
+                />
+                <CommandList>
+                  <CommandEmpty>No suppliers found.</CommandEmpty>
+                  <CommandGroup>
+                    {filteredSuppliers?.map((item) => (
+                      <CommandItem
+                        key={item.id}
+                        value={item.id}
+                        onSelect={() => {
+                          setSupplier(item.id);
+                          setSupplierName(item.name);
+                          setOpenSupplier(false);
+                          setSupplierSearchTerm("");
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            supplier === item.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {item.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Order Date */}
@@ -320,11 +534,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                 mode="single"
                 selected={etaDate}
                 onSelect={setEtaDate}
-                disabled={
-                  (date) => date <= new Date()
-                  // date.getTime() <
-                  // Math.min(orderDate.getTime(), new Date().getTime())
-                }
+                disabled={(date) => date <= new Date()}
                 classNames={{
                   day_disabled: "text-gray-300 opacity-50",
                 }}
@@ -358,24 +568,74 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                 <Label htmlFor={`material-${index}-name`} className="required">
                   Material
                 </Label>
-                <Select
-                  value={mat.materialId}
-                  onValueChange={(value) =>
-                    updateMaterial(mat.id, "materialId", value)
-                  }
-                  required
+                <Popover
+                  open={openMaterial[mat.id]}
+                  onOpenChange={(open) => {
+                    setOpenMaterial((prev) => ({ ...prev, [mat.id]: open }));
+                    // Reset search and reload filtered materials when reopening
+                    if (open && allMaterials) {
+                      setMaterialSearchTerms((prev) => ({
+                        ...prev,
+                        [mat.id]: "",
+                      }));
+                      setFilteredMaterials((prev) => ({
+                        ...prev,
+                        [mat.id]: allMaterials.slice(0, 10),
+                      }));
+                    }
+                  }}
                 >
-                  <SelectTrigger id={`material-${index}-name`}>
-                    <SelectValue placeholder="Select a material" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {materialOptions.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openMaterial[mat.id]}
+                      className="w-full justify-between"
+                    >
+                      {mat.materialName || "Select a material..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search materials..."
+                        value={materialSearchTerms[mat.id] || ""}
+                        onValueChange={(term) =>
+                          handleMaterialSearch(mat.id, term)
+                        }
+                      />
+                      <CommandList>
+                        <CommandEmpty>No materials found.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredMaterials[mat.id]?.map((item) => (
+                            <CommandItem
+                              key={item.id}
+                              value={item.id}
+                              onSelect={() => {
+                                setMaterialWithDetails(
+                                  mat.id,
+                                  item.id,
+                                  item.name
+                                );
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  mat.materialId === item.id
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {item.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2 md:col-span-3">
@@ -391,7 +651,11 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                   min={1}
                   value={mat.quantity}
                   onChange={(e) =>
-                    updateMaterial(mat.id, "quantity", parseInt(e.target.value))
+                    updateMaterial(
+                      mat.id,
+                      "quantity",
+                      parseInt(e.target.value) || 1
+                    )
                   }
                   required
                 />

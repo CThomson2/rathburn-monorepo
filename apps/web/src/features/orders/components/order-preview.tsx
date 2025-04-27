@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { fetchOrders } from "@/app/actions/orders";
-import { OrdersView } from "@/features/orders/types";
 import { Loader2 } from "lucide-react";
 import {
   Table,
@@ -39,37 +38,22 @@ interface OrderPreviewProps {
  */
 
 export function OrderPreview({ onCreateOrder }: OrderPreviewProps) {
-  const [orders, setOrders] = useState<OrdersView[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use SWR to fetch orders with cache
+  const { data, error, isLoading } = useSWR("orders", async () => {
+    const ordersData = await fetchOrders();
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchOrders();
+    // Sort by order date, most recent first
+    return [...ordersData]
+      .sort((a, b) => {
+        return (
+          new Date(b.date_ordered).getTime() -
+          new Date(a.date_ordered).getTime()
+        );
+      })
+      .slice(0, 10); // Take only the most recent 10 orders
+  });
 
-        // Sort by order date, most recent first
-        const sortedOrders = [...data].sort((a, b) => {
-          return (
-            new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
-          );
-        });
-
-        // Take only the most recent 10 orders
-        setOrders(sortedOrders.slice(0, 10));
-      } catch (err) {
-        console.error("Failed to fetch orders:", err);
-        setError("Failed to load recent orders. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOrders();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-60">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
@@ -83,7 +67,9 @@ export function OrderPreview({ onCreateOrder }: OrderPreviewProps) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-60">
-        <p className="text-sm text-destructive mb-4">{error}</p>
+        <p className="text-sm text-destructive mb-4">
+          Failed to load recent orders. Please try again.
+        </p>
         <Button onClick={onCreateOrder} variant="default">
           Create New Order
         </Button>
@@ -91,7 +77,7 @@ export function OrderPreview({ onCreateOrder }: OrderPreviewProps) {
     );
   }
 
-  if (orders.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-60">
         <p className="text-sm text-muted-foreground mb-4">
@@ -112,23 +98,25 @@ export function OrderPreview({ onCreateOrder }: OrderPreviewProps) {
             <TableRow>
               <TableHead>PO Number</TableHead>
               <TableHead>Supplier</TableHead>
+              <TableHead>Material</TableHead>
               <TableHead>Order Date</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>ETA</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {data.map((order) => (
               <TableRow key={order.po_number}>
-                <TableCell className="font-medium">{order.po_number}</TableCell>
+                <TableCell className="font-medium text-slate-600">
+                  {order.po_number}
+                </TableCell>
                 <TableCell>{order.supplier}</TableCell>
-                <TableCell>{formatDate(order.order_date)}</TableCell>
+                <TableCell>{order.material}</TableCell>
+                <TableCell>{formatDate(order.date_ordered)}</TableCell>
                 <TableCell>
                   <span className={getStatusBadgeClass(order.status)}>
                     {order.status}
                   </span>
                 </TableCell>
-                <TableCell>{order.eta || "N/A"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

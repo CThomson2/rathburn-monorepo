@@ -79,3 +79,21 @@ export function formatDateForTable(date: Date | string | null): string {
     year: "numeric",
   }).format(dateObj);
 }
+
+/**
+ * Formats a date object into a more readable format for purchase orders
+ * PO Numbers use the format YYYYMMDD$1$2, where $1 is the letter representing
+ *  the N'th order made today, and $2 is the two letter initials of the manager
+ *  placing the order.
+ * E.g. 20250101ARS for the first order made by Roddy Stuart on 2025-01-01
+ * @param date - The date object to format
+ * @returns Formatted date string in DD-MM-YY format
+ */
+export function formatDateYYYYMMDD(date: Date = new Date()): string {
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}${month}${day}`;
+}
