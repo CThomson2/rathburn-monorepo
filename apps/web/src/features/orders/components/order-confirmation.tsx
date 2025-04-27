@@ -8,10 +8,22 @@ interface OrderConfirmationProps {
   onClose: () => void;
 }
 
-export default function OrderConfirmation({
+/**
+ * Displays the result of an order creation process.
+ *
+ * @param {Object} props - The properties for the component.
+ * @param {Object|null} props.result - The result object containing success status, orderId, and message. If null, nothing is rendered.
+ * @param {boolean} props.result.success - Indicates if the order was created successfully.
+ * @param {string} [props.result.orderId] - The ID of the created order, present if the creation was successful.
+ * @param {string} [props.result.message] - An optional message providing additional context, especially in case of failure.
+ * @param {Function} props.onClose - Callback function triggered when the user decides to close the confirmation.
+ *
+ * @returns {JSX.Element|null} The rendered Order Confirmation component or null if no result is provided.
+ */
+export function OrderConfirmation({
   result,
   onClose,
-}: OrderConfirmationProps) {
+}: OrderConfirmationProps): JSX.Element | null {
   if (!result) {
     return null;
   }

@@ -1,33 +1,13 @@
-import { useToast } from "@/components/ui/use-toast";
-import {
-  Toast,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from "@/components/ui/toast";
+"use client";
+
+import { useToast } from "@/hooks/use-toast";
+import { Toast, type ToastProps } from "@/components/ui/use-toast";
 
 export function Toaster() {
-  const { toasts } = useToast();
+  const { toast: _toast, dismiss } = useToast();
 
-  return (
-    <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        );
-      })}
-      <ToastViewport />
-    </ToastProvider>
-  );
+  // We don't actually need to do anything here since
+  // the ToastProvider in use-toast.tsx already handles
+  // rendering the toast UI
+  return null;
 }

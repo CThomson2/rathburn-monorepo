@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { OrdersView } from "@/features/orders/types";
-import OrderPreview from "./order-preview";
-import OrderForm from "./order-form";
-import OrderConfirmation from "./order-confirmation";
+import { OrderPreview } from "./order-preview";
+import { OrderForm } from "./order-form";
+import { OrderConfirmation } from "./order-confirmation";
 
 export type OrderModalStep = "preview" | "create" | "confirmation";
 
@@ -21,7 +21,21 @@ interface OrderModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function OrderModal({ open, onOpenChange }: OrderModalProps) {
+/**
+ * A modal dialog for creating and previewing orders.
+ *
+ * The modal is comprised of three steps:
+ * 1. Preview: shows a list of recent orders with a button to create a new order.
+ * 2. Create: shows an order form to create a new order.
+ * 3. Confirmation: shows a confirmation message after a new order has been created.
+ *
+ * The modal will automatically reset the state when it is closed.
+ *
+ * @param {Object} props
+ * @prop {boolean} open - Whether the modal is open.
+ * @prop {(open: boolean) => void} onOpenChange - Callback function triggered when the modal is opened or closed.
+ */
+export function OrderModal({ open, onOpenChange }: OrderModalProps) {
   const [step, setStep] = useState<OrderModalStep>("preview");
   const [orderResult, setOrderResult] = useState<{
     success: boolean;

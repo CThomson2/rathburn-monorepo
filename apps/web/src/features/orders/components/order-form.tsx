@@ -50,7 +50,15 @@ interface OrderFormProps {
   }) => void;
 }
 
-export default function OrderForm({ onOrderCreated }: OrderFormProps) {
+/**
+ * A form for creating a new purchase order.
+ *
+ * @param onOrderCreated A callback function that is called when the order
+ * is created successfully. The function receives an object with a `success`
+ * property indicating whether the order was created successfully, and an
+ * optional `orderId` property with the ID of the created order.
+ */
+export function OrderForm({ onOrderCreated }: OrderFormProps) {
   const { toast } = useToast();
 
   // Form state
@@ -312,7 +320,14 @@ export default function OrderForm({ onOrderCreated }: OrderFormProps) {
                 mode="single"
                 selected={etaDate}
                 onSelect={setEtaDate}
-                initialFocus
+                disabled={
+                  (date) => date <= new Date()
+                  // date.getTime() <
+                  // Math.min(orderDate.getTime(), new Date().getTime())
+                }
+                classNames={{
+                  day_disabled: "text-gray-300 opacity-50",
+                }}
               />
             </PopoverContent>
           </Popover>

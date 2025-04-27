@@ -19,7 +19,26 @@ interface OrderPreviewProps {
   onCreateOrder: () => void;
 }
 
-export default function OrderPreview({ onCreateOrder }: OrderPreviewProps) {
+/**
+ * OrderPreview component for displaying a preview of recent purchase orders.
+ *
+ * This component fetches and displays a list of the most recent orders,
+ * showing up to 10 orders sorted by their order date, with the most recent
+ * orders appearing first. If orders are successfully loaded, they are
+ * displayed in a table format with columns for PO Number, Supplier, Order Date,
+ * Status, and ETA.
+ *
+ * The component manages loading and error states, displaying a loader while
+ * fetching orders and an error message if the fetch fails. If no orders are
+ * found, a message is displayed indicating that there are no recent orders.
+ * The component also provides a button to create a new order.
+ *
+ * @param {OrderPreviewProps} props - The props for the component.
+ * @param {Function} props.onCreateOrder - Callback function triggered when
+ * the user decides to create a new order.
+ */
+
+export function OrderPreview({ onCreateOrder }: OrderPreviewProps) {
   const [orders, setOrders] = useState<OrdersView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

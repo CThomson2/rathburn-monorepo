@@ -36,6 +36,7 @@ type ToastContextType = {
     dismiss: () => void;
   };
   dismiss: (toastId?: string) => void;
+  toasts: (ToastProps & { id: string })[];
 };
 
 const TOAST_LIMIT = 5;
@@ -200,7 +201,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ toast, dismiss }}>
+    <ToastContext.Provider value={{ toast, dismiss, toasts }}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map((toast) => (
@@ -226,3 +227,9 @@ export function useToast() {
   }
   return context;
 }
+
+// Convenience function exports for more ergonomic usage
+export const toast = (props: ToastProps) => {
+  const { toast } = useToast();
+  return toast(props);
+};

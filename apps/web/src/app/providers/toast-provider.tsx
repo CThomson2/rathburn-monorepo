@@ -1,12 +1,17 @@
 "use client";
 
-import { ReactNode } from "react";
-import { ToastProvider as ToastProviderComponent } from "@/components/ui/use-toast";
+import React from "react";
+import { ToastProvider as InternalToastProvider } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
-interface ProvidersProps {
-  children: ReactNode;
-}
-
-export function ToastProvider({ children }: ProvidersProps) {
-  return <ToastProviderComponent>{children}</ToastProviderComponent>;
+/**
+ * Combined toast provider that includes both context and UI components
+ */
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <InternalToastProvider>
+      {children}
+      <Toaster />
+    </InternalToastProvider>
+  );
 }

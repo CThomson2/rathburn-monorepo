@@ -18,7 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import OrderModalTrigger from "@/features/orders/components/order-modal-trigger";
+import { OrderModalTrigger } from "@/features/orders/components/order-modal-trigger";
 
 export type SidebarItemAction = {
   title: string;
@@ -46,7 +46,7 @@ export function NavMain({ items }: NavMainProps) {
             key={item.title}
             asChild
             defaultOpen={item.isActive}
-            className="group/collapsible"
+            className="group/collapsible cursor-pointer"
           >
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
