@@ -394,6 +394,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
     e.preventDefault();
 
     if (!isValid()) {
+      console.log("Order form validation failed, showing toast");
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -435,11 +436,16 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
       onOrderCreated(result);
 
       if (result.success) {
+        console.log("Order created successfully, showing success toast");
         toast({
           title: "Order Created",
           description: `Purchase Order ${poNumber} has been created successfully.`,
         });
       } else {
+        console.log(
+          "Order creation failed, showing error toast",
+          result.message
+        );
         toast({
           title: "Error",
           description: result.message || "Failed to create order",
@@ -448,6 +454,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
       }
     } catch (error) {
       console.error("Error creating order:", error);
+      console.log("Exception in order creation, showing error toast");
       toast({
         title: "Error",
         description: "An unexpected error occurred",

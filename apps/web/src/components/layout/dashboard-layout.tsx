@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import {
   Menu,
   X,
@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useNavigationLoading } from "@/hooks/use-navigation-loading";
+import { toast } from "@/components/ui/use-toast";
 
 // TypeScript workaround for React 18 vs React 19 type compatibility issue
 // @ts-ignore
@@ -82,6 +83,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const isNavigating = useNavigationLoading();
+
+  // Debug toast on mount
+  useEffect(() => {
+    // Wait a bit before showing the toast to ensure all providers are mounted
+    const timer = setTimeout(() => {
+      console.log("Creating debug toast from dashboard layout");
+      toast({
+        title: "Debug Toast",
+        description: "This is a debug toast from dashboard layout",
+        variant: "default",
+        duration: 30000, // Show for 30 seconds
+      });
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const navItems: NavItem[] = [
     { name: "Dashboard", icon: Home, url: "/" },
