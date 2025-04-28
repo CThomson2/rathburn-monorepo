@@ -105,7 +105,7 @@ export function OrderPreview({ onCreateOrder }: OrderPreviewProps) {
           </TableHeader>
           <TableBody>
             {data.map((order) => (
-              <TableRow key={order.po_number}>
+              <TableRow key={`${order.po_number}-${order.pol_id}`}>
                 <TableCell className="font-medium text-slate-600">
                   {order.po_number}
                 </TableCell>

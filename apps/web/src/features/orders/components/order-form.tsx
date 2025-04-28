@@ -10,6 +10,7 @@ import {
   Trash2,
   Check,
   ChevronsUpDown,
+  RefreshCcw,
 } from "lucide-react";
 import {
   createOrder,
@@ -18,7 +19,8 @@ import {
   searchItemsBySupplier,
   getNextPONumber,
 } from "@/app/actions/orders";
-import { useToast } from "@/components/ui/use-toast";
+// import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Command,
   CommandEmpty,
@@ -121,13 +123,14 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
     { revalidateOnFocus: false }
   );
 
-  // Auto-generate PO number on load
-  useEffect(() => {
+  // Auto-generate PO number on event handler
+
+  const handleGeneratePONumber = async () => {
     const fetchNextPONumber = async () => {
       try {
-        const nextPoNumber = await getNextPONumber();
+        const nextPoNumber = await getNextPONumber(orderDate);
         if (nextPoNumber) {
-          console.log("nextPoNumber", nextPoNumber);
+          console.log("(TEST) nextPoNumber", nextPoNumber);
           setPoNumber(nextPoNumber);
         }
       } catch (error) {
@@ -136,7 +139,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
     };
 
     fetchNextPONumber();
-  }, []);
+  };
 
   // Reset material selections when supplier changes
   useEffect(() => {
@@ -326,12 +329,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
         return newState;
       });
     } else {
-      toast({
-        title: "Cannot remove",
-        description: "At least one material is required",
-        variant: "destructive",
-        onClose: () => {},
-      });
+      toast.warning("At least one material is required");
     }
   };
 
@@ -395,11 +393,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
 
     if (!isValid()) {
       console.log("Order form validation failed, showing toast");
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -437,29 +431,20 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
 
       if (result.success) {
         console.log("Order created successfully, showing success toast");
-        toast({
-          title: "Order Created",
-          description: `Purchase Order ${poNumber} has been created successfully.`,
-        });
+        toast.success(
+          `Purchase Order ${poNumber} has been created successfully.`
+        );
       } else {
         console.log(
           "Order creation failed, showing error toast",
           result.message
         );
-        toast({
-          title: "Error",
-          description: result.message || "Failed to create order",
-          variant: "destructive",
-        });
+        toast.error(result.message || "Failed to create order");
       }
     } catch (error) {
       console.error("Error creating order:", error);
       console.log("Exception in order creation, showing error toast");
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast.error("An unexpected error occurred");
       onOrderCreated({
         success: false,
         message: "An unexpected error occurred",
@@ -477,13 +462,24 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
           <Label htmlFor="poNumber" className="required">
             Purchase Order Number
           </Label>
-          <Input
-            id="poNumber"
-            value={poNumber}
-            onChange={(e) => setPoNumber(e.target.value)}
-            placeholder="e.g. 2023-04-27ARS"
-            required
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              id="poNumber"
+              value={poNumber}
+              onChange={(e) => setPoNumber(e.target.value)}
+              placeholder="{YYYYMMDD} {A|B|C|...} {initials}"
+              required
+            />
+            {/* Click to generate PO number */}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleGeneratePONumber}
+            >
+              <RefreshCcw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Supplier */}
@@ -570,7 +566,6 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                 mode="single"
                 selected={orderDate}
                 onSelect={(date) => date && setOrderDate(date)}
-                initialFocus
               />
             </PopoverContent>
           </Popover>
@@ -643,12 +638,9 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                   onOpenChange={(open: boolean) => {
                     // Don't allow opening if no supplier selected
                     if (!supplier && open) {
-                      toast({
-                        title: "Select Supplier First",
-                        description:
-                          "Please select a supplier before choosing materials",
-                        variant: "destructive",
-                      });
+                      toast.info(
+                        "Please select a supplier before choosing materials"
+                      );
                       return;
                     }
 
@@ -774,7 +766,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => removeMaterial(mat.id)}
-                  disabled={materials.length <= 1}
+                  // disabled={materials.length <= 1}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>

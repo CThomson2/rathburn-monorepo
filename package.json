@@ -2,6 +2,7 @@
   "name": "rathburn-ops-monorepo",
   "private": true,
   "scripts": {
+    "clean": "turbo run clean",
     "build": "turbo run build --filter=@rathburn/web --filter=@rathburn/mobile",
     "build:web": "turbo run build --filter=@rathburn/web",
     "start:web": "turbo run start --filter=@rathburn/web",
@@ -27,13 +28,8 @@
     "overrides": {
       "@types/react": "18.3.20",
       "@types/react-dom": "18.3.6",
-      "react": "^18.2.0",
-      "react-dom": "^18.2.0"
+      "react": "18.2.0",
+      "react-dom": "18.2.0"
     }
-  },
-  "dependencies": {
-    "@radix-ui/react-slot": "^1.2.0",
-    "class-variance-authority": "^0.7.1",
-    "react-toastify": "^11.0.5"
   }
 }

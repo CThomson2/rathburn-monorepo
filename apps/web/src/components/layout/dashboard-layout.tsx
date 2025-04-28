@@ -102,7 +102,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const navItems: NavItem[] = [
     { name: "Dashboard", icon: Home, url: "/" },
-    { name: "Orders", icon: Clipboard, url: "/orders" },
     {
       name: "Production",
       icon: Atom,

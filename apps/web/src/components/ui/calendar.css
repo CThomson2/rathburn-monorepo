@@ -1,0 +1,49 @@
+/* Override default react-day-picker styles */
+.rdp {
+  --rdp-cell-size: 40px; /* Increase default cell size */
+  --rdp-accent-color: transparent; /* Remove accent color */
+  --rdp-background-color: transparent; /* Remove background color */
+  margin: 0 !important;
+}
+
+/* Remove all borders and outlines */
+.rdp-button_reset {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove focus styles */
+.rdp-button:focus-visible:not([disabled]) {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Remove borders from selected days */
+.rdp-day_selected,
+.rdp-day_selected:focus-visible,
+.rdp-day_selected:hover {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove default hover styles */
+.rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: transparent;
+}
+
+/* Ensure grid cells are properly sized */
+.rdp-cell {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  padding: 0;
+  text-align: center;
+}
+
+/* Override any remaining border styles */
+.rdp [aria-selected],
+.rdp [aria-selected]:hover,
+.rdp [aria-selected]:focus {
+  border: none !important;
+  outline: none !important;
+}

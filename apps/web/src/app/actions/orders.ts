@@ -411,10 +411,11 @@ export async function getNextPONumber(date?: Date) {
       const endOfDay = `${dateFormatted}T23:59:59.999Z`;
       
       const { count, error } = await supabase
+        .schema('inventory')
         .from('purchase_orders')
         .select('*', { count: 'exact', head: true })
-        .gte('date_ordered', startOfDay)
-        .lte('date_ordered', endOfDay);
+        .gte('order_date', startOfDay)
+        .lte('order_date', endOfDay);
       
       if (error) {
         throw error;

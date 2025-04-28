@@ -8,6 +8,7 @@ export type OrderStatus = "pending" | "partially_received" | "complete";
  */
 export interface OrdersView {
   po_number: string;
+  pol_id: string;
   material: string;
   supplier: string;
   quantity: number;

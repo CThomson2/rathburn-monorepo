@@ -2119,6 +2119,7 @@ export type Database = {
           item: string | null
           order_date: string | null
           po_number: string | null
+          pol_id: string | null
           quantity: number | null
           status: string | null
           supplier: string | null
@@ -2204,23 +2205,6 @@ export type Database = {
         Args: { p_user_name: string; p_passcode: string }
         Returns: Json
       }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  ui: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
@@ -2411,9 +2395,6 @@ export const Constants = {
     },
   },
   public: {
-    Enums: {},
-  },
-  ui: {
     Enums: {},
   },
 } as const

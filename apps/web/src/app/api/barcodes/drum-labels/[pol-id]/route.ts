@@ -47,7 +47,7 @@ export async function GET(
       // Generate the barcode image (PNG) for the serial number
       const barcodeBuffer = await bwipjs.toBuffer({
         bcid: "code128",
-        text: `${polId}-${drum.serialNumber}`,
+        text: `${drum.serialNumber}`,
         scale: 3,
         height: 10,
         includetext: true,
