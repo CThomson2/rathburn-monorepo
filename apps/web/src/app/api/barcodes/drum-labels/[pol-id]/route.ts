@@ -4,6 +4,8 @@ import bwipjs from "bwip-js";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 // For convenience, helper to convert inches to PDF points (72pt = 1in)
 import { inchesToPoints } from "@/lib/utils";
+import { join } from "path";
+import { mkdir, writeFile } from "fs/promises";
 
 // Force dynamic rendering and no caching for this database-dependent route
 export const dynamic = "force-dynamic";
@@ -97,17 +99,26 @@ export async function GET(
     // Finalize PDF
     const pdfBytes = await pdfDoc.save();
 
+    // Save generated PDF to /public folder
+    await mkdir(join(process.cwd(), "public", "labels"), { recursive: true });
+    
+    // Generate the file path and URL path
+    const fileName = `barcodes-${polId}.pdf`;
+    const filePath = join(process.cwd(), "public", "labels", fileName);
+    const urlPath = `/labels/${fileName}`;
+    
+    // Save the file
+    await writeFile(filePath, pdfBytes);
+
     // Mark labels as printed
     await markDrumLabelsAsPrinted(polId);
 
-    // Return PDF response
-    return new NextResponse(Buffer.from(pdfBytes), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="drum-labels.pdf"',
-      },
+    // Return the URL path to the generated PDF
+    return NextResponse.json({ 
+      success: true,
+      filePath: urlPath
     });
+    
   } catch (err) {
     console.error(err);
     return NextResponse.json(

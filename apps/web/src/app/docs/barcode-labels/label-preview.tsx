@@ -43,72 +43,8 @@ export const DrumLabel: React.FC<DrumLabelProps> = ({
   supplierName,
   isPrinted,
 }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
-
-  /**
-   * Calls the backend route to fetch a generated PDF for this order.
-   * We open the PDF in a new tab once we get the Blob.
-   */
-  const handleGeneratePDF = async () => {
-    try {
-      setIsGenerating(true);
-      onPrinted(orderDetail.detail.detail_id);
-
-      // Extract detail_id from the nested structure
-      const detail_id = orderDetail.detail.detail_id;
-
-      // Use fetch directly for binary data
-      const response = await fetch(`/api/barcodes/stock-drums/${detail_id}`, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Error: ${response.status} ${response.statusText} - ${errorText}`
-        );
-      }
-
-      // Get the blob directly from the response
-      const pdfBlob = await response.blob();
-
-      // Create a URL for the blob
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-
-      // Open the PDF in a new tab
-      window.open(pdfUrl, "_blank");
-
-      // Clean up the blob URL after some time
-      setTimeout(() => URL.revokeObjectURL(pdfUrl), 30000);
-
-      // Collapse the component after successful print
-      setIsExpanded(false);
-    } catch (error) {
-      console.error("Error generating barcode PDF:", error);
-      onError(
-        error instanceof Error
-          ? error.message
-          : "Failed to generate barcode PDF"
-      );
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleEditOrder = () => {
-    // TODO: Implement edit functionality
-    console.log("Edit order:", detail_id);
-  };
-
-  const handleCancelOrder = () => {
-    setShowCancelModal(true);
-  };
-
-  // Extract necessary fields from the nested structure
-  const { detail, material, drum_quantity } = orderDetail;
-  const { detail_id } = detail;
 
   return (
     <div className="space-y-4">

@@ -75,11 +75,15 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="itemName"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Item
                 </label>
                 {editMode ? (
                   <input
+                    id="itemName"
                     type="text"
                     value={editedOrder.itemName}
                     onChange={(e) =>
@@ -99,11 +103,15 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="supplier"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Supplier
                 </label>
                 {editMode ? (
                   <input
+                    id="supplier"
                     type="text"
                     value={editedOrder.supplier}
                     onChange={(e) =>

@@ -71,12 +71,34 @@ export function OrderConfirmation({
     return null;
   }
 
-  // Generate and open barcode labels in a new tab
-  const generateBarcodeLabels = (polId: string) => {
-    console.log("[COMPONENT] Generating barcode labels for polId:", polId);
-    const url = `/api/barcodes/drum-labels/${polId}`;
-    console.log("[COMPONENT] Opening URL in new tab:", url);
-    window.open(url, "_blank");
+  /**
+   * Generates and opens barcode labels in a new tab
+   * Handles errors before opening the blank window tab
+   *
+   * @param {string} polId - The purchase order line ID
+   * @returns {void}
+   */
+  const generateBarcodeLabels = async (polId: string) => {
+    try {
+      console.log("[COMPONENT] Generating barcode labels for polId:", polId);
+      const response = await fetch(`/api/barcodes/drum-labels/${polId}`);
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.filePath) {
+        throw new Error("Failed to generate PDF");
+      }
+
+      console.log("[COMPONENT] Opening PDF at path:", data.filePath);
+      window.open(data.filePath, "_blank");
+    } catch (error) {
+      console.error("[COMPONENT] Failed to generate barcode labels:", error);
+      toast.error("Failed to generate barcode labels");
+    }
   };
 
   console.log(

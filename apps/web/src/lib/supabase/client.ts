@@ -2,6 +2,8 @@ import { createBrowserClient } from "@supabase/ssr";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/types/models/supabase";
 
+type SchemaName = "auth_ext" | "config" | "logs" | "production" | "public" | "inventory";
+
 /**
  * Creates and returns a Supabase client for browser usage
  */
@@ -17,7 +19,13 @@ export const createNewClient = () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
   );
-};
+}
+// export function createNewClient<T extends SchemaName = "public">(schemaName: T = "public" as T) {
+//   return createBrowserClient<Database, T>(
+//     process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
+//     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
+//   );
+// }
 
 /**
  * Type definition for a Supabase operation callback function

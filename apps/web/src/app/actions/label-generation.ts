@@ -51,9 +51,15 @@ interface PurchaseOrderDrumRecord {
 export async function fetchDrumLabelData(
   polId: string
 ): Promise<DrumLabelData[]> {
+  console.log(
+    `[DB] Fetching drum label data for purchase order line: ${polId}`
+  );
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     try {
       // Join the purchase_order_drums, purchase_order_lines, items, suppliers, and purchase_orders tables
+      console.log(
+        `[DB] Executing query to fetch drum labels for POL: ${polId}`
+      );
       const { data, error } = await supabase
         .schema("inventory")
         .from("purchase_order_drums")
@@ -81,24 +87,29 @@ export async function fetchDrumLabelData(
         .eq("is_printed", false);
 
       if (error) {
-        console.error("Error fetching drum label data:", error);
+        console.error("[DB] Error fetching drum label data:", error);
         throw error;
       }
 
       if (!data || data.length === 0) {
+        console.log(`[DB] No unprinted drum labels found for POL: ${polId}`);
         return [];
       }
+
+      console.log(`[DB] Found ${data.length} drum labels for POL: ${polId}`);
+      console.log(data);
 
       // Transform the data into the format needed for labels
       return data.map((drum) => ({
         serialNumber: drum.serial_number,
-        materialName: drum.purchase_order_lines[0]?.items[0]?.name,
-        supplierName: drum.purchase_order_lines[0]?.purchase_orders[0]?.suppliers[0]?.name,
-        purchaseOrderId: drum.purchase_order_lines[0]?.po_id,
+        materialName: drum.purchase_order_lines.items.name,
+        supplierName:
+          drum.purchase_order_lines.purchase_orders.suppliers.name,
+        purchaseOrderId: drum.purchase_order_lines.po_id,
         purchaseOrderLineId: drum.pol_id,
       }));
     } catch (error) {
-      console.error("Error in fetchDrumLabelData:", error);
+      console.error("[DB] Error in fetchDrumLabelData:", error);
       throw error;
     }
   });
@@ -113,27 +124,33 @@ export async function fetchDrumLabelData(
 export async function markDrumLabelsAsPrinted(
   polId: string
 ): Promise<{ success: boolean; count: number }> {
+  console.log(`[DB] Marking drum labels as printed for POL: ${polId}`);
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     try {
       // Update the is_printed status
-      const { data, error, count } = await supabase
+      console.log(
+        `[DB] Executing update query to mark drums as printed for POL: ${polId}`
+      );
+      const { error, count } = await supabase
         .schema("inventory")
         .from("purchase_order_drums")
         .update({ is_printed: true })
-        .eq("pol_id", polId)
-        .select();
+        .eq("pol_id", polId);
 
       if (error) {
-        console.error("Error marking drum labels as printed:", error);
+        console.error("[DB] Error marking drum labels as printed:", error);
         throw error;
       }
 
+      console.log(
+        `[DB] Successfully marked ${count} drum labels as printed for POL: ${polId}`
+      );
       return {
         success: true,
         count: count || 0,
       };
     } catch (error) {
-      console.error("Error in markDrumLabelsAsPrinted:", error);
+      console.error("[DB] Error in markDrumLabelsAsPrinted:", error);
       return {
         success: false,
         count: 0,

@@ -6,6 +6,7 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 // For convenience, helper to convert inches to PDF points (72pt = 1in)
 import { inchesToPoints } from "@/lib/utils";
 
+
 // Force dynamic rendering and no caching for this database-dependent route
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -40,7 +41,7 @@ export async function GET(
         .select("drum_id")
         .eq("pol_id", Number(order_line_id));
 
-      if (error) {
+        if (error || data.length === 0) {
         throw error;
       }
       return data;
@@ -113,6 +114,7 @@ export async function GET(
     // Finalize PDF
     const pdfBytes = await pdfDoc.save();
 
+    
     // Return PDF response
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,

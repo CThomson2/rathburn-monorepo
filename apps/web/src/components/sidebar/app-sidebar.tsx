@@ -124,6 +124,25 @@ const data = {
       ],
     },
     {
+      title: "Documents",
+      url: "/docs",
+      icon: BookOpen,
+      items: [
+        {
+          title: "Guides & SOPs",
+          url: "/docs",
+        },
+        {
+          title: "Barcode Labels",
+          url: "/docs/barcode-labels",
+        },
+        {
+          title: "Production Records",
+          url: "/docs/production",
+        },
+      ],
+    },
+    {
       title: "Settings",
       url: "/settings",
       icon: Settings2,
@@ -134,25 +153,6 @@ const data = {
         },
         {
           title: "Team",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "/docs",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Guides",
-          url: "#",
-        },
-        {
-          title: "Technical",
-          url: "#",
-        },
-        {
-          title: "FAQ",
           url: "#",
         },
       ],
