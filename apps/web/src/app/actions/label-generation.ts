@@ -22,27 +22,23 @@ interface PurchaseOrderLineForLabel {
   pendingLabels: number;
 }
 
-interface DrumLabelQueryResult {
+interface PurchaseOrderDrumRecord {
   pod_id: string;
   serial_number: string;
   pol_id: string;
   purchase_order_lines: {
-    item_id: string;
     po_id: string;
-    items: {
+    item_id: string;
+    quantity: number;
+    items: Array<{
       name: string;
-      supplier_id: string;
-      suppliers: {
-        name: string;
-      }[];
-    }[];
+    }>;
     purchase_orders: {
       po_number: string;
-      supplier_id: string;
-      suppliers: {
+      suppliers: Array<{
         name: string;
-      }[];
-    }[];
+      }>;
+    };
   };
 }
 
@@ -52,37 +48,40 @@ interface DrumLabelQueryResult {
  * @param polId The purchase order line ID
  * @returns Array of drum label data
  */
-export async function fetchDrumLabelData(polId: string): Promise<DrumLabelData[]> {
+export async function fetchDrumLabelData(
+  polId: string
+): Promise<DrumLabelData[]> {
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     try {
       // Join the purchase_order_drums, purchase_order_lines, items, suppliers, and purchase_orders tables
       const { data, error } = await supabase
-        .schema('inventory')
-        .from('purchase_order_drums')
-        .select(`
+        .schema("inventory")
+        .from("purchase_order_drums")
+        .select(
+          `
           pod_id,
           serial_number,
           pol_id,
           purchase_order_lines:pol_id!inner (
             item_id,
             po_id,
-            items:item_id!inner (
+            items!inner (
               name
             ),
-            purchase_orders:po_id!inner (
+            purchase_orders!inner (
               po_number,
-              supplier_id,
-              suppliers:supplier_id!inner (
+              suppliers!inner (
                 name
               )
             )
           )
-        `)
-        .eq('pol_id', polId)
-        .eq('is_printed', false);
+        `
+        )
+        .eq("pol_id", polId)
+        .eq("is_printed", false);
 
       if (error) {
-        console.error('Error fetching drum label data:', error);
+        console.error("Error fetching drum label data:", error);
         throw error;
       }
 
@@ -91,15 +90,15 @@ export async function fetchDrumLabelData(polId: string): Promise<DrumLabelData[]
       }
 
       // Transform the data into the format needed for labels
-      return data.map(drum => ({
+      return data.map((drum) => ({
         serialNumber: drum.serial_number,
-        materialName: drum.purchase_order_lines.items.name,
-        supplierName: drum.purchase_order_lines.purchase_orders.suppliers.name,
-        purchaseOrderId: drum.purchase_order_lines.po_id,
-        purchaseOrderLineId: drum.pol_id
+        materialName: drum.purchase_order_lines[0]?.items[0]?.name,
+        supplierName: drum.purchase_order_lines[0]?.purchase_orders[0]?.suppliers[0]?.name,
+        purchaseOrderId: drum.purchase_order_lines[0]?.po_id,
+        purchaseOrderLineId: drum.pol_id,
       }));
     } catch (error) {
-      console.error('Error in fetchDrumLabelData:', error);
+      console.error("Error in fetchDrumLabelData:", error);
       throw error;
     }
   });
@@ -111,31 +110,33 @@ export async function fetchDrumLabelData(polId: string): Promise<DrumLabelData[]
  * @param polId The purchase order line ID
  * @returns Success status and count of updated records
  */
-export async function markDrumLabelsAsPrinted(polId: string): Promise<{success: boolean, count: number}> {
+export async function markDrumLabelsAsPrinted(
+  polId: string
+): Promise<{ success: boolean; count: number }> {
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     try {
       // Update the is_printed status
       const { data, error, count } = await supabase
-        .schema('inventory')
-        .from('purchase_order_drums')
+        .schema("inventory")
+        .from("purchase_order_drums")
         .update({ is_printed: true })
-        .eq('pol_id', polId)
+        .eq("pol_id", polId)
         .select();
 
       if (error) {
-        console.error('Error marking drum labels as printed:', error);
+        console.error("Error marking drum labels as printed:", error);
         throw error;
       }
 
       return {
         success: true,
-        count: count || 0
+        count: count || 0,
       };
     } catch (error) {
-      console.error('Error in markDrumLabelsAsPrinted:', error);
+      console.error("Error in markDrumLabelsAsPrinted:", error);
       return {
         success: false,
-        count: 0
+        count: 0,
       };
     }
   });
@@ -143,46 +144,45 @@ export async function markDrumLabelsAsPrinted(polId: string): Promise<{success: 
 
 /**
  * Gets all purchase order lines that need labels generated
- * 
+ *
  * @param poId Optional purchase order ID to filter by
  * @returns Array of purchase order lines with pending labels
  */
-export async function getPurchaseOrderLinesForLabels(poId?: string): Promise<PurchaseOrderLineForLabel[]> {
+export async function getPurchaseOrderLinesForLabels(
+  poId: string
+): Promise<PurchaseOrderLineForLabel[]> {
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
     try {
-      let query = supabase
-        .schema('inventory') // TODO insert first row with serial 18000
-        .from('purchase_order_drums')
-        .select(`
+      const { data, error } = await supabase
+        .schema("inventory")
+        .from("purchase_order_drums")
+        .select(
+          `
+          pod_id,
+          serial_number,
           pol_id,
-          purchase_order_lines!pol_id (
+          purchase_order_lines!inner (
             po_id,
             item_id,
             quantity,
-            items!item_id (
+            items!inner (
               name
             ),
-            purchase_orders!po_id (
+            purchase_orders!inner (
               po_number,
-              supplier_id,
-              suppliers!supplier_id (
+              suppliers!inner (
                 name
               )
             )
           )
-        `)
-        .eq('is_printed', false)
+        `
+        )
+        .eq("is_printed", false)
+        .eq("purchase_order_lines.po_id", poId)
         .limit(1000);
 
-      // Add filter for specific purchase order if provided
-      if (poId) {
-        query = query.eq('purchase_order_lines.po_id', poId);
-      }
-
-      const { data, error } = await query;
-
       if (error) {
-        console.error('Error fetching purchase order lines for labels:', error);
+        console.error("Error fetching purchase order lines for labels:", error);
         throw error;
       }
 
@@ -190,33 +190,57 @@ export async function getPurchaseOrderLinesForLabels(poId?: string): Promise<Pur
         return [];
       }
 
+      console.log("[DB] purchase order lines data");
+      console.log(data);
+
       // Group by purchase order line ID to avoid duplicates
       const polMap = new Map<string, PurchaseOrderLineForLabel>();
-      
-      data.forEach(record => {
-        if (!polMap.has(record.pol_id)) {
-          polMap.set(record.pol_id, {
-            purchaseOrderLineId: record.pol_id,
-            purchaseOrderId: record.purchase_order_lines.po_id,
-            purchaseOrderNumber: record.purchase_order_lines.purchase_orders.po_number,
-            materialName: record.purchase_order_lines.items.name,
-            supplierName: record.purchase_order_lines.purchase_orders.suppliers.name,
-            quantity: record.purchase_order_lines.quantity,
-            pendingLabels: 0
-          });
+
+      const records = data as unknown as PurchaseOrderDrumRecord[];
+      records.forEach((record) => {
+        console.log("[DB] record");
+        console.log(record);
+        const pol = record.purchase_order_lines;
+        if (!polMap.has(record.pol_id) && pol) {
+          const supplier = pol.purchase_orders.suppliers;
+          const item = pol.items;
+          console.log("[DB] supplier");
+          console.log(supplier);
+          console.log("[DB] item");
+          console.log(item);
+
+          if (supplier && item) {
+            polMap.set(record.pol_id, {
+              purchaseOrderLineId: record.pol_id,
+              purchaseOrderId: pol.po_id,
+              purchaseOrderNumber: pol.purchase_orders.po_number,
+              // @ts-expect-error - item is not an array, but a single object due to many-to-one relationship
+              materialName: (<{ name: string }>item).name,
+              // @ts-expect-error - supplier is not an array, but a single object due to many-to-one relationship
+              supplierName: (<{ name: string }>supplier).name,
+              quantity: pol.quantity,
+              pendingLabels: 0,
+            });
+          }
         }
-        
+
+        console.log(`[DB] polMap item ${record.pol_id}`);
+        console.log(polMap.get(record.pol_id));
+
         // Increment the count of pending labels
-        const item = polMap.get(record.pol_id);
-        if (item) {
-          item.pendingLabels++;
+        const mapItem = polMap.get(record.pol_id);
+        if (mapItem) {
+          mapItem.pendingLabels++;
         }
       });
 
+      console.log("[DB] polMap");
+      console.log(Array.from(polMap.values()));
+
       return Array.from(polMap.values());
     } catch (error) {
-      console.error('Error in getPurchaseOrderLinesForLabels:', error);
+      console.error("Error in getPurchaseOrderLinesForLabels:", error);
       return [];
     }
   });
-} 
+}

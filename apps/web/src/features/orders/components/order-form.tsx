@@ -640,7 +640,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                 </Label>
                 <Popover
                   open={openMaterial[mat.id]}
-                  onOpenChange={(open) => {
+                  onOpenChange={(open: boolean) => {
                     // Don't allow opening if no supplier selected
                     if (!supplier && open) {
                       toast({

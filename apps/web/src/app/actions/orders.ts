@@ -392,6 +392,14 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
   });
 }
 
+/**
+ * Calculates the suggested next PO number for a new order given a date
+ * Searches orders for previous orders made on the same day, if any
+ * Uses the letter of the alphabet to determine the next PO number
+ * 
+ * @param date - The date of the order
+ * @returns The suggested next PO number
+ */
 export async function getNextPONumber(date?: Date) {
   try {
     return executeServerDbOperation(async (supabase: SupabaseClient) => {

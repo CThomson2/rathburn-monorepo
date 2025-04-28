@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, Printer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getPurchaseOrderLinesForLabels } from "@/app/actions/label-generation";
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface OrderConfirmationProps {
   result: { success: boolean; orderId?: string; message?: string } | null;
@@ -31,18 +32,33 @@ export function OrderConfirmation({
   const [labelData, setLabelData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  console.log("[COMPONENT] OrderConfirmation initialized with result:", result);
+
   // Fetch purchase order lines with pending labels
   useEffect(() => {
     const fetchLabelData = async () => {
+      console.log("[COMPONENT] Starting fetchLabelData");
+      console.log("[COMPONENT] Result data:");
+      console.log("[COMPONENT] orderId:", result?.orderId);
+      console.log("[COMPONENT] success:", result?.success);
+      console.log("[COMPONENT] message:", result?.message);
+
       if (result?.success && result.orderId) {
         try {
           setIsLoading(true);
+          console.log(
+            "[COMPONENT] Calling getPurchaseOrderLinesForLabels with orderId:",
+            result.orderId
+          );
           const data = await getPurchaseOrderLinesForLabels(result.orderId);
+          console.log("[COMPONENT] Received label data:", data);
           setLabelData(data);
         } catch (error) {
-          console.error("Error fetching label data:", error);
+          console.error("[ERROR] Error fetching label data:", error);
+          toast.error("Failed to fetch label data");
         } finally {
           setIsLoading(false);
+          console.log("[COMPONENT] Finished loading label data");
         }
       }
     };
@@ -51,14 +67,22 @@ export function OrderConfirmation({
   }, [result]);
 
   if (!result) {
+    console.log("[COMPONENT] No result provided, returning null");
     return null;
   }
 
   // Generate and open barcode labels in a new tab
   const generateBarcodeLabels = (polId: string) => {
+    console.log("[COMPONENT] Generating barcode labels for polId:", polId);
     const url = `/api/barcodes/drum-labels/${polId}`;
+    console.log("[COMPONENT] Opening URL in new tab:", url);
     window.open(url, "_blank");
   };
+
+  console.log(
+    "[COMPONENT] Rendering OrderConfirmation with success:",
+    result.success
+  );
 
   return (
     <div className="flex flex-col items-center justify-center py-8">
@@ -133,7 +157,12 @@ export function OrderConfirmation({
       )}
 
       <div className="flex gap-4">
-        <Button onClick={onClose}>
+        <Button
+          onClick={() => {
+            console.log("[COMPONENT] Close button clicked");
+            onClose();
+          }}
+        >
           {result.success ? "Close" : "Try Again"}
         </Button>
       </div>
