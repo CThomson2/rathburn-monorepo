@@ -125,7 +125,7 @@ export interface StoredScanData {
   device_id: string;
   raw_barcode: string;
   detected_drum?: string;
-  action_type: ScanActionType;
+  scan_mode: ScanMode;
   status: ScanStatus;
   scan_timestamp: string;
   created_at: string;

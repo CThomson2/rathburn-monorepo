@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useModal } from "@/contexts/modal-context";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase/client-auth";
 
 /**
  * Settings view component
@@ -24,6 +26,47 @@ export function SettingsView() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { closeSettingsModal } = useModal();
+  const [showAuthInfo, setShowAuthInfo] = useState(false);
+  const [authInfo, setAuthInfo] = useState<any>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
+
+  const checkAuthStatus = async () => {
+    setIsLoadingAuth(true);
+    try {
+      // Get Supabase auth session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      // Get the user data
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      // Get localStorage auth data
+      const localStorageData = {
+        userId: localStorage.getItem("userId"),
+        userName: localStorage.getItem("userName"),
+        userRole: localStorage.getItem("userRole"),
+        userDisplayName: localStorage.getItem("userDisplayName")
+      };
+      
+      // Combine all auth information
+      setAuthInfo({
+        supabaseSession: sessionData,
+        supabaseUser: userData,
+        localStorage: localStorageData,
+        sessionError: sessionError?.message,
+        userError: userError?.message
+      });
+      
+      setShowAuthInfo(true);
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      setAuthInfo({
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+      setShowAuthInfo(true);
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -138,10 +181,13 @@ export function SettingsView() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer">
+                <div 
+                  className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer"
+                  onClick={checkAuthStatus}
+                >
                   <div className="flex items-center gap-3">
                     <Info className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span className="text-sm">About</span>
+                    <span className="text-sm">About & Auth Status</span>
                   </div>
                 </div>
 
@@ -153,6 +199,67 @@ export function SettingsView() {
                 </div>
               </div>
             </div>
+
+            {/* Auth Info Display */}
+            {showAuthInfo && (
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h4 className="font-medium mb-2 text-gray-800 dark:text-gray-200">Authentication Status</h4>
+                
+                {isLoadingAuth ? (
+                  <div className="flex justify-center my-4">
+                    <div className="animate-spin h-6 w-6 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <h5 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Supabase Auth</h5>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        Session: {authInfo?.supabaseSession?.session ? "Active" : "None"}
+                      </p>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        User ID: {authInfo?.supabaseUser?.user?.id || "Not logged in"}
+                      </p>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        Email: {authInfo?.supabaseUser?.user?.email || "None"}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h5 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Local Storage Auth</h5>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        User ID: {authInfo?.localStorage?.userId || "None"}
+                      </p>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        Username: {authInfo?.localStorage?.userName || "None"}
+                      </p>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        Role: {authInfo?.localStorage?.userRole || "None"}
+                      </p>
+                    </div>
+                    
+                    {(authInfo?.sessionError || authInfo?.userError || authInfo?.error) && (
+                      <div>
+                        <h5 className="text-xs uppercase tracking-wider text-red-500 mb-1">Errors</h5>
+                        {authInfo?.sessionError && <p className="text-red-500">{authInfo.sessionError}</p>}
+                        {authInfo?.userError && <p className="text-red-500">{authInfo.userError}</p>}
+                        {authInfo?.error && <p className="text-red-500">{authInfo.error}</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowAuthInfo(false)}
+                    className="w-full"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Transport settings section with navigation */}
             <div>

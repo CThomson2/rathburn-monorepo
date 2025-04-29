@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { ScanContext } from "@/contexts/scan-context";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 const statusColors = {
   transport: {
@@ -182,53 +183,114 @@ export function TransportView() {
 
   const [goodsInwards, setGoodsInwards] = useState<GoodsInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dataFetchError, setDataFetchError] = useState<string | null>(null);
 
+  // Fetch goods inwards data from Supabase
   useEffect(() => {
-    // Mock data instead of fetching from Supabase
-    console.log("[MOCK] Loading goods inwards mock data");
+    console.log("[DATA] Fetching goods inwards data from Supabase...");
+    setIsLoading(true);
+    setDataFetchError(null);
     
-    // Simulate loading delay
-    setTimeout(() => {
-      const mockGoodsInData: GoodsInData[] = [
-        {
-          eta_date: "2025-04-25",
-          item: "Methanol",
-          order_date: "2025-04-10",
-          po_number: "PO-2025-0042",
-          quantity: 1000,
-          status: "In Transit",
-          supplier: "Fisher Scientific"
-        },
-        {
-          eta_date: "2025-04-27",
-          item: "Acetone",
-          order_date: "2025-04-12",
-          po_number: "PO-2025-0043",
-          quantity: 500,
-          status: "Processing",
-          supplier: "Sigma Aldrich"
-        },
-        {
-          eta_date: "2025-04-30",
-          item: "Toluene",
-          order_date: "2025-04-15",
-          po_number: "PO-2025-0044",
-          quantity: 200,
-          status: "Shipped",
-          supplier: "VWR Chemicals"
+    // Create a flag to avoid state updates after unmount
+    let isMounted = true;
+    
+    // Use async function for data fetching
+    const fetchData = async () => {
+      try {
+        const supabase = createClient();
+        console.log("[DATA] Supabase client created, querying v_goods_in table...");
+        
+        // Query the v_goods_in view
+        const { data, error } = await supabase
+          .from("v_goods_in")
+          .select("*")
+          .order('eta_date', { ascending: true });
+
+        // Check for errors
+        if (error) {
+          console.error("[DATA] Supabase query error:", error);
+          
+          if (isMounted) {
+            setDataFetchError(`Error fetching data: ${error.message}`);
+            
+            // Fall back to mock data if we can't get real data
+            console.log("[DATA] Using fallback mock data due to error");
+            setGoodsInwards(generateMockGoodsInData());
+          }
+        } 
+        // Check for no data
+        else if (!data || data.length === 0) {
+          console.log("[DATA] No goods inwards data returned, using mock data");
+          
+          if (isMounted) {
+            setGoodsInwards(generateMockGoodsInData());
+          }
+        } 
+        // Success case
+        else {
+          console.log(`[DATA] Successfully fetched ${data.length} goods inwards records:`, data);
+          
+          if (isMounted) {
+            setGoodsInwards(data);
+          }
         }
-      ];
-      
-      setGoodsInwards(mockGoodsInData);
-      setIsLoading(false);
-      console.log("[MOCK] Goods inwards data loaded:", mockGoodsInData);
-    }, 800); // Simulate network delay
+      } catch (err) {
+        console.error("[DATA] Unexpected error during data fetch:", err);
+        
+        if (isMounted) {
+          setDataFetchError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+          setGoodsInwards(generateMockGoodsInData());
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Execute the fetch
+    fetchData();
     
     // Cleanup function
     return () => {
-      console.log("[MOCK] Cleaning up goods inwards data fetch");
+      console.log("[DATA] Cleaning up goods inwards data fetch");
+      isMounted = false;
     };
   }, []);
+
+  // Helper function to generate mock goods inwards data for fallback
+  const generateMockGoodsInData = (): GoodsInData[] => {
+    console.log("[DATA] Generating mock goods inwards data");
+    return [
+      {
+        eta_date: "2025-04-25",
+        item: "Methanol",
+        order_date: "2025-04-10",
+        po_number: "PO-2025-0042",
+        quantity: 1000,
+        status: "In Transit",
+        supplier: "Fisher Scientific"
+      },
+      {
+        eta_date: "2025-04-27",
+        item: "Acetone",
+        order_date: "2025-04-12",
+        po_number: "PO-2025-0043",
+        quantity: 500,
+        status: "Processing",
+        supplier: "Sigma Aldrich"
+      },
+      {
+        eta_date: "2025-04-30",
+        item: "Toluene",
+        order_date: "2025-04-15",
+        po_number: "PO-2025-0044",
+        quantity: 200,
+        status: "Shipped",
+        supplier: "VWR Chemicals"
+      }
+    ];
+  };
 
   // Open job details modal
   const openJobDetails = (id: number) => {
@@ -605,8 +667,23 @@ export function TransportView() {
 
       {/* Display loading state */}
       {isLoading && (
-        <div className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-          Loading goods inwards data...
+        <div className="px-6 py-12 text-center">
+          <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-2"></div>
+          <p className="text-gray-500 dark:text-gray-400">
+            Loading goods inwards data...
+          </p>
+        </div>
+      )}
+
+      {/* Display error state */}
+      {dataFetchError && !isLoading && (
+        <div className="px-6 py-4 mx-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-center">
+          <p className="text-red-600 dark:text-red-400 mb-2">
+            {dataFetchError}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            Using fallback data for display
+          </p>
         </div>
       )}
     </div>

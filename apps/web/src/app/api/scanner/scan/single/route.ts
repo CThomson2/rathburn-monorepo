@@ -14,6 +14,7 @@ const allowedOrigins = [
   'http://localhost:4173', // Vite dev server
   'http://localhost:5173', // Vite dev server
   'http://localhost:8080', // Vite dev server
+  'http://localhost:8081', // Another possible Vite dev server port
   'https://mobile.rathburn.app', // Production mobile app
   // Add any other origins as needed
 ];
@@ -24,20 +25,24 @@ const allowedOrigins = [
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin') || '';
   
+  logger.info('Received OPTIONS request', { origin });
+  
   // Check if the origin is allowed
   if (allowedOrigins.includes(origin)) {
+    logger.info('Allowing CORS for origin', { origin });
     return new NextResponse(null, {
       status: 204, // No content
       headers: {
         'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, User-Agent',
         'Access-Control-Max-Age': '86400', // 24 hours
       },
     });
   }
   
   // Return 403 for disallowed origins
+  logger.warn('Rejecting OPTIONS request from disallowed origin', { origin });
   return new NextResponse(null, { status: 403 });
 }
 
@@ -46,16 +51,17 @@ export async function OPTIONS(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  logger.info('Received single scan request');
+  const origin = request.headers.get('origin') || '';
+  const userAgent = request.headers.get('user-agent') || '';
+  
+  logger.info('Received single scan request', { origin, userAgent });
 
   try {
-    const origin = request.headers.get('origin') || '';
-    
     // Validate origin for CORS
     const corsHeaders = {
       'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, User-Agent',
       'Access-Control-Max-Age': '86400', // 24 hours
     };
     
@@ -194,7 +200,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result, { headers: corsHeaders });
       
     } catch (error) {
-      logger.error('Error processing scan');
+      // Log error details with string interpolation to avoid TypeScript errors
+      logger.error(`Unhandled error in single scan endpoint: ${error instanceof Error ? error.message : String(error)}`);
+      logger.info(`Request context - Origin: ${origin}, User-Agent: ${userAgent}`);
+      
+      // Include CORS headers even in error responses
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      };
       
       return NextResponse.json(
         { 
@@ -208,7 +223,16 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    logger.error('Unhandled error in single scan endpoint');
+    // Log error details with string interpolation to avoid TypeScript errors
+    logger.error(`Unhandled error in single scan endpoint: ${error instanceof Error ? error.message : String(error)}`);
+    logger.info(`Request context - Origin: ${origin}, User-Agent: ${userAgent}`);
+    
+    // Include CORS headers even in error responses
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
     
     return NextResponse.json(
       { 
@@ -218,7 +242,7 @@ export async function POST(request: NextRequest) {
         errorDetail: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString()
       } as ApiResponse,
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

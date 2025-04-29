@@ -360,7 +360,7 @@ const IndexContent = () => {
       {/* ScanHandler Component - With Visible Input for Testing */}
       <ScanHandler
         mode="single"
-        deviceId="mobile-app"
+        deviceId="CT47" // later add a global variable for `device_id` that's set for each session (obviously the device is a constant)
         onScanSuccess={handleScanSuccess}
         onScanError={handleScanError}
         showStatusIndicators={true}

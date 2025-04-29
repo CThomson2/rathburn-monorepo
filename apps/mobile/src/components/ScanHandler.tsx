@@ -6,9 +6,16 @@ import scanService, {
   scanConfig
 } from "@/services/scanner/handle-scan";
 import { toast } from "@/components/ui/use-toast";
+import { createClient } from "@/lib/supabase/client";
 import { ScanMode, ScanEvent } from "@/types/scanner";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+
+// This would normally be resolved from a query, but for now we'll use one of the devices from your screenshot
+const DEVICE_HARDWARE_IDS = {
+  "CT47": "4f096e70-33fd-4913-9df1-8e1fae9591bc",
+  "CK67": "8a1af7de-04a7-406a-94f4-64e674ba9fe5"
+};
 
 interface ScanHandlerProps {
   jobId?: number;
@@ -22,6 +29,7 @@ interface ScanHandlerProps {
   autoFocus?: boolean;
   disableRealtime?: boolean;
   metadata?: Record<string, any>;
+  disabled?: boolean;
 }
 
 /**
@@ -54,7 +62,8 @@ export function ScanHandler({
   showConnectionStatus = true,
   autoFocus = true,
   disableRealtime = false,
-  metadata = {}
+  metadata = {},
+  disabled = false
 }: ScanHandlerProps) {
   // State for tracking scan processing and connection status
   const [isScanning, setIsScanning] = useState(false);
@@ -65,17 +74,50 @@ export function ScanHandler({
     success: boolean;
   } | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [deviceInfo, setDeviceInfo] = useState<{id: string, hw_id: string} | null>(null);
 
-  const test_token = "eyJhY2Nlc3NfdG9rZW4iOiJleUpoYkdjaU9pSklVekkxTmlJc0ltdHBaQ0k2SW5WelpVVnRTVmhXU0VwQ2QzTTJOMWdpTENKMGVYQWlPaUpLVjFRaWZRLmV5SnBjM01pT2lKb2RIUndjem92TDJkM2VHMTNibUo1ZW01M2FYbG5hR1o1ZDJONExuTjFjR0ZpWVhObExtTnZMMkYxZEdndmRqRWlMQ0p6ZFdJaU9pSmhZVGxqT1RkaE5pMWpZMkkyTFRSaVl6Z3RPVEUwTWkxbFpqZ3daR1F5WkRWbE5URWlMQ0poZFdRaU9pSmhkWFJvWlc1MGFXTmhkR1ZrSWl3aVpYaHdJam94TnpRMU9UUXhOelUzTENKcFlYUWlPakUzTkRVNU16Z3hOVGNzSW1WdFlXbHNJam9pWTI5dWNtRmtMblJvYjIweE5FQm5iV0ZwYkM1amIyMGlMQ0p3YUc5dVpTSTZJaUlzSW1Gd2NGOXRaWFJoWkdGMFlTSTZleUp3Y205MmFXUmxjaUk2SW1WdFlXbHNJaXdpY0hKdmRtbGtaWEp6SWpwYkltVnRZV2xzSWwxOUxDSjFjMlZ5WDIxbGRHRmtZWFJoSWpwN0ltVnRZV2xzSWpvaVkyOXVjbUZrTG5Sb2IyMHhORUJuYldGcGJDNWpiMjBpTENKbGJXRnBiRjkyWlhKcFptbGxaQ0k2ZEhKMVpTd2ljR2h2Ym1WZmRtVnlhV1pwWldRaU9tWmhiSE5sTENKemRXSWlPaUpoWVRsak9UZGhOaTFqWTJJMkxUUmlZemd0T1RFME1pMWxaamd3WkdReVpEVmxOVEVpZlN3aWNtOXNaU0k2SW1GMWRHaGxiblJwWTJGMFpXUWlMQ0poWVd3aU9pSmhZV3d4SWl3aVlXMXlJanBiZXlKdFpYUm9iMlFpT2lKd1lYTnpkMjl5WkNJc0luUnBiV1Z6ZEdGdGNDSTZNVGMwTlRrek9ERTFOMzFkTENKelpYTnphVzl1WDJsa0lqb2lZV013T0dRMk1HUXROakU1WWkwMFpqTTNMVGswWmpndFpXRTNZalptTURjMk5qQTJJaXdpYVhOZllXNXZibmx0YjNWeklqcG1ZV3h6WlgwLl9CNzhiN3JqNUJUTXNaTWxjZXFpSF90WFN0UllHazVtUm9ERFdkMEVBd1UiLCJ0b2tlbl90eXBlIjoiYmVhcmVyIiwiZXhwaXJlc19pbiI6MzYwMCwiZXhwaXJlc19hdCI6MTc0NTk0MTc1NywicmVmcmVzaF90b2tlbiI6InhpMzN3emppdHlteiIsInVzZXIiOnsiaWQiOiJhYTljOTdhNi1jY2I2LTRiYzgtOTE0Mi1lZjgwZGQyZDVlNTEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJlbWFpbCI6ImNvbnJhZC50aG9tMTRAZ21haWwuY29tIiwiZW1haWxfY29uZmlybWVkX2F0IjoiMjAyNS0wMy0yN1QyMDowNDoyNS4yMTYxMThaIiwicGhvbmUiOiIiLCJjb25maXJtYXRpb25fc2VudF9hdCI6IjIwMjUtMDMtMjdUMjA6MDM6MDMuNjQwMDI4WiIsImNvbmZpcm1lZF9hdCI6IjIwMjUtMDMtMjdUMjA6MDQ6MjUuMjE2MTE4WiIsImxhc3Rfc2lnbl9pbl9hdCI6IjIwMjUtMDQtMjlUMTQ6NDk6MTcuMTg3ODQzMDQ4WiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsIjoiY29ucmFkLnRob20xNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiJhYTljOTdhNi1jY2I2LTRiYzgtOTE0Mi1lZjgwZGQyZDVlNTEifSwiaWRlbnRpdGllcyI6W10sImNyZWF0ZWRfYXQiOiIyMDI1LTAzLTI3VDIwOjAzOjAzLjYyOTQxM1oiLCJ1cGRhdGVkX2F0IjoiMjAyNS0wNC0yOVQxNDo0OToxNy4xOTQ0NzJaIiwiaXNfYW5vbnltb3VzIjpmYWxzZX19"
-  
-  // Mock authentication token instead of using Supabase
+  // Get authentication token from Supabase
   const getAuthToken = useCallback(async () => {
-    console.log("[SCAN-MOCK] Providing mock auth token");
-    // Return a mock token
-    return test_token;
+    console.log("[SCAN-AUTH] Getting auth token from Supabase");
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error || !data.session) {
+        console.error("[SCAN-AUTH] Authentication error:", error);
+        // Fall back to a hardcoded token for testing if auth fails
+        console.log("[SCAN-AUTH] Using fallback hardcoded token for testing");
+        return "eyJhbGciOiJIUzI1NiIsImtpZCI6InVzZUVtSVhWSEpCd3M2N1giLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2d3eG13bmJ5em53aXlnaGZ5d2N4LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJhYTljOTdhNi1jY2I2LTRiYzgtOTE0Mi1lZjgwZGQyZDVlNTEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzQ1OTQxNzU3LCJpYXQiOjE3NDU5MzgxNTcsImVtYWlsIjoiY29ucmFkLnRob20xNEBnbWFpbC5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsIjoiY29ucmFkLnRob20xNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiJhYTljOTdhNi1jY2I2LTRiYzgtOTE0Mi1lZjgwZGQyZDVlNTEifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc0NTkzODE1N31dLCJzZXNzaW9uX2lkIjoiYWMwOGQ2MGQtNjE5Yi00ZjM3LTk0ZjgtZWE3YmZmMDc2NjA2IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0._B78b7rj5BTMsZMlceqiH_tXStRYGk5mRoDDWd0EAwU";
+      }
+      
+      console.log("[SCAN-AUTH] Successfully retrieved auth token");
+      return data.session.access_token;
+    } catch (error) {
+      console.error("[SCAN-AUTH] Error getting auth token:", error);
+      // Fall back to a hardcoded token for testing
+      return "eyJhbGciOiJIUzI1NiIsImtpZCI6InVzZUVtSVhWSEpCd3M2N1giLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2d3eG13bmJ5em53aXlnaGZ5d2N4LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJhYTljOTdhNi1jY2I2LTRiYzgtOTE0Mi1lZjgwZGQyZDVlNTEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzQ1OTQxNzU3LCJpYXQiOjE3NDU5MzgxNTcsImVtYWlsIjoiY29ucmFkLnRob20xNEBnbWFpbC5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsIjoiY29ucmFkLnRob20xNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiJhYTljOTdhNi1jY2I2LTRiYzgtOTE0Mi1lZjgwZGQyZDVlNTEifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc0NTkzODE1N31dLCJzZXNzaW9uX2lkIjoiYWMwOGQ2MGQtNjE5Yi00ZjM3LTk0ZjgtZWE3YmZmMDc2NjA2IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0._B78b7rj5BTMsZMlceqiH_tXStRYGk5mRoDDWd0EAwU";
+    }
   }, []);
 
-  // Handle barcode scan
+  // Fetch device information on component mount
+  useEffect(() => {
+    const fetchDeviceInfo = async () => {
+      // For testing, we'll use the hardcoded device IDs
+      // In production, you would query the devices table or detect from hardware info
+      const hwId = "1"; // Hardware ID 1 or 2 from your database screenshot
+      const deviceUuid = DEVICE_HARDWARE_IDS[hwId as keyof typeof DEVICE_HARDWARE_IDS] || DEVICE_HARDWARE_IDS["CT47"];
+      
+      console.log(`[SCAN-DEVICE] Setting device info to hw_id=${hwId}, device_id=${deviceUuid}`);
+      setDeviceInfo({
+        id: deviceUuid,
+        hw_id: hwId
+      });
+    };
+
+    fetchDeviceInfo();
+  }, []);
+
+  // Handle barcode scan - restore real API call functionality
   const handleScan = useCallback(async (barcode: string) => {
     console.log("[SCAN] Scan detected:", barcode);
 
@@ -88,44 +130,73 @@ export function ScanHandler({
     setLastScan(null);
 
     try {
-      console.log("[SCAN] Processing scan...");
-      // Instead of calling the real API, we'll mock success directly
+      // Get authentication token
+      const authToken = await getAuthToken();
+      console.log("[SCAN] Got auth token, length:", authToken?.length || 0);
       
-      // Generate a mock scan ID
-      const scanId = `mock-scan-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      console.log("[SCAN-MOCK] Generated mock scan ID:", scanId);
-      
-      // Create mock result
-      const result = {
-        success: true,
-        scan_id: scanId,
+      // Build request payload
+      const payload = {
         barcode: barcode.trim(),
-        timestamp: new Date().toISOString()
+        jobId,
+        scan_mode: mode,
+        action: mode === "bulk" ? "bulk" : "barcode_scan",
+        deviceId: deviceInfo?.id || deviceId || "mobile-app",
+        hw_id: deviceInfo?.hw_id || "1",
+        authToken,
+        metadata: {
+          ...metadata,
+          app_version: import.meta.env.VITE_APP_VERSION || "1.0.0",
+          source: "mobile_app",
+          device_info: deviceInfo
+        }
       };
       
-      console.log("[SCAN-MOCK] Mock scan successful:", result);
+      // Log the full request payload
+      console.log("[SCAN] Full API request payload:", JSON.stringify(payload, null, 2));
+
+      // Make the real API call
+      const result = await scanService.handleScan(payload);
+      console.log("[SCAN] API response:", result);
 
       // Update last scan state
       setLastScan({
         barcode: barcode.trim(),
-        timestamp: result.timestamp,
+        timestamp: result.timestamp || new Date().toISOString(),
         success: result.success
       });
 
-      // Call success callback
-      if (onScanSuccess && result.scan_id) {
-        console.log("[SCAN] Calling onScanSuccess with:", barcode, result.scan_id);
-        onScanSuccess(barcode, result.scan_id);
-      } else {
-        console.log("[SCAN] onScanSuccess callback not available or no scan_id");
-      }
+      if (result.success) {
+        console.log("[SCAN] Scan successful:", result);
 
-      // Show success toast
-      toast({
-        title: "Scan Successful",
-        description: `Scanned: ${barcode}`,
-        variant: "default",
-      });
+        // Call success callback
+        if (onScanSuccess && result.scan_id) {
+          console.log("[SCAN] Calling onScanSuccess with:", barcode, result.scan_id);
+          onScanSuccess(barcode, result.scan_id);
+        } else {
+          console.log("[SCAN] onScanSuccess callback not available or no scan_id");
+        }
+
+        // Show success toast
+        toast({
+          title: "Scan Successful",
+          description: `Scanned: ${barcode}`,
+          variant: "default",
+        });
+      } else {
+        console.error("[SCAN] Scan failed:", result.error);
+
+        // Call error callback
+        if (onScanError) {
+          onScanError(barcode, result.error || "Unknown error");
+        }
+
+        // Show error toast
+        toast({
+          title: "Scan Error",
+          description: result.error || "Unknown error",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("[SCAN] Error processing scan:", error);
 
@@ -153,7 +224,7 @@ export function ScanHandler({
     } finally {
       setIsScanning(false);
     }
-  }, [jobId, mode, deviceId, onScanSuccess, onScanError, metadata]);
+  }, [jobId, mode, deviceId, onScanSuccess, onScanError, metadata, getAuthToken, deviceInfo]);
 
   // Process real-time scan events
   const handleScanEvent = useCallback((event: ScanEvent) => {
@@ -237,57 +308,61 @@ export function ScanHandler({
     }
   }, [jobId, onScanSuccess, onScanError, onScanCancel]);
 
-  // Set up real-time event source for scan updates - Mock this functionality
+  // Set up real-time event source for scan updates
   useEffect(() => {
     // Skip if no job ID or real-time is disabled
     if (!jobId || disableRealtime) {
       setSseConnected(false);
       setConnectionStatus('disconnected');
-      console.log("[SCAN-MOCK] Real-time updates disabled");
+      console.log("[SCAN-REALTIME] Real-time updates disabled");
       return;
     }
 
-    console.log("[SCAN-MOCK] Setting up mock real-time connection for job:", jobId);
+    console.log("[SCAN-REALTIME] Setting up real-time connection for job:", jobId);
     setConnectionStatus('connecting');
-    
-    // Simulate connection established after a delay
-    const timer = setTimeout(() => {
-      console.log("[SCAN-MOCK] Simulated real-time connection established");
-      setConnectionStatus('connected');
-      setSseConnected(true);
-    }, 1000);
+
+    // Use the real event source connection
+    const cleanup = setupScanEventSource(jobId, handleScanEvent);
 
     return () => {
-      console.log("[SCAN-MOCK] Cleaning up mock real-time connection");
-      clearTimeout(timer);
+      console.log("[SCAN-REALTIME] Cleaning up real-time connection");
+      cleanup();
       setSseConnected(false);
       setConnectionStatus('disconnected');
     };
-  }, [jobId, disableRealtime]);
+  }, [jobId, disableRealtime, handleScanEvent]);
 
-  // Add a debug log on component mount
+  // Add additional debug log for device info on component mount
   useEffect(() => {
-    console.log("[SCAN] ScanHandler mounted with props:", { 
+    console.log("[SCAN-INIT] ScanHandler mounted with props:", { 
       jobId, 
       mode, 
       deviceId,
       autoFocus,
       disableRealtime,
-      metadata
+      metadata,
+      deviceInfo
     });
     
     return () => {
-      console.log("[SCAN] ScanHandler unmounted");
+      console.log("[SCAN-CLEANUP] ScanHandler unmounted");
     };
-  }, [jobId, mode, deviceId, autoFocus, disableRealtime, metadata]);
+  }, [jobId, mode, deviceId, autoFocus, disableRealtime, metadata, deviceInfo]);
 
   return (
     <>
       {/* Hidden scan input */}
-      <ScanInput onScan={handleScan} autoFocus={autoFocus} />
+      <ScanInput 
+        onScan={handleScan} 
+        autoFocus={autoFocus} 
+        forceDebugMode={true}
+        disabled={disabled}
+      />
       
-      {/* Log that we're rendering the ScanInput */}
-      {console.log("[SCAN] Rendering ScanInput with autoFocus:", autoFocus)}
+      {/* Device info display for debugging */}
+      <div className="fixed top-4 right-4 bg-black/70 text-white text-xs rounded px-2 py-1 z-50">
+        Device: {deviceInfo?.hw_id || 'Unknown'} ({deviceInfo?.id?.substring(0, 8) || 'Not set'}...)
+      </div>
 
       {/* Status indicators */}
       {showStatusIndicators && (

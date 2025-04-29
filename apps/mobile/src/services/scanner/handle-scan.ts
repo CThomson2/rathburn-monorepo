@@ -14,11 +14,11 @@ import {
  */
 export const scanConfig = {
   // URL of the NextJS API endpoint
-  apiUrl: "http://localhost:3000/api/",
 //   apiUrl: import.meta.env.VITE_API_URL || 
 //          (import.meta.env.DEV 
 //            ? "http://localhost:3000/api/" 
 //            : "https://rathburn.app/api/"),
+  apiUrl: "http://localhost:3000/api/",
 
   // Number of retries for failed requests
   maxRetries: 3,
@@ -74,14 +74,22 @@ export class ScanService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+      console.log(`[API] Making request to ${this.apiUrl}${endpoint}`);
+      
       const response = await fetch(`${this.apiUrl}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
+          // Add user agent so server can identify client
+          "User-Agent": "RathburnMobileApp/" + (import.meta.env.VITE_APP_VERSION || "1.0.0"),
         },
         body: JSON.stringify(data),
         signal: controller.signal,
+        // Ensure credentials are included
+        credentials: "include",
+        // Explicitly set mode to cors
+        mode: "cors"
       });
 
       // Clear timeout
@@ -93,14 +101,21 @@ export class ScanService {
         const errorData = await response.json().catch(() => null);
         const errorMessage = errorData?.error || `HTTP error! status: ${response.status}`;
         
+        console.error(`[API] Request failed with status ${response.status}:`, errorData || errorMessage);
         throw new Error(errorMessage);
       }
 
       return await response.json();
     } catch (error) {
+      // Improved error logging for network/CORS issues
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('[API] Network error - possibly CORS related:', error);
+        throw new Error('Network error: Could not connect to the API. This may be due to CORS restrictions or the server being unavailable.');
+      }
+      
       // Check if we should retry
       if (retries > 0 && !(error instanceof DOMException && error.name === 'AbortError')) {
-        console.warn(`Request failed, retrying (${retries} retries left):`, error);
+        console.warn(`[API] Request failed, retrying (${retries} retries left):`, error);
         
         // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, this.retryDelay));
