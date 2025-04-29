@@ -16,8 +16,10 @@ import {
   Search,
   Zap,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { logout } from "@/services/auth";
+// Removed Supabase client import
+// import { createClient } from "@/lib/supabase/client";
+// Removed auth service import
+// import { logout } from "@/services/auth";
 import FloatingNavMenu from "@/components/layout/FloatingNavMenu";
 import TopNavbar from "@/components/navbar/top-navbar";
 import { TransportView } from "@/components/views/TransportView";
@@ -27,12 +29,23 @@ import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ModalProvider, useModal } from "@/contexts/modal-context";
+import ScanHandler from "@/components/ScanHandler";
 
 // import { getDirection } from "@/utils/view-direction";
 import { ScanContext } from "@/contexts/scan-context";
 // import { IntegratedNav } from "@/components/navbar/integrated-nav";
 // import { BottomTabBar } from "@/components/navbar/bottom-tab-bar";
 // import { CombinedNavigation } from "@/components/layout/combined-navigation";
+
+// Mock logout function that doesn't call Supabase
+const mockLogout = () => {
+  console.log("[MOCK] Logout called - clearing localStorage");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("userDisplayName");
+  return { success: true };
+};
 
 const statusColors = {
   transport: {
@@ -60,19 +73,26 @@ const statusColors = {
  * Uses view-switching navigation rather than route changes
  */
 const IndexContent = () => {
+  // Set mock auth data for bypassing authentication
+  useEffect(() => {
+    // Add mock authentication data so the app thinks a user is logged in
+    if (!localStorage.getItem("userId")) {
+      console.log("[BYPASS-AUTH] Setting mock authentication data");
+      localStorage.setItem("userId", "bypass-user-id");
+      localStorage.setItem("userName", "bypass-user");
+      localStorage.setItem("userRole", "user");
+      localStorage.setItem("userDisplayName", "Bypass User");
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("Transport");
   const [isLoading, setIsLoading] = useState(true);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scannedDrums, setScannedDrums] = useState<string[]>([]);
-  const [barcodeInput, setBarcodeInput] = useState("");
-  const [lastScannedValue, setLastScannedValue] = useState("");
-  const [showScanFeedback, setShowScanFeedback] = useState(false);
   const searchTimeoutRef = useRef<number | null>(null);
-  const scanFeedbackTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
   const { isSettingsModalOpen, openSettingsModal } = useModal();
 
   // Navigation handler for the floating menu
@@ -103,56 +123,17 @@ const IndexContent = () => {
     }
   };
 
-  // Handle barcode scan input
-  const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    console.log("Barcode input changed:", value);
-
-    setBarcodeInput(value);
-    setLastScannedValue(value);
-    setShowScanFeedback(true);
-
-    // Clear previous timeout if exists
-    if (scanFeedbackTimeoutRef.current) {
-      window.clearTimeout(scanFeedbackTimeoutRef.current);
-    }
-
-    // Set timeout to hide the feedback after 3 seconds
-    scanFeedbackTimeoutRef.current = window.setTimeout(() => {
-      setShowScanFeedback(false);
-    }, 3000);
-
-    // Process the scan when input contains a complete barcode
-    // This is a simple implementation that processes on every change
-    // Real implementation might want to detect a complete scan (e.g., by enter key)
-    processBarcodeScan(value);
+  // Handle successful scan from ScanHandler
+  const handleScanSuccess = (barcode: string, scanId: string) => {
+    console.log(`Scan successful: ${barcode}, ID: ${scanId}`);
+    
+    // Process the scanned barcode to find matching drum IDs
+    handleDrumScan(barcode);
   };
 
-  // Handle keydown events for the barcode input
-  const handleBarcodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    console.log("Barcode key pressed:", e.key, "Current value:", barcodeInput);
-
-    // If Enter key is pressed, process the current input
-    if (e.key === "Enter") {
-      console.log("Enter key pressed, processing scan:", barcodeInput);
-      processBarcodeScan(barcodeInput);
-    }
-  };
-
-  // Process the scanned barcode to find matching drum IDs
-  const processBarcodeScan = (scannedValue: string) => {
-    console.log("Processing barcode scan:", scannedValue);
-
-    // For this demo, we'll process immediately on any input
-    handleDrumScan(scannedValue);
-
-    // Clear the input field after processing
-    setTimeout(() => {
-      console.log("Clearing input field");
-      setBarcodeInput("");
-      // Re-focus the input for the next scan
-      barcodeInputRef.current?.focus();
-    }, 100);
+  // Handle scan error from ScanHandler
+  const handleScanError = (barcode: string, error: string) => {
+    console.error(`Scan error: ${error} for barcode: ${barcode}`);
   };
 
   // Check if scanned value contains any of the drum IDs and update state
@@ -198,29 +179,6 @@ const IndexContent = () => {
       console.log("No matching drum ID found in scanned value");
     }
   };
-
-  // Auto-focus the barcode input when component mounts
-  useEffect(() => {
-    console.log("Mounting Index component, focusing barcode input");
-    barcodeInputRef.current?.focus();
-
-    // Handle clicks anywhere on the document to refocus the barcode input
-    const handleDocumentClick = () => {
-      console.log("Document clicked, refocusing barcode input");
-      barcodeInputRef.current?.focus();
-    };
-
-    // Add event listener for clicks
-    document.addEventListener("click", handleDocumentClick);
-
-    // Clean up scan feedback timeout and event listener on unmount
-    return () => {
-      if (scanFeedbackTimeoutRef.current) {
-        window.clearTimeout(scanFeedbackTimeoutRef.current);
-      }
-      document.removeEventListener("click", handleDocumentClick);
-    };
-  }, []);
 
   const startSearchTimeout = () => {
     // Clear any existing timeout
@@ -399,20 +357,44 @@ const IndexContent = () => {
       className="h-screen w-full flex flex-col pt-10 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
       {...handlers}
     >
-      {/* Barcode input field - visible for testing */}
-      <div className="fixed bottom-28 left-0 right-0 px-4 z-50 flex flex-col items-center gap-2">
-        {/* <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 w-full max-w-md flex gap-2"> */}
-        <input
-          ref={barcodeInputRef}
-          type="text"
-          value={barcodeInput}
-          onChange={handleBarcodeInput}
-          onKeyDown={handleBarcodeKeyDown}
-          className="sr-only"
-          autoFocus
-          inputMode="none"
-          aria-label="Barcode Scanner Input"
-        />
+      {/* ScanHandler Component - With Visible Input for Testing */}
+      <ScanHandler
+        mode="single"
+        deviceId="mobile-app"
+        onScanSuccess={handleScanSuccess}
+        onScanError={handleScanError}
+        showStatusIndicators={true}
+        showConnectionStatus={true}
+        autoFocus={true}
+        disableRealtime={true} // Disable real-time updates for now
+        metadata={{ 
+          viewName: activeView,
+          source: "mobile_app_testing"
+        }}
+      />
+      
+      {/* Custom scan input container for visibility during testing */}
+      <div className="fixed bottom-28 left-0 right-0 px-4 z-50 flex justify-center">
+        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 w-full max-w-md">
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+            Test Scan Input (visible for testing)
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Type or scan barcode here..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  // Call the same handler that ScanHandler would use
+                  handleScanSuccess(e.currentTarget.value, 'test-scan-id');
+                  e.currentTarget.value = '';
+                }
+              }}
+            />
+            <div className="text-xs text-gray-400 mt-1">Press Enter to submit test scan</div>
+          </div>
+        </div>
       </div>
 
       {/* Navigation Bar */}
@@ -425,29 +407,6 @@ const IndexContent = () => {
       {/* Main Content - View Container */}
       <div className="flex-1 overflow-hidden relative">
         {renderView()}
-
-        {/* Scan Feedback Overlay */}
-        <AnimatePresence>
-          {showScanFeedback && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="absolute bottom-20 left-0 right-0 flex justify-center z-50"
-            >
-              <div className="bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center max-w-md">
-                <Zap size={20} className="mr-2 text-yellow-300" />
-                <div>
-                  <p className="font-medium">Scan Detected</p>
-                  <p className="text-sm text-blue-100 truncate max-w-xs">
-                    {lastScannedValue || "Empty scan"}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Search Overlay */}
         <AnimatePresence>

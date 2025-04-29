@@ -8,7 +8,6 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { ScanContext } from "@/contexts/scan-context";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -185,28 +184,50 @@ export function TransportView() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Use IIFE for async operation
-    (async () => {
-      try {
-        const supabase = createClient();
-        // Use simpler string approach with any type to bypass TypeScript checking
-        // This will work at runtime even if TypeScript complains
-        const { data, error } = (await supabase
-          .from("ui.v_goods_in")
-          .select("*")) as { data: GoodsInData[] | null; error: Error };
-
-        if (error) {
-          console.error("Error fetching goods inwards:", error);
-        } else if (data) {
-          console.log("Goods inwards data:", data);
-          setGoodsInwards(data);
+    // Mock data instead of fetching from Supabase
+    console.log("[MOCK] Loading goods inwards mock data");
+    
+    // Simulate loading delay
+    setTimeout(() => {
+      const mockGoodsInData: GoodsInData[] = [
+        {
+          eta_date: "2025-04-25",
+          item: "Methanol",
+          order_date: "2025-04-10",
+          po_number: "PO-2025-0042",
+          quantity: 1000,
+          status: "In Transit",
+          supplier: "Fisher Scientific"
+        },
+        {
+          eta_date: "2025-04-27",
+          item: "Acetone",
+          order_date: "2025-04-12",
+          po_number: "PO-2025-0043",
+          quantity: 500,
+          status: "Processing",
+          supplier: "Sigma Aldrich"
+        },
+        {
+          eta_date: "2025-04-30",
+          item: "Toluene",
+          order_date: "2025-04-15",
+          po_number: "PO-2025-0044",
+          quantity: 200,
+          status: "Shipped",
+          supplier: "VWR Chemicals"
         }
-      } catch (err) {
-        console.error("Unexpected error:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+      ];
+      
+      setGoodsInwards(mockGoodsInData);
+      setIsLoading(false);
+      console.log("[MOCK] Goods inwards data loaded:", mockGoodsInData);
+    }, 800); // Simulate network delay
+    
+    // Cleanup function
+    return () => {
+      console.log("[MOCK] Cleaning up goods inwards data fetch");
+    };
   }, []);
 
   // Open job details modal

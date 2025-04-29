@@ -20,8 +20,7 @@ export const createClient = () => {
 
   return createSupabaseClient<Database>(
     import.meta.env.VITE_SUPABASE_URL!,
-    import.meta.env.VITE_SUPABASE_ANON_KEY!,
-    options
+    import.meta.env.VITE_SUPABASE_ANON_KEY!
   );
 };
 
