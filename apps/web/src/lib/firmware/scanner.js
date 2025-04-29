@@ -5,7 +5,7 @@ const axios = require("axios");
 // Configuration - you can set this via environment variables or change directly
 // Use environment variable or fall back to development URL
 const API_ENDPOINT =
-  process.env.SCANNER_API_URL || "http://localhost:3000/api/barcodes/scan/drum";
+  process.env.SCANNER_API_URL || "http://localhost:3000/api/scanners/scan/drum";
 
 console.log(`Starting serial port setup with API endpoint: ${API_ENDPOINT}`);
 

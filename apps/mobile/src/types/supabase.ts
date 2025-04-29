@@ -1060,7 +1060,6 @@ export type Database = {
           code: string
           is_operational: boolean
           is_vacuum: boolean
-          lab_id: number
           max_capacity: number
           notes: string | null
           power_rating_kw: number
@@ -1070,31 +1069,21 @@ export type Database = {
           code: string
           is_operational: boolean
           is_vacuum: boolean
-          lab_id: number
           max_capacity: number
           notes?: string | null
           power_rating_kw: number
-          still_id?: never
+          still_id?: number
         }
         Update: {
           code?: string
           is_operational?: boolean
           is_vacuum?: boolean
-          lab_id?: number
           max_capacity?: number
           notes?: string | null
           power_rating_kw?: number
-          still_id?: never
+          still_id?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "stills_lab_id_fkey"
-            columns: ["lab_id"]
-            isOneToOne: false
-            referencedRelation: "labs"
-            referencedColumns: ["lab_id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -1165,6 +1154,7 @@ export type Database = {
           item_id: string
           po_id: string | null
           total_volume: number
+          updated_at: string
         }
         Insert: {
           batch_id?: string
@@ -1172,7 +1162,8 @@ export type Database = {
           created_at?: string
           item_id: string
           po_id?: string | null
-          total_volume: number
+          total_volume?: number
+          updated_at?: string
         }
         Update: {
           batch_id?: string
@@ -1181,6 +1172,7 @@ export type Database = {
           item_id?: string
           po_id?: string | null
           total_volume?: number
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1288,33 +1280,33 @@ export type Database = {
       }
       items: {
         Row: {
-          barcode_regex: string
+          barcode_regex: string | null
           created_at: string
           is_repro: boolean
           item_id: string
           material_id: string
           name: string
-          supplier_id: string
+          supplier_id: string | null
           updated_at: string
         }
         Insert: {
-          barcode_regex: string
+          barcode_regex?: string | null
           created_at?: string
           is_repro?: boolean
           item_id?: string
           material_id: string
           name: string
-          supplier_id: string
+          supplier_id?: string | null
           updated_at?: string
         }
         Update: {
-          barcode_regex?: string
+          barcode_regex?: string | null
           created_at?: string
           is_repro?: boolean
           item_id?: string
           material_id?: string
           name?: string
-          supplier_id?: string
+          supplier_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1393,24 +1385,75 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_order_drums: {
+        Row: {
+          created_at: string
+          drum_id: string | null
+          is_printed: boolean
+          is_received: boolean
+          pod_id: string
+          pol_id: string
+          serial_number: string
+        }
+        Insert: {
+          created_at?: string
+          drum_id?: string | null
+          is_printed?: boolean
+          is_received?: boolean
+          pod_id?: string
+          pol_id: string
+          serial_number: string
+        }
+        Update: {
+          created_at?: string
+          drum_id?: string | null
+          is_printed?: boolean
+          is_received?: boolean
+          pod_id?: string
+          pol_id?: string
+          serial_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "drums"
+            referencedColumns: ["drum_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_drums_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["pol_id"]
+          },
+        ]
+      }
       purchase_order_lines: {
         Row: {
+          cost: number | null
           item_id: string
           po_id: string
           pol_id: string
           quantity: number
+          unit_weight: number | null
         }
         Insert: {
+          cost?: number | null
           item_id: string
           po_id: string
           pol_id?: string
           quantity: number
+          unit_weight?: number | null
         }
         Update: {
+          cost?: number | null
           item_id?: string
           po_id?: string
           pol_id?: string
           quantity?: number
+          unit_weight?: number | null
         }
         Relationships: [
           {
@@ -1446,7 +1489,7 @@ export type Database = {
           order_date?: string
           po_id?: string
           po_number: string
-          status: string
+          status?: string
           supplier_id: string
           updated_at?: string
         }
@@ -1472,14 +1515,17 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          email: string | null
           name: string
           supplier_id: string
         }
         Insert: {
+          email?: string | null
           name: string
           supplier_id?: string
         }
         Update: {
+          email?: string | null
           name?: string
           supplier_id?: string
         }
@@ -1506,8 +1552,12 @@ export type Database = {
         | "transport"
         | "location_set"
         | "barcode_scan"
+        | "cancel_scan"
+        | "fast_forward"
+        | "bulk"
       batch_type: "new" | "repro"
       drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
+      scan_mode: "single" | "bulk"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1585,11 +1635,12 @@ export type Database = {
       }
       drum_scan: {
         Row: {
-          action_type: Database["inventory"]["Enums"]["action_type"]
+          action_type: Database["inventory"]["Enums"]["scan_mode"]
           detected_drum: string | null
           device_id: string
           error_code: string | null
           metadata: Json
+          parent_scan: number | null
           raw_barcode: string
           scan_id: number
           scanned_at: string
@@ -1597,11 +1648,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          action_type?: Database["inventory"]["Enums"]["action_type"]
+          action_type?: Database["inventory"]["Enums"]["scan_mode"]
           detected_drum?: string | null
           device_id: string
           error_code?: string | null
           metadata?: Json
+          parent_scan?: number | null
           raw_barcode: string
           scan_id?: number
           scanned_at?: string
@@ -1609,11 +1661,12 @@ export type Database = {
           user_id: string
         }
         Update: {
-          action_type?: Database["inventory"]["Enums"]["action_type"]
+          action_type?: Database["inventory"]["Enums"]["scan_mode"]
           detected_drum?: string | null
           device_id?: string
           error_code?: string | null
           metadata?: Json
+          parent_scan?: number | null
           raw_barcode?: string
           scan_id?: number
           scanned_at?: string
@@ -1627,6 +1680,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "devices"
             referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "drum_scan_parent_scan_fkey"
+            columns: ["parent_scan"]
+            isOneToOne: false
+            referencedRelation: "drum_scan"
+            referencedColumns: ["scan_id"]
           },
         ]
       }
@@ -1817,39 +1877,6 @@ export type Database = {
           },
         ]
       }
-      orders: {
-        Row: {
-          code: string
-          created_at: string
-          item_id: string
-          order_id: string
-          quantity: number
-          scheduled_end: string | null
-          scheduled_start: string | null
-          status: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          item_id: string
-          order_id?: string
-          quantity: number
-          scheduled_end?: string | null
-          scheduled_start?: string | null
-          status?: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          item_id?: string
-          order_id?: string
-          quantity?: number
-          scheduled_end?: string | null
-          scheduled_start?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
       qc_results: {
         Row: {
           grade: Database["production"]["Enums"]["qc_grade"]
@@ -1954,6 +1981,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      drum_inventory: {
+        Row: {
+          category: string | null
+          code: string | null
+          id: number
+          name: string
+          stock: number | null
+          threshold: number | null
+          type: string | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          id?: number
+          name: string
+          stock?: number | null
+          threshold?: number | null
+          type?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          id?: number
+          name?: string
+          stock?: number | null
+          threshold?: number | null
+          type?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1983,42 +2040,68 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      create_mobile_app_passcode: {
-        Args: { p_user_name: string; p_passcode: string; p_user_id: string }
-        Returns: string
+      v_batches: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_type: string | null
+          chemical_group: string | null
+          created_at: string | null
+          input_recorded_at: string | null
+          item_name: string | null
+          material_name: string | null
+          po_number: string | null
+          supplier_name: string | null
+          total_volume: number | null
+          updated_at: string | null
+        }
+        Relationships: []
       }
-      create_user_with_passcode: {
-        Args: { p_email: string; p_user_name: string; p_passcode: string }
-        Returns: string
+      v_batches_with_drums: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_type: string | null
+          chemical_group: string | null
+          created_at: string | null
+          drum_count: number | null
+          drums_in_stock: number | null
+          input_recorded_at: string | null
+          item_name: string | null
+          material_name: string | null
+          po_number: string | null
+          supplier_name: string | null
+          total_volume: number | null
+          updated_at: string | null
+        }
+        Relationships: []
       }
-      request_passcode_reset: {
-        Args: { p_user_name: string }
-        Returns: boolean
+      v_distillation_schedule: {
+        Row: {
+          batch_id: string | null
+          batch_total_volume: number | null
+          expected_yield: number | null
+          item_name: string | null
+          job_id: string | null
+          job_status: Database["production"]["Enums"]["job_status"] | null
+          op_id: string | null
+          operation_status: Database["production"]["Enums"]["op_status"] | null
+          raw_volume: number | null
+          scheduled_start: string | null
+          still_capacity: number | null
+          still_code: string | null
+          still_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_jobs"
+            referencedColumns: ["job_id"]
+          },
+        ]
       }
-      reset_passcode_with_token: {
-        Args: { p_token: string; p_new_passcode: string }
-        Returns: boolean
-      }
-      validate_passcode: {
-        Args: { p_user_name: string; p_passcode: string }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  ui: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
       v_drums: {
         Row: {
           batch_type: string | null
@@ -2037,15 +2120,92 @@ export type Database = {
           item: string | null
           order_date: string | null
           po_number: string | null
+          pol_id: string | null
           quantity: number | null
           status: string | null
           supplier: string | null
         }
         Relationships: []
       }
+      v_production_jobs: {
+        Row: {
+          created_at: string | null
+          current_volume: number | null
+          drum_id: string | null
+          drum_quantity: number | null
+          ended_at: string | null
+          item_name: string | null
+          job_id: string | null
+          location_name: string | null
+          op_type: Database["production"]["Enums"]["op_type"] | null
+          operation_status: Database["production"]["Enums"]["op_status"] | null
+          planned_end: string | null
+          planned_start: string | null
+          priority: number | null
+          scheduled_start: string | null
+          serial_number: string | null
+          started_at: string | null
+          status: Database["production"]["Enums"]["job_status"] | null
+          supplier_name: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_drums"
+            referencedColumns: ["drum_id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      create_mobile_app_passcode: {
+        Args: { p_user_name: string; p_passcode: string; p_user_id: string }
+        Returns: string
+      }
+      create_user_with_passcode: {
+        Args: { p_email: string; p_user_name: string; p_passcode: string }
+        Returns: string
+      }
+      query_batches_view: {
+        Args: {
+          p_search?: string
+          p_batch_type?: string
+          p_chemical_group?: string
+          p_date_from?: string
+          p_date_to?: string
+        }
+        Returns: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_type: string | null
+          chemical_group: string | null
+          created_at: string | null
+          drum_count: number | null
+          drums_in_stock: number | null
+          input_recorded_at: string | null
+          item_name: string | null
+          material_name: string | null
+          po_number: string | null
+          supplier_name: string | null
+          total_volume: number | null
+          updated_at: string | null
+        }[]
+      }
+      request_passcode_reset: {
+        Args: { p_user_name: string }
+        Returns: boolean
+      }
+      reset_passcode_with_token: {
+        Args: { p_token: string; p_new_passcode: string }
+        Returns: boolean
+      }
+      validate_passcode: {
+        Args: { p_user_name: string; p_passcode: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -2192,9 +2352,13 @@ export const Constants = {
         "transport",
         "location_set",
         "barcode_scan",
+        "cancel_scan",
+        "fast_forward",
+        "bulk",
       ],
       batch_type: ["new", "repro"],
       drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
+      scan_mode: ["single", "bulk"],
     },
   },
   logs: {
@@ -2233,9 +2397,6 @@ export const Constants = {
     },
   },
   public: {
-    Enums: {},
-  },
-  ui: {
     Enums: {},
   },
 } as const

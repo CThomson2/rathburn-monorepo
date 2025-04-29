@@ -7,6 +7,7 @@ const nextConfig = {
       bodySizeLimit: "2mb",
     },
   },
+  // Set CORS headers for all routes
   // Do not override the default .next directory
   // distDir: "build", // This might be causing issues with standalone output
   outputFileTracing: true,

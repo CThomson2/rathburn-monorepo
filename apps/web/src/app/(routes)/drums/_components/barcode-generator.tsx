@@ -16,7 +16,7 @@ export const BarcodeGenerator = () => {
     if (site) params.append("site", site);
 
     // Make the request
-    const url = `/api/barcodes/initial-stock?${params.toString()}`;
+    const url = `/api/scanners/initial-stock?${params.toString()}`;
 
     try {
       const response = await fetch(url);

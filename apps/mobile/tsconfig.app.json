@@ -24,11 +24,12 @@
     "noImplicitAny": true,
     "noFallthroughCasesInSwitch": true,
     "strictNullChecks": true,
-
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@rathburn/types": ["../../packages/types/src"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [{ "path": "../../packages/types/tsconfig.json" }]
 }

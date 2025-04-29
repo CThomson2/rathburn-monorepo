@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
  * Data source: Supabase
  *
  * PDF Label Configuration
- * The barcode label will be in exact same size and format as that used in the `api/barcodes/stock-drums/[order-detail-id]/route.ts` path
+ * The barcode label will be in exact same size and format as that used in the `api/scanners/stock-drums/[order-detail-id]/route.ts` path
  *
  * Label Size: 7.75 x 3.15 inches (converted to points in code)
  * Margin: 15 points (about 0.2 inches) to prevent content from being cut off
@@ -57,7 +57,7 @@ const inchesToPoints = (inches: number) => Math.floor(inches * 72);
 const margin = 15; // 15 points margin (about 0.2 inches)
 
 // Example cURL request:
-// curl -X GET "http://localhost:3000/api/barcodes/initial-stock?material=Acetone&supplier=Caldic&site=new"
+// curl -X GET "http://localhost:3000/api/scanners/initial-stock?material=Acetone&supplier=Caldic&site=new"
 
 // Define an interface for the drum data
 interface DrumData {

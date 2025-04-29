@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useScanEvents } from "../hooks/useScanEvents";
-import { ScanEvent, ScanType } from "../types";
+import { ScanEvent, actionType } from "../types";
 import {
   Card,
   CardContent,
@@ -32,8 +32,8 @@ export function LiveActivitySidebar({
   });
 
   // Function to get appropriate color for each scan type
-  const getScanTypeBadgeClass = (scanType: ScanType) => {
-    switch (scanType) {
+  const getactionTypeBadgeClass = (actionType: actionType) => {
+    switch (actionType) {
       case "intake":
         return "bg-green-100 text-green-800 border-green-300";
       case "transport":
@@ -134,11 +134,11 @@ export function LiveActivitySidebar({
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
-                        className={getScanTypeBadgeClass(
-                          scan.scanType as ScanType
+                        className={getactionTypeBadgeClass(
+                          scan.actionType as actionType
                         )}
                       >
-                        {scan.scanType}
+                        {scan.actionType}
                       </Badge>
                       <Badge
                         variant="outline"

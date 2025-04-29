@@ -10,7 +10,7 @@ export type Notification = Tables<"notification">;
 export type ScanStatus = "success" | "failed";
 
 // Define scan type enum
-export type ScanType =
+export type actionType =
   | "intake"
   | "transport"
   | "distillation_loading"
@@ -32,7 +32,7 @@ export type MessageType = "info" | "warning" | "urgent" | "error" | "success";
 export interface ScanEvent {
   scanId: number;
   drumId: number | null;
-  scanType: ScanType;
+  actionType: actionType;
   scanStatus: ScanStatus;
   scannedAt: string;
   userId: number;

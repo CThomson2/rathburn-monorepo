@@ -18,6 +18,7 @@
       "@/*": ["./src/*"],
       "@/config/*": ["./config/*"],
       "@rathburn/mobile/*": ["../mobile/*"],
+      "@rathburn/types": ["../../packages/types/src"],
       "react": ["./node_modules/@types/react"]
     },
     "types": ["node", "react-dom/canary"],

@@ -1557,6 +1557,7 @@ export type Database = {
         | "bulk"
       batch_type: "new" | "repro"
       drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
+      scan_mode: "single" | "bulk"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1634,7 +1635,6 @@ export type Database = {
       }
       drum_scan: {
         Row: {
-          action_type: Database["inventory"]["Enums"]["action_type"]
           detected_drum: string | null
           device_id: string
           error_code: string | null
@@ -1642,12 +1642,12 @@ export type Database = {
           parent_scan: number | null
           raw_barcode: string
           scan_id: number
+          scan_mode: Database["inventory"]["Enums"]["scan_mode"]
           scanned_at: string
           status: string
           user_id: string
         }
         Insert: {
-          action_type?: Database["inventory"]["Enums"]["action_type"]
           detected_drum?: string | null
           device_id: string
           error_code?: string | null
@@ -1655,12 +1655,12 @@ export type Database = {
           parent_scan?: number | null
           raw_barcode: string
           scan_id?: number
+          scan_mode?: Database["inventory"]["Enums"]["scan_mode"]
           scanned_at?: string
           status: string
           user_id: string
         }
         Update: {
-          action_type?: Database["inventory"]["Enums"]["action_type"]
           detected_drum?: string | null
           device_id?: string
           error_code?: string | null
@@ -1668,6 +1668,7 @@ export type Database = {
           parent_scan?: number | null
           raw_barcode?: string
           scan_id?: number
+          scan_mode?: Database["inventory"]["Enums"]["scan_mode"]
           scanned_at?: string
           status?: string
           user_id?: string
@@ -2357,6 +2358,7 @@ export const Constants = {
       ],
       batch_type: ["new", "repro"],
       drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
+      scan_mode: ["single", "bulk"],
     },
   },
   logs: {

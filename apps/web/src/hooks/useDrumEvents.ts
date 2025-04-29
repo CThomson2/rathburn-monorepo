@@ -37,7 +37,7 @@ export function useDrumEvents(
 
   const { connectionState, lastEventData, error, isConnected } =
     useServerSentEvents<DrumStatusEvent>(
-      "/api/barcodes/sse/drums",
+      "/api/scanners/sse/drums",
       eventTypes,
       {
         onOpen: onConnectionOpen,

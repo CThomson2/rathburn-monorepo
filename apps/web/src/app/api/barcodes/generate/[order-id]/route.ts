@@ -1,4 +1,4 @@
-// /app/api/barcodes/[order_line_id]/route.ts
+// /app/api/scanners/[order_line_id]/route.ts
 import { NextResponse } from "next/server";
 import { executeServerDbOperation } from "@/lib/database";
 import bwipjs from "bwip-js";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 // Example Postman API request (GET):
-// https://localhost:3000/api/barcodes/generate/12?material=Hexane&supplier=Caldic
+// https://localhost:3000/api/scanners/generate/12?material=Hexane&supplier=Caldic
 
 export async function GET(
   req: Request,

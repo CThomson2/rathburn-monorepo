@@ -46,7 +46,7 @@ export const dynamic = "force-dynamic";
 
 ## PDF Label Configuration
 
-The barcode label will be in exact same size and format as that used in the `api/barcodes/stock-drums/[order-detail-id]/route.ts` path
+The barcode label will be in exact same size and format as that used in the `api/scanners/stock-drums/[order-detail-id]/route.ts` path
 
 Label Size: 7.75 x 3.15 inches (converted to points in code)
 Margin: 15 points (about 0.2 inches) to prevent content from being cut off

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ScanType } from "../types";
+import { actionType } from "../types";
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 
 interface ActivityData {
   total: number;
-  byType: Record<ScanType, number>;
+  byType: Record<actionType, number>;
   byHour: Record<number, number>;
   successRate: number;
 }
@@ -71,7 +71,7 @@ export function ActivityOverview({
 
         if (data) {
           // Process data
-          const byType: Record<ScanType, number> = {
+          const byType: Record<actionType, number> = {
             intake: 0,
             transport: 0,
             distillation_loading: 0,
@@ -84,8 +84,8 @@ export function ActivityOverview({
 
           data.forEach((scan) => {
             // Count by type
-            byType[scan.scan_type as ScanType] =
-              (byType[scan.scan_type as ScanType] || 0) + 1;
+            byType[scan.action_type as actionType] =
+              (byType[scan.action_type as actionType] || 0) + 1;
 
             // Count by hour
             const hour = new Date(scan.scanned_at || "").getHours();

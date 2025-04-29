@@ -68,7 +68,7 @@ export const DrumStockColumns: ColumnDef<OrderGroup>[] = [
       const handleGeneratePDF = async () => {
         try {
           const res = await fetch(
-            `/api/barcodes/generate/${orderId}?material=${encodeURIComponent(
+            `/api/scanners/generate/${orderId}?material=${encodeURIComponent(
               material
             )}&supplier=${encodeURIComponent(supplier)}`
           );
@@ -218,7 +218,7 @@ export const createColumns = ({
       const handleGeneratePDF = async () => {
         try {
           const res = await fetch(
-            `/api/barcodes/generate/${orderId}?material=${encodeURIComponent(
+            `/api/scanners/generate/${orderId}?material=${encodeURIComponent(
               material
             )}&supplier=${encodeURIComponent(supplier)}`
           );

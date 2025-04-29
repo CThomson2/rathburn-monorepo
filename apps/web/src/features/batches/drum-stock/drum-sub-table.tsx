@@ -148,7 +148,7 @@ export default function DrumSubTable({ drums }: DrumSubTableProps) {
 
         const handleDownloadBarcode = async () => {
           try {
-            const res = await fetch(`/api/barcodes/single/${drumId}`);
+            const res = await fetch(`/api/scanners/single/${drumId}`);
 
             if (!res.ok) {
               throw new Error("Failed to generate barcode PDF");

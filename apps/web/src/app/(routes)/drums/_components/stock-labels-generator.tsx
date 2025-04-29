@@ -66,7 +66,7 @@ export default function StockLabelsGenerator() {
     setError(null);
 
     try {
-      const response = await fetch("/api/barcodes/initial-stock");
+      const response = await fetch("/api/scanners/initial-stock");
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to generate labels");

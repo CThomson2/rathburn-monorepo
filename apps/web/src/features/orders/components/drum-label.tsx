@@ -60,7 +60,7 @@ export const DrumLabel: React.FC<DrumLabelProps> = ({
       const detail_id = orderDetail.detail.detail_id;
 
       // Use fetch directly for binary data
-      const response = await fetch(`/api/barcodes/stock-drums/${detail_id}`, {
+      const response = await fetch(`/api/scanners/stock-drums/${detail_id}`, {
         method: "GET",
       });
 

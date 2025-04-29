@@ -72,32 +72,81 @@ export function OrderConfirmation({
   }
 
   /**
-   * Generates and opens barcode labels in a new tab
-   * Handles errors before opening the blank window tab
+   * Generates barcode labels by calling the API endpoint and opens the resulting PDF in a new tab.
+   * Handles potential API errors and pop-up blocker issues.
    *
-   * @param {string} polId - The purchase order line ID
-   * @returns {void}
+   * @param {string} polId - The purchase order line ID.
+   * @returns {Promise<void>} A promise that resolves when the operation is complete or an error occurs.
    */
-  const generateBarcodeLabels = async (polId: string) => {
+  const generateBarcodeLabels = async (polId: string): Promise<void> => {
+    // TODO: Consider adding a loading state specific to this button/action
+    // e.g., const [isGenerating, setIsGenerating] = useState(false);
     try {
       console.log("[COMPONENT] Generating barcode labels for polId:", polId);
+
+      // Corrected API endpoint to match the actual route file path
+      // The previous path '/api/scanners/...' was incorrect.
       const response = await fetch(`/api/barcodes/drum-labels/${polId}`);
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        // Attempt to get more error details from the response body
+        let errorDetails = response.statusText;
+        try {
+          const errorData = await response.json();
+          errorDetails = errorData.error || errorDetails;
+        } catch (e) {
+          // Ignore if response body is not JSON or empty
+        }
+        console.error(
+          `[COMPONENT] API error ${response.status}: ${errorDetails}`
+        );
+        throw new Error(`API error: ${errorDetails}`);
       }
 
       const data = await response.json();
 
+      // Check if the API call was successful and returned the expected filePath
       if (!data.success || !data.filePath) {
-        throw new Error("Failed to generate PDF");
+        console.error(
+          "[COMPONENT] API response indicates failure or missing filePath:",
+          data
+        );
+        throw new Error(
+          data.error || "Failed to generate PDF: Invalid API response"
+        );
       }
 
-      console.log("[COMPONENT] Opening PDF at path:", data.filePath);
-      window.open(data.filePath, "_blank");
+      console.log(
+        "[COMPONENT] PDF generated successfully. Opening path:",
+        data.filePath
+      );
+
+      // Open the PDF file path in a new tab.
+      // The browser will request this path (e.g., /labels/barcodes-123.pdf),
+      // and the Next.js server will serve the static file from the `public` directory.
+      // The browser then handles displaying or downloading the PDF.
+      const pdfWindow = window.open(data.filePath, "_blank");
+
+      // Check if the new window/tab was blocked by a pop-up blocker
+      if (!pdfWindow) {
+        console.warn(
+          "[COMPONENT] Pop-up blocked. Could not open PDF in new tab."
+        );
+        toast.info(
+          "Pop-up blocked. Please allow pop-ups for this site to view the PDF."
+        );
+        // Optionally, provide a direct link for the user to click manually
+        // e.g., by setting state: setManualPdfLink(data.filePath)
+      }
     } catch (error) {
       console.error("[COMPONENT] Failed to generate barcode labels:", error);
-      toast.error("Failed to generate barcode labels");
+      // Display a user-friendly error message
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      toast.error(`Failed to generate barcode labels: ${errorMessage}`);
+    } finally {
+      // TODO: Reset the loading state if implemented
+      // e.g., setIsGenerating(false);
     }
   };
 

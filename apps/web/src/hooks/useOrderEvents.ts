@@ -42,7 +42,7 @@ export function useOrderEvents(
 
   const { connectionState, lastEventData, error, isConnected } =
     useServerSentEvents<OrderUpdateEvent>(
-      "/api/barcodes/sse/orders",
+      "/api/scanners/sse/orders",
       eventTypes,
       {
         onOpen: onConnectionOpen,

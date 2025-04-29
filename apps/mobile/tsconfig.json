@@ -11,7 +11,8 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@rathburn/types": ["../../packages/types/src"]
     }
   }
 }

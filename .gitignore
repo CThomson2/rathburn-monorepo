@@ -41,7 +41,13 @@ yarn-error.log*
 # Production Temporary Files
 /production/
 
+# Development
+.cursor/
+
 # Temporary apps
 apps/rathburn-online/
 apps/mcp-server/
 apps/web/deploy/deploy-2025-04-15T08-45-37-743Z.zip
+
+# Barcode Labels generated during testing
+/public/labels/

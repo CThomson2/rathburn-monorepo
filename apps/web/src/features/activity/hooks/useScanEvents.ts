@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useServerSentEvents } from "@/hooks/useServerSentEvents";
-import { ScanEvent, ScanType, ScanStatus } from "../types";
+import { ScanEvent, actionType, ScanStatus } from "../types";
 
 /**
  * Hook to subscribe to real-time scan events via SSE

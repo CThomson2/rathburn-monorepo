@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { processBarcodeScan } from "@/services/transport/barcode-scan";
+import scanService from "@/services/scanner/handle-scan";
 
 // Mock data for demonstration
 const MOCK_TRANSPORT_JOBS = [
@@ -128,11 +128,11 @@ export default function GoodsInTransportPage() {
 
       // In production, you would call the server action here
       try {
-        // const result = await processBarcodeScan({
-        //   barcode,
-        //   jobId: currentJob.id,
-        //   action: "scan"
-        // });
+        const result = await scanService.processScan({
+          barcode,
+          jobId: currentJob.id,
+          action: "transport_for_production",
+        });
 
         // Show success notification with animation
         setTimeout(() => {
