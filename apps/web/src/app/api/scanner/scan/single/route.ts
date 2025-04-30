@@ -1,6 +1,6 @@
 // /src/app/api/scanner/scan/single/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createNewClient as createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 
 // Define allowed origins (you can customize this based on your environments)
@@ -140,9 +140,10 @@ export async function POST(request: NextRequest) {
 
     // --- Insert into temporary database table --- 
     try {
-      console.log('API: Attempting Supabase client creation...');
-      const supabase = createClient(); // User removed cookieStore here
-      console.log('API: Supabase client created successfully.');
+      console.log('API: Attempting Supabase client creation with SERVICE_ROLE...');
+      
+      const supabase = createServiceClient(); // Using service client to bypass RLS
+      console.log('API: Supabase SERVICE_ROLE client created successfully.');
       
       const insertData = {
         barcode_scanned: barcode,
@@ -153,6 +154,7 @@ export async function POST(request: NextRequest) {
       console.log('API: Preparing to insert into temp_scan_log:', insertData);
       
       const { error: insertError } = await supabase
+        .schema('logs')
         .from('temp_scan_log') // Use the new temporary table
         .insert(insertData);
         

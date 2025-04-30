@@ -140,3 +140,21 @@ export const createNewClient = () => {
     }
   );
 };
+
+/**
+ * Creates a Supabase client with SERVICE_ROLE key for admin-level operations.
+ * This bypasses RLS policies and should ONLY be used in server-side contexts
+ * where security is properly managed.
+ */
+export const createServiceClient = () => {
+  // For service role, we don't need cookie handling since we're not dealing with user sessions
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL_NEW || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("Missing Supabase environment variables for service client");
+    throw new Error("Missing required environment variables for Supabase service client");
+  }
+
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+};

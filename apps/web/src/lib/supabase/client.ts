@@ -20,12 +20,18 @@ export const createNewClient = () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
   );
 }
-// export function createNewClient<T extends SchemaName = "public">(schemaName: T = "public" as T) {
-//   return createBrowserClient<Database, T>(
-//     process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
-//     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
-//   );
-// }
+
+
+/**
+ * Creates a Supabase client with SERVICE_ROLE key for admin-level operations
+ * IMPORTANT: Only use server-side where security is controlled
+ */
+export const createServiceClient = () => {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 /**
  * Type definition for a Supabase operation callback function

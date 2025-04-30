@@ -1690,6 +1690,33 @@ export type Database = {
           },
         ]
       }
+      temp_scan_log: {
+        Row: {
+          barcode_scanned: string
+          device_id: string | null
+          id: number
+          job_id: string | null
+          purchase_order_drum_serial: string | null
+          scanned_at: string
+        }
+        Insert: {
+          barcode_scanned: string
+          device_id?: string | null
+          id?: number
+          job_id?: string | null
+          purchase_order_drum_serial?: string | null
+          scanned_at?: string
+        }
+        Update: {
+          barcode_scanned?: string
+          device_id?: string | null
+          id?: number
+          job_id?: string | null
+          purchase_order_drum_serial?: string | null
+          scanned_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2161,6 +2188,22 @@ export type Database = {
       }
     }
     Functions: {
+      admin_enable_pgcrypto: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      check_drum_already_received: {
+        Args: { p_serial_number: string }
+        Returns: Json
+      }
+      check_purchase_order_completion: {
+        Args: { p_pol_id: string }
+        Returns: Json
+      }
+      count_pending_drums: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       create_mobile_app_passcode: {
         Args: { p_user_name: string; p_passcode: string; p_user_id: string }
         Returns: string
@@ -2168,6 +2211,22 @@ export type Database = {
       create_user_with_passcode: {
         Args: { p_email: string; p_user_name: string; p_passcode: string }
         Returns: string
+      }
+      find_pending_drum_by_serial: {
+        Args: { p_serial_number: string }
+        Returns: Json
+      }
+      get_pending_purchase_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: Json[]
+      }
+      get_purchase_order_drums: {
+        Args: { p_po_id: string }
+        Returns: Json[]
+      }
+      mark_drum_as_received: {
+        Args: { p_pod_id: string }
+        Returns: undefined
       }
       query_batches_view: {
         Args: {

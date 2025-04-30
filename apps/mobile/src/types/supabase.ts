@@ -1690,6 +1690,33 @@ export type Database = {
           },
         ]
       }
+      temp_scan_log: {
+        Row: {
+          barcode_scanned: string
+          device_id: string | null
+          id: number
+          job_id: string | null
+          purchase_order_drum_serial: string | null
+          scanned_at: string
+        }
+        Insert: {
+          barcode_scanned: string
+          device_id?: string | null
+          id?: number
+          job_id?: string | null
+          purchase_order_drum_serial?: string | null
+          scanned_at?: string
+        }
+        Update: {
+          barcode_scanned?: string
+          device_id?: string | null
+          id?: number
+          job_id?: string | null
+          purchase_order_drum_serial?: string | null
+          scanned_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
