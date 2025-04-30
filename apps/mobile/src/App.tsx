@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import ScanView from "./views/ScanViewSimple";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/auth/callback";
 import TransportSettings from "./pages/TransportSettings";
 import { ErrorBoundary } from "react-error-boundary";
 import { supabase } from "@/lib/supabase/client-auth";
@@ -85,6 +86,7 @@ const RouterWithLogging = () => {
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <Routes>
           <Route path="/sign-in" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/" element={<ProtectedIndex />} />
           <Route path="/scan" element={<ProtectedScanView />} />
           <Route

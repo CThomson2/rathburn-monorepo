@@ -90,14 +90,14 @@ export const createNewClient = () => {
   if (isBuildTime) {
     // Use the browser client during build time
     if (
-      !import.meta.env.VITE_SUPABASE_URL_NEW ||
-      !import.meta.env.VITE_SUPABASE_ANON_KEY_NEW
+      !import.meta.env.VITE_SUPABASE_URL_AUTH ||
+      !import.meta.env.VITE_SUPABASE_ANON_KEY_AUTH
     ) {
       console.error("Missing Supabase environment variables during build time");
     }
     return createBrowserClient(
-      import.meta.env.VITE_SUPABASE_URL_NEW!,
-      import.meta.env.VITE_SUPABASE_ANON_KEY_NEW!
+      import.meta.env.VITE_SUPABASE_URL_AUTH!,
+      import.meta.env.VITE_SUPABASE_ANON_KEY_AUTH!
     );
   }
 
@@ -105,8 +105,8 @@ export const createNewClient = () => {
   const cookieStore = cookies();
 
   return createServerClient(
-    import.meta.env.VITESUPABASE_URL_NEW!,
-    import.meta.env.VITESUPABASE_ANON_KEY_NEW!,
+    import.meta.env.VITESUPABASE_URL_AUTH!,
+    import.meta.env.VITESUPABASE_ANON_KEY_AUTH!,
     {
       cookies: {
         getAll() {

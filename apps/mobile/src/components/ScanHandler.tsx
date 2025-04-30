@@ -5,7 +5,7 @@ import scanService, {
   setupScanEventSource,
 } from "@/services/scanner/handle-scan";
 import { toast } from "@/components/ui/use-toast";
-import { createClient } from "@/lib/supabase/client";
+import { createAuthClient as createClient } from "@/lib/supabase/client";
 import { ScanMode } from "@rathburn/types";
 
 interface ScanHandlerProps {
@@ -35,29 +35,81 @@ export function ScanHandler({
   const [isScanning, setIsScanning] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
 
+  // Test API connection when component mounts
+  useEffect(() => {
+    const testApiConnection = async () => {
+      try {
+        console.log("[SCAN-INIT] Testing API connection");
+        const supabase = createClient();
+        const { data } = await supabase.auth.getSession();
+        const session = data.session;
+
+        if (!session?.access_token) {
+          console.warn("[SCAN-INIT] No access token available for API test");
+          return;
+        }
+
+        const connectionSuccessful = await scanService.testConnection(
+          session.access_token
+        );
+        console.log(
+          "[SCAN-INIT] API connection test result:",
+          connectionSuccessful ? "Success" : "Failed"
+        );
+      } catch (error) {
+        console.error("[SCAN-INIT] API connection test error:", error);
+      }
+    };
+
+    testApiConnection();
+  }, []);
+
   // Handle barcode scan
   const handleScan = async (barcode: string) => {
-    console.log("Scan detected:", barcode);
+    console.log("[SCAN-INIT] Scan detected:", barcode);
 
-    if (!barcode.trim()) return;
+    if (!barcode.trim()) {
+      console.log("[SCAN-VALIDATE] Empty barcode, ignoring");
+      return;
+    }
 
     setIsScanning(true);
+    console.log("[SCAN-PROCESS] Starting scan processing");
 
     try {
       // Get the current session for auth token
+      console.log("[SCAN-AUTH] Retrieving auth session");
       const supabase = createClient();
       const {
         data: { session },
         error: authError,
       } = await supabase.auth.getSession();
 
-      if (authError || !session) {
-        console.error("Auth error:", authError);
+      if (authError) {
+        console.error("[SCAN-AUTH] Auth error:", authError);
         throw new Error("Authentication required");
       }
 
-      console.log("Processing scan with auth token");
+      if (!session) {
+        console.error("[SCAN-AUTH] No session found");
+        throw new Error("No active session found");
+      }
 
+      if (!session.access_token) {
+        console.error("[SCAN-AUTH] Session found but no access token");
+        throw new Error("Access token missing");
+      }
+
+      console.log(
+        "[SCAN-AUTH] Session found, token length:",
+        session.access_token.length
+      );
+      console.log(
+        "[SCAN-AUTH] Token prefix:",
+        session.access_token.substring(0, 10) + "..."
+      );
+
+      console.log("[SCAN-API] Sending scan request to API");
       const result = await scanService.handleScan({
         barcode: barcode.trim(),
         jobId,
@@ -66,11 +118,16 @@ export function ScanHandler({
         authToken: session.access_token,
       });
 
+      console.log("[SCAN-RESULT] API response received", {
+        success: result.success,
+      });
+
       if (result.success) {
-        console.log("Scan successful:", result);
+        console.log("[SCAN-SUCCESS] Scan completed successfully:", result);
 
         // Handle successful scan
         if (onScanSuccess) {
+          console.log("[SCAN-CALLBACK] Calling onScanSuccess");
           onScanSuccess(barcode);
         }
 
@@ -80,10 +137,11 @@ export function ScanHandler({
           variant: "default",
         });
       } else {
-        console.error("Scan failed:", result.error);
+        console.error("[SCAN-ERROR] Scan failed:", result.error);
 
         // Handle scan error
         if (onScanError) {
+          console.log("[SCAN-CALLBACK] Calling onScanError");
           onScanError(barcode, result.error || "Unknown error");
         }
 
@@ -94,10 +152,11 @@ export function ScanHandler({
         });
       }
     } catch (error) {
-      console.error("Error processing scan:", error);
+      console.error("[SCAN-EXCEPTION] Error processing scan:", error);
 
       // Handle scan exception
       if (onScanError) {
+        console.log("[SCAN-CALLBACK] Calling onScanError with exception");
         onScanError(
           barcode,
           error instanceof Error ? error.message : String(error)
@@ -106,10 +165,12 @@ export function ScanHandler({
 
       toast({
         title: "Scan Failed",
-        description: "Failed to process scan",
+        description:
+          error instanceof Error ? error.message : "Failed to process scan",
         variant: "destructive",
       });
     } finally {
+      console.log("[SCAN-COMPLETE] Scan processing completed");
       setIsScanning(false);
     }
   };
@@ -118,28 +179,29 @@ export function ScanHandler({
   useEffect(() => {
     if (typeof jobId !== "number" || isNaN(jobId)) {
       console.warn(
-        "Invalid jobId provided to ScanHandler, SSE not initialized."
+        "[SSE-INIT] Invalid jobId provided to ScanHandler, SSE not initialized."
       );
       return;
     }
 
-    console.log("Setting up SSE connection for job:", jobId);
+    console.log("[SSE-INIT] Setting up SSE connection for job:", jobId);
 
     const cleanup = setupScanEventSource(jobId, (event) => {
-      console.log("Received SSE event:", event);
+      console.log("[SSE-EVENT] Received SSE event:", event);
 
       if (event.type === "connected") {
         setSseConnected(true);
-        console.log("SSE connection established");
+        console.log("[SSE-CONNECTED] SSE connection established");
       } else if (
         event.type === "scan_success" &&
         event.barcode &&
         event.jobId === jobId
       ) {
-        console.log("Remote scan success:", event);
+        console.log("[SSE-SCAN] Remote scan success:", event);
 
         // Handle real-time scan success (from another device)
         if (onScanSuccess) {
+          console.log("[SSE-CALLBACK] Calling onScanSuccess for remote scan");
           onScanSuccess(event.barcode);
         }
 
@@ -153,10 +215,11 @@ export function ScanHandler({
         event.barcode &&
         event.jobId === jobId
       ) {
-        console.log("Remote scan error:", event);
+        console.log("[SSE-ERROR] Remote scan error:", event);
 
         // Handle real-time scan error (from another device)
         if (onScanError) {
+          console.log("[SSE-CALLBACK] Calling onScanError for remote scan");
           onScanError(event.barcode, event.error || "Unknown error");
         }
 
@@ -169,7 +232,7 @@ export function ScanHandler({
     });
 
     return () => {
-      console.log("Cleaning up SSE connection");
+      console.log("[SSE-CLEANUP] Cleaning up SSE connection");
       cleanup();
     };
   }, [jobId, onScanSuccess, onScanError]);

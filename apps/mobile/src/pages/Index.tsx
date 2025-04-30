@@ -16,7 +16,7 @@ import {
   Search,
   Zap,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, createAuthClient } from "@/lib/supabase/client";
 import { logout } from "@/services/auth";
 import FloatingNavMenu from "@/components/layout/FloatingNavMenu";
 import TopNavbar from "@/components/navbar/top-navbar";
@@ -74,6 +74,12 @@ const IndexContent = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const { isSettingsModalOpen, openSettingsModal } = useModal();
+  const [userInfo, setUserInfo] = useState<Record<string, string | null>>({
+    userId: null,
+    userName: null,
+    sessionToken: null,
+    email: null,
+  });
 
   // Navigation handler for the floating menu
   const handleNavigation = (itemId: string) => {
@@ -102,6 +108,23 @@ const IndexContent = () => {
         navigate("/");
     }
   };
+
+  // Get user session data for debugging
+  useEffect(() => {
+    const fetchSession = async () => {
+      const supabase = createAuthClient();
+      const { data } = await supabase.auth.getSession();
+      console.log("[INDEX] Auth session data:", data);
+
+      setUserInfo({
+        userId: data.session?.user?.id || null,
+        userName: data.session?.user?.user_metadata?.name || null,
+        sessionToken: data.session?.access_token || null,
+        email: data.session?.user?.email || null,
+      });
+    };
+    fetchSession();
+  }, []);
 
   // Handle barcode scan input
   const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -425,6 +448,21 @@ const IndexContent = () => {
       {/* Main Content - View Container */}
       <div className="flex-1 overflow-hidden relative">
         {renderView()}
+
+        {/* User Info Display */}
+        <div className="absolute top-2 right-2 z-50">
+          <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 w-full max-w-md flex gap-2">
+            <div className="flex-1">
+              <p className="text-sm font-medium">User ID:</p>
+              <p className="text-sm">{userInfo.userId || "Not available"}</p>
+              <p className="text-sm">{userInfo.userName || "Not available"}</p>
+              <p className="text-sm">{userInfo.email || "Not available"}</p>
+              <p className="text-sm">
+                {userInfo.sessionToken || "Not available"}
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Scan Feedback Overlay */}
         <AnimatePresence>

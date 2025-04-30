@@ -16,8 +16,8 @@ import {
 const config = {
   // URL of the NextJS API endpoint
   apiUrl:
-    import.meta.env.NODE_ENV === "development"
-      ? "http://locahost:3000/api/"
+    import.meta.env.DEV === true
+      ? "http://localhost:3000/api/"
       : "https://rathburn.app/api/",
 
   // Number of retries for failed requests
@@ -41,6 +41,7 @@ export class ScanService {
 
   constructor(apiUrl: string) {
     this.apiUrl = apiUrl;
+    console.log("[SCAN-SERVICE] Initialized with API URL:", apiUrl);
   }
 
   private async makeRequest(
@@ -48,32 +49,60 @@ export class ScanService {
     data: Record<string, unknown>,
     authToken: string
   ): Promise<ApiResponse> {
-    const response = await fetch(`${this.apiUrl}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(data),
-    });
+    const url = `${this.apiUrl}${endpoint}`;
+    console.log(`[SCAN-API] Making request to ${url}`);
+    console.log(`[SCAN-API] Request data:`, data);
+    console.log(`[SCAN-API] Auth token length:`, authToken?.length || 0);
+    console.log(`[SCAN-API] Auth token preview:`, authToken ? `${authToken.substring(0, 10)}...` : 'none');
+    
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(data),
+        // Explicitly set credentials mode to avoid CORS issues
+        credentials: 'omit',
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.log(`[SCAN-API] Response status:`, response.status);
+      
+      if (!response.ok) {
+        console.error(`[SCAN-API] HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`[SCAN-API] Error response:`, errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log(`[SCAN-API] Response data:`, responseData);
+      return responseData;
+    } catch (error) {
+      console.error(`[SCAN-API] Request failed:`, error);
+      throw error;
     }
-
-    return response.json();
   }
 
   public async processScan(input: ScanInput): Promise<ScanProcessingResponse> {
-    const { barcode, jobId, scan_mode, authToken } = input;
+    const { barcode, jobId, scan_mode, deviceId, authToken } = input;
+    console.log(`[SCAN-PROCESS] Processing scan: ${barcode}, job: ${jobId}, mode: ${scan_mode}`);
+    
     const endpoint =
       scan_mode === "single" ? "/scanner/scan/single" : "/scanner/scan/bulk";
 
     const response = await this.makeRequest(
       endpoint,
-      { barcode, jobId: jobId || undefined },
+      { 
+        barcode, 
+        jobId: jobId || undefined,
+        deviceId: deviceId || 'mobile-app' 
+      },
       authToken
     );
+    
+    console.log(`[SCAN-PROCESS] Scan processed, ID: ${response.scan_id}, drum: ${response.drum || 'N/A'}`);
     return {
       scan_id: response.scan_id || `scan_${Date.now()}`,
       drum: response.drum,
@@ -136,6 +165,35 @@ export class ScanService {
       await this.makeRequest("/scanner/scan/cancel", { scanId }, authToken);
       return true;
     } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Test the connection to the API to check for CORS or auth issues
+   * @param authToken The authentication token
+   * @returns A promise that resolves to true if connected, false otherwise
+   */
+  async testConnection(authToken: string): Promise<boolean> {
+    try {
+      console.log("[SCAN-TEST] Testing API connection");
+      const response = await fetch(`${this.apiUrl}/ping`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authToken ? `Bearer ${authToken}` : '',
+        },
+        // Explicitly set credentials mode to avoid CORS issues
+        credentials: 'omit',
+      });
+      
+      console.log(`[SCAN-TEST] Ping response status:`, response.status);
+      const responseText = await response.text();
+      console.log(`[SCAN-TEST] Ping response:`, responseText);
+      
+      return response.ok;
+    } catch (error) {
+      console.error(`[SCAN-TEST] Connection test failed:`, error);
       return false;
     }
   }

@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-// import { LogIn, AlertCircle, ChevronLeft } from "lucide-react";
+import { SubmitButton } from "@/components/layout/submit-button";
+import MicrosoftSvg from "@/assets/svg/microsoft.svg";
 import {
   loginWithPasscode,
   requestPasscodeReset,
   createMobilePasscode,
 } from "@/services/auth";
+import { useAuth } from "@/lib/supabase/client-auth";
 import React from "react";
+import { createAuthClient } from "@/lib/supabase/client";
 
 /**
  * A login screen component that accepts a username and 4-digit passcode.
@@ -23,6 +26,8 @@ import React from "react";
 const LoginScreen = () => {
   const [username, setUsername] = useState("");
   const [passcode, setPasscode] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,13 +38,14 @@ const LoginScreen = () => {
   const [lockTimer, setLockTimer] = useState(0);
   const [showResetOptions, setShowResetOptions] = useState(false);
   const [showCreatePasscode, setShowCreatePasscode] = useState(false);
+  const [msAuthPending, setMsAuthPending] = useState(false);
 
   // Fields for create passcode form
   const [newUsername, setNewUsername] = useState("");
   const [newPasscode, setNewPasscode] = useState("");
   const [confirmPasscode, setConfirmPasscode] = useState("");
   const [userId, setUserId] = useState("");
-  // const [email, setEmail] = useState("");
+  const { signInWithMicrosoft, signInWithEmail } = useAuth();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -57,6 +63,69 @@ const LoginScreen = () => {
     }
     return () => clearInterval(interval);
   }, [isLocked, lockTimer]);
+
+  const handleSignInWithMicrosoft = async () => {
+    setError("");
+    setMessage("Redirecting to Microsoft login...");
+    setMsAuthPending(true);
+
+    try {
+      await signInWithMicrosoft();
+    } catch (err) {
+      console.error("[AUTH] Unexpected error during Microsoft sign-in:", err);
+      setError("An error occurred during sign in. Please try again.");
+      setMsAuthPending(false);
+    }
+  };
+
+  const handleSignInWithEmail = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+      // Validate input
+      if (!email.trim()) {
+        setError("Please enter your email");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!password.trim()) {
+        setError("Please enter your password");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("[AUTH] Attempting to sign in with email:", email);
+
+      try {
+        const data = await signInWithEmail(email, password);
+
+        if (data) {
+          setMessage("Sign in successful! Redirecting...");
+          window.location.href = "/";
+          console.log("[AUTH] Email sign-in successful. User:", data?.user?.id);
+          // Redirect will happen automatically due to navigation in the auth hook
+        }
+      } catch (authError: unknown) {
+        const errorMessage =
+          authError instanceof Error
+            ? authError.message
+            : "Failed to sign in. Please check your credentials.";
+        setError(errorMessage);
+        console.error("[AUTH] Email sign-in error:", authError);
+      }
+    } catch (err) {
+      console.error("[AUTH] Unexpected error during email sign-in:", err);
+      setError("An error occurred during sign in. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -477,21 +546,34 @@ const LoginScreen = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
             <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-gray-700"
+              <button
+                type="button"
+                onClick={handleSignInWithMicrosoft}
+                disabled={msAuthPending || isLoading}
+                className="w-full bg-white text-black border border-gray-600 hover:border-black hover:bg-gray-300 flex justify-center items-center py-3 px-4 rounded-md shadow-sm transition duration-150 disabled:opacity-70"
               >
-                Username
+                <img
+                  src={MicrosoftSvg}
+                  alt="Microsoft"
+                  className="mr-2 h-5 w-5"
+                />
+                {msAuthPending ? "Connecting..." : "Sign in with Microsoft"}
+              </button>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mt-4"
+              >
+                Email
               </label>
               <input
-                type="text"
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 disabled={isLocked || isLoading}
               />
             </div>
@@ -499,35 +581,34 @@ const LoginScreen = () => {
             <div>
               <div className="flex items-center justify-between">
                 <label
-                  htmlFor="passcode"
+                  htmlFor="password"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  4-Digit Passcode
+                  Password
                 </label>
                 <button
                   type="button"
                   onClick={handleForgotPasscode}
                   className="text-sm text-blue-600 hover:text-blue-500"
                 >
-                  Forgot passcode?
+                  Forgot password?
                 </button>
               </div>
               <input
                 type="password"
-                id="passcode"
-                value={passcode}
-                onChange={handlePasscodeChange}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter 4-digit passcode"
-                maxLength={4}
-                inputMode="numeric"
+                placeholder="Enter your password"
                 disabled={isLocked || isLoading}
               />
             </div>
 
             <div>
               <button
-                type="submit"
+                type="button"
+                onClick={handleSignInWithEmail}
                 className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
                   isLocked || isLoading
                     ? "bg-gray-400"

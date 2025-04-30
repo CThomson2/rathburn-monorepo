@@ -15,17 +15,29 @@ interface LogInResponse {
 }
 
 /**
- * Interface that represents the actual data structure returned by the validate_passcode SQL function
+ * Interface for successful response from the validate_passcode SQL function
  */
-interface ValidatePasscodeResponse {
+interface ValidatePasscodeResponseSuccess {
     success: boolean,
-    message?: string,
+    user_id: string,
+    email: string,
+    auth_user_id: string,
+}
+
+/**
+ * Interface for failed response from the validate_passcode SQL function
+ */
+interface ValidatePasscodeResponseFailure {
+    success: boolean,
+    message: string,
     locked_until?: string,
     attempts_remaining?: number,
-    user_id?: string,
-    email?: string,
-    auth_user_id?: string,
 }
+
+/**
+ * Union type for all possible responses from validate_passcode
+ */
+type ValidatePasscodeResponse = ValidatePasscodeResponseSuccess | ValidatePasscodeResponseFailure;
 
 /**
  * Login to the app using a passcode. If the login fails, the response will contain
@@ -97,66 +109,90 @@ export async function loginWithPasscode(
 
     if (error) {
       console.error("[AUTH] RPC error:", error);
-      
-      // Increment failed attempts counter
-      const newFailedAttempts = failedAttempts + 1;
-      localStorage.setItem(failedAttemptsKey, newFailedAttempts.toString());
-
-      // If this is the 5th failed attempt, lock the account
-      if (newFailedAttempts >= 5) {
-        const lockoutMinutes = 15;
-        const lockoutUntil = new Date(Date.now() + lockoutMinutes * 60 * 1000);
-        localStorage.setItem(lockoutKey, lockoutUntil.toString());
-        console.log(`[AUTH] Account locked for ${lockoutMinutes} minutes due to too many failed attempts`);
-        return {
-          success: false,
-          message: `Too many failed attempts. Account locked for ${lockoutMinutes} minutes.`,
-        };
-      }
-
       return { 
         success: false, 
-        message: `Invalid username or passcode. ${5 - newFailedAttempts} attempts remaining.` 
+        message: `Server error: ${error.message}` 
       };
     }
 
-    // Login successful
-    console.log("[AUTH] Login successful, RPC returned:", data);
+    // Important: Supabase RPC directly returns the response object from the SQL function
+    console.log("[AUTH] RPC returned data:", data);
     
     // Cast data to the expected response type
-    const responseData = data as ValidatePasscodeResponse;
+    const responseData = data as unknown as ValidatePasscodeResponse;
+    console.log("[AUTH] Processed response data:", responseData);
     
-    if (!responseData?.user_id) {
-      console.error("[AUTH] Missing user_id in response data");
-      return { success: false, message: "Authentication error. Please try again." };
+    // Check if login was successful
+    if (responseData.success) {
+      // Success case - we have a ValidatePasscodeResponseSuccess
+      const successData = responseData as ValidatePasscodeResponseSuccess;
+      
+      if (!successData.user_id) {
+        console.error("[AUTH] Missing user_id in success response");
+        return { success: false, message: "Authentication error. Please try again." };
+      }
+
+      // Reset failed attempts counter on successful login
+      localStorage.removeItem(failedAttemptsKey);
+      localStorage.removeItem(lockoutKey);
+
+      // Store user data in localStorage
+      console.log("[AUTH] Storing user data in localStorage:", {
+        userId: successData.user_id,
+        userName: username,
+        userRole: "user",
+        userDisplayName: username
+      });
+      
+      localStorage.setItem("userId", successData.user_id);
+      localStorage.setItem("userName", username);
+      localStorage.setItem("userRole", "user");
+      localStorage.setItem("userDisplayName", username);
+      
+      console.log("[AUTH] Login complete, user is now authenticated");
+      return { 
+        success: true, 
+        message: "Login successful. Redirecting...",
+        redirectTo: "/", 
+        user_id: successData.user_id,
+        email: successData.email,
+        auth_user_id: successData.auth_user_id
+      };
+    } else {
+      // Failure case - we have a ValidatePasscodeResponseFailure
+      const failureData = responseData as ValidatePasscodeResponseFailure;
+      console.log("[AUTH] Login failed:", failureData.message);
+      
+      // Handle lockout if reported by the server
+      if (failureData.locked_until) {
+        console.log("[AUTH] Account locked until:", failureData.locked_until);
+        return {
+          success: false,
+          message: failureData.message || "Account is locked",
+          locked_until: new Date(failureData.locked_until).getTime() / 1000
+        };
+      }
+      
+      // Handle failed attempt with remaining attempts
+      if (failureData.attempts_remaining !== undefined) {
+        console.log("[AUTH] Attempts remaining:", failureData.attempts_remaining);
+        
+        // Update local storage for tracking attempts
+        localStorage.setItem(failedAttemptsKey, String(5 - failureData.attempts_remaining));
+        
+        return {
+          success: false,
+          message: failureData.message || "Invalid username or passcode",
+          attempts_remaining: failureData.attempts_remaining
+        };
+      }
+      
+      // Generic failure case
+      return {
+        success: false,
+        message: failureData.message || "Authentication failed"
+      };
     }
-
-    // Reset failed attempts counter on successful login
-    localStorage.removeItem(failedAttemptsKey);
-    localStorage.removeItem(lockoutKey);
-
-    // Store user data in localStorage
-    console.log("[AUTH] Storing user data in localStorage:", {
-      userId: responseData.user_id,
-      userName: username,
-      userRole: "user",
-      userDisplayName: username
-    });
-    
-    localStorage.setItem("userId", responseData.user_id);
-    localStorage.setItem("userName", username);
-    localStorage.setItem("userRole", "user");
-    localStorage.setItem("userDisplayName", username);
-    
-    console.log("[AUTH] Login complete, user is now authenticated");
-    return { 
-      success: true, 
-      message: "Login successful. Redirecting...",
-      redirectTo: "/", 
-      user_id: responseData.user_id,
-      email: responseData.email,
-      auth_user_id: responseData.auth_user_id
-    };
   } catch (err) {
     console.error("[AUTH] Unexpected error during login:", err);
     return { success: false, message: "An error occurred. Please try again." };
@@ -175,10 +211,23 @@ export const logout = async () => {
     // Clear Supabase auth session
     await supabase.auth.signOut();
     
-    // Clear localStorage auth data
+    // Clear localStorage and sessionStorage auth data
     localStorage.removeItem("userId");
     localStorage.removeItem("userName");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userDisplayName");
     
+    // Also clear from sessionStorage
+    try {
+      sessionStorage.removeItem("userId");
+      sessionStorage.removeItem("userName");
+      sessionStorage.removeItem("userRole");
+      sessionStorage.removeItem("userDisplayName");
+    } catch (err) {
+      console.warn("[AUTH] Error clearing sessionStorage:", err);
+    }
+    
+    console.log("[AUTH] Logout completed - cleared auth data");
     return { success: true };
   } catch (error) {
     console.error("Logout error:", error);

@@ -189,17 +189,14 @@ export function TransportView() {
     (async () => {
       try {
         const supabase = createClient();
-        // Use simpler string approach with any type to bypass TypeScript checking
-        // This will work at runtime even if TypeScript complains
-        const { data, error } = (await supabase
-          .from("ui.v_goods_in")
-          .select("*")) as { data: GoodsInData[] | null; error: Error };
+        // Modify the query to not include credentials
+        const { data, error } = await supabase.from("v_goods_in").select("*");
 
         if (error) {
           console.error("Error fetching goods inwards:", error);
         } else if (data) {
           console.log("Goods inwards data:", data);
-          setGoodsInwards(data);
+          setGoodsInwards(data as GoodsInData[]);
         }
       } catch (err) {
         console.error("Unexpected error:", err);

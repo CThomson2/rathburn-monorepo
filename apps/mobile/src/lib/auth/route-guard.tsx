@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase/client-auth";
 
 // Paths that don't require authentication
-const publicPaths = ["/sign-in"];
+const publicPaths = ["/sign-in", "/auth/callback"];
 
 /**
  * Check if the user is authenticated

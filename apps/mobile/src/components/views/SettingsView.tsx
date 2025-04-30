@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useModal } from "@/contexts/modal-context";
+import { useState, useEffect } from "react";
+import { createAuthClient as createClient } from "@/lib/supabase/client";
+import { logout } from "@/services/auth";
+import { toast } from "@/components/ui/use-toast";
 
 /**
  * Settings view component
@@ -24,6 +28,117 @@ export function SettingsView() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { closeSettingsModal } = useModal();
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+    userId: string | null;
+    userName: string | null;
+    sessionToken: string | null;
+    email: string | null;
+  }>({
+    userId: null,
+    userName: null,
+    sessionToken: null,
+    email: null,
+  });
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      // Get local storage data
+      let userId = localStorage.getItem("userId");
+      let userName = localStorage.getItem("userName");
+
+      // Try sessionStorage if localStorage is empty
+      if (!userId || !userName) {
+        console.log(
+          "[SETTINGS] No data in localStorage, checking sessionStorage"
+        );
+        userId = sessionStorage.getItem("userId");
+        userName = sessionStorage.getItem("userName");
+      }
+
+      console.log("[SETTINGS] User info from storage:", { userId, userName });
+
+      // Get Supabase session data
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+
+      console.log(
+        "[SETTINGS] Auth session data:",
+        session ? "Session found" : "No session"
+      );
+
+      // Get user data
+      const { data: userData } = await supabase.auth.getUser();
+
+      setUserInfo({
+        userId,
+        userName,
+        sessionToken: session?.access_token || null,
+        email: userData.user?.email || null,
+      });
+
+      if (!session?.access_token) {
+        console.warn("[SETTINGS] No access token found in session");
+      }
+    };
+
+    if (showAboutModal) {
+      fetchUserInfo();
+    }
+  }, [showAboutModal]);
+
+  const handleRefreshSession = async () => {
+    try {
+      console.log("[SETTINGS] Manually refreshing session");
+      const supabase = createClient();
+
+      // Force session refresh
+      const { data, error } = await supabase.auth.refreshSession();
+
+      if (error) {
+        console.error("[SETTINGS] Session refresh error:", error);
+        toast({
+          title: "Session Refresh Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else if (data.session) {
+        console.log("[SETTINGS] Session refreshed successfully");
+        setUserInfo((prev) => ({
+          ...prev,
+          sessionToken: data.session?.access_token || null,
+        }));
+
+        toast({
+          title: "Session Refreshed",
+          description: "Session token has been updated",
+          variant: "default",
+        });
+      } else {
+        console.warn("[SETTINGS] No session after refresh");
+        toast({
+          title: "No Session Available",
+          description: "Could not obtain a new session",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error("[SETTINGS] Unexpected error refreshing session:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    const result = await logout();
+    if (result.success) {
+      navigate("/sign-in");
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -138,7 +253,10 @@ export function SettingsView() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer">
+                <div
+                  className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer"
+                  onClick={() => setShowAboutModal(true)}
+                >
                   <div className="flex items-center gap-3">
                     <Info className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span className="text-sm">About</span>
@@ -179,7 +297,11 @@ export function SettingsView() {
             </div>
 
             <div className="pt-6">
-              <Button variant="destructive" className="w-full">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleLogout}
+              >
                 Log Out
               </Button>
             </div>
@@ -190,6 +312,151 @@ export function SettingsView() {
           </div>
         </div>
       </div>
+
+      {/* About Modal */}
+      {showAboutModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-[85vw] max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                About
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAboutModal(false)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  User Information
+                </h4>
+                <Separator className="my-2" />
+
+                <div className="space-y-2 mt-3">
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      User ID:
+                    </span>
+                    <p className="text-sm font-mono break-all">
+                      {userInfo.userId || "Not found"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Username:
+                    </span>
+                    <p className="text-sm font-mono break-all">
+                      {userInfo.userName || "Not found"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Email:
+                    </span>
+                    <p className="text-sm font-mono break-all">
+                      {userInfo.email || "Not available"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Session Token:
+                    </span>
+                    {userInfo.sessionToken ? (
+                      <div className="mt-1">
+                        <p className="text-sm font-mono break-all">
+                          {`${userInfo.sessionToken.substring(0, 20)}...`}
+                        </p>
+                        <div className="mt-2 flex justify-between">
+                          <span className="text-xs text-green-500">
+                            Token available
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(
+                                userInfo.sessionToken || ""
+                              );
+                              toast({
+                                title: "Copied to clipboard",
+                                description: "Session token copied",
+                                variant: "default",
+                                duration: 2000,
+                              });
+                            }}
+                            className="text-xs text-blue-500 hover:text-blue-600"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-1">
+                        <p className="text-sm font-mono break-all">
+                          Not available
+                        </p>
+                        <p className="text-xs text-amber-500 mt-1">
+                          Note: Session token should be available when logged
+                          in. If missing, try refreshing.
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRefreshSession();
+                          }}
+                          className="mt-2 text-xs bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded"
+                        >
+                          Refresh Session
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Application
+                </h4>
+                <Separator className="my-2" />
+
+                <div className="space-y-2 mt-3">
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Version:
+                    </span>
+                    <p className="text-sm">1.0.0</p>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Build:
+                    </span>
+                    <p className="text-sm">2023.05.15</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              className="w-full mt-6"
+              onClick={() => setShowAboutModal(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

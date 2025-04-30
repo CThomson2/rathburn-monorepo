@@ -6,6 +6,42 @@ This document provides a comprehensive overview of the industrial-grade barcode 
 
 ## System Architecture
 
+```mermaid
+flowchart LR
+  subgraph MOBILE [Mobile PWA (Vite)]
+    A1[ScanHandler Component]
+    A2[ScanService]
+  end
+
+  subgraph API [Next.js API Routes]
+    B1[/POST /api/scanner/scan/]
+    B2[Middleware: CORS & Auth]
+    B3[Route Handler:
+    • Validate (Zod)
+    • Insert into logs.drum_scan
+    • Return 201/207]
+  end
+
+  subgraph DB [Postgres + Supabase]
+    C1[Table: logs.drum_scan]
+    C2[Triggers:
+    • device_context
+    • operation_drums
+    • volume roll-up]
+    C3[/api/streams/scans SSE/Realtime/PG LISTEN/NOTIFY/]
+  end
+
+  subgraph UI [Web & Mobile UIs]
+    D1[Subscribe to SSE/Realtime
+    events → update views]
+  end
+
+  A1 --> A2
+  A2 --> B1
+  B1 --> B2 --> B3
+  B3 --> C1 --> C2 --> C3 --> D1
+```
+
 The system is built using a modular, service-oriented architecture that separates concerns and utilizes two distinct applications within this monorepo:
 
 1. **Mobile App (Vite)**
