@@ -7,8 +7,8 @@ import { cookies } from 'next/headers';
 const allowedOrigins = [
   'http://localhost:3000',  // Next.js dev
   'http://localhost:4173',  // Vite preview
-  'http://192.168.9.47:8080/',
-  'http://192.168.9.47:4173/',
+  'http://192.168.9.47:8080',
+  'http://192.168.9.47:4173',
   'http://localhost:8080',  // Vite dev
   'http://localhost:5173',  // Vite dev alternative
   'http://127.0.0.1:3000',
@@ -19,14 +19,31 @@ const allowedOrigins = [
   // Add any other origins as needed
 ];
 
-// Set up CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400', // 24 hours
-};
+// Helper function to generate dynamic CORS headers
+function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400', // 24 hours
+  };
+  
+  let allowedOrigin = '';
+  // If the origin is allowed, reflect it back
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    allowedOrigin = requestOrigin;
+  } else {
+    // Fallback for development: Find a localhost origin or use the first one
+    allowedOrigin = allowedOrigins.find(origin => origin.includes('localhost:8080')) || allowedOrigins[0] || ''; 
+  }
+  
+  // Only set the header if we have a valid allowed origin
+  if (allowedOrigin) {
+    headers['Access-Control-Allow-Origin'] = allowedOrigin;
+  }
+  
+  return headers;
+}
 
 /**
  * Store scans in memory for the test page to retrieve
@@ -63,18 +80,14 @@ function recordScan(barcode: string, success: boolean, deviceId?: string) {
  * Handle CORS preflight requests
  */
 export async function OPTIONS(request: NextRequest) {
-  // Log the request details for debugging
-  console.log(`API: OPTIONS request for scan/single with headers:`, {
-    origin: request.headers.get('origin'),
-    method: request.method,
-    accessControlRequestMethod: request.headers.get('access-control-request-method'),
-    accessControlRequestHeaders: request.headers.get('access-control-request-headers')
-  });
+  const requestOrigin = request.headers.get('origin');
+  console.log(`API: OPTIONS request for scan/single from origin: ${requestOrigin}`);
+  const headers = getCorsHeaders(requestOrigin);
   
   // Directly return a 204 response with CORS headers
   return new Response(null, {
     status: 204,
-    headers: corsHeaders
+    headers: headers
   });
 }
 
@@ -82,12 +95,13 @@ export async function OPTIONS(request: NextRequest) {
  * API endpoint to get recent scans (for the test page)
  */
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get('origin') || '';
-  console.log('API: GET scans request from origin:', origin);
+  const requestOrigin = request.headers.get('origin');
+  console.log('API: GET scans request from origin:', requestOrigin);
+  const headers = getCorsHeaders(requestOrigin);
   
   return NextResponse.json(
     { scans: recentScans },
-    { headers: corsHeaders }
+    { headers: headers }
   );
 }
 
@@ -96,8 +110,9 @@ export async function GET(request: NextRequest) {
  * This is a simplified version for testing API connectivity
  */
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get('origin') || '';
-  console.log('API: POST scan request from origin:', origin);
+  const requestOrigin = request.headers.get('origin');
+  console.log('API: POST scan request from origin:', requestOrigin);
+  const headers = getCorsHeaders(requestOrigin);
 
   try {
     console.log('API: Received scan request');
@@ -114,7 +129,7 @@ export async function POST(request: NextRequest) {
       recordScan('unknown', false, deviceId);
       return NextResponse.json(
         { success: false, error: 'Missing barcode' },
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: headers }
       );
     }
     
@@ -132,7 +147,7 @@ export async function POST(request: NextRequest) {
         barcode: barcode,
         timestamp: scan.timestamp
       },
-      { headers: corsHeaders }
+      { headers: headers }
     );
     
   } catch (error) {
@@ -141,7 +156,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: headers }
     );
   }
 }
