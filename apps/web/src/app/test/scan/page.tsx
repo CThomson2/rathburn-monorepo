@@ -76,12 +76,13 @@ export default function ScanTestPage() {
     };
   }, []); // Empty dependency array means this runs once on mount
 
-  console.log(
-    "[ScanTest] Rendering component with",
-    scans.length,
-    "scans, isLoading:",
-    isLoading
-  );
+  console
+    .log
+    // "[ScanTest] Rendering component with",
+    // scans.length,
+    // "scans, isLoading:",
+    // isLoading
+    ();
 
   return (
     <div className="container mx-auto py-8">
@@ -129,12 +130,12 @@ export default function ScanTestPage() {
             </div>
           ) : (
             scans.map((scan, index) => {
-              console.log(
-                "[ScanTest] Rendering scan:",
-                scan.barcode,
-                "success:",
-                scan.success
-              );
+              //   console.log(
+              //     "[ScanTest] Rendering scan:",
+              //     scan.barcode,
+              //     "success:",
+              //     scan.success
+              //   );
               return (
                 <div
                   key={`${scan.timestamp}-${index}`}

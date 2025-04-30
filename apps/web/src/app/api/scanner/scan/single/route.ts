@@ -135,8 +135,41 @@ export async function POST(request: NextRequest) {
     
     console.log(`API: Processing barcode: ${barcode}, jobId: ${jobId || 'none'}, deviceId: ${deviceId || 'unknown'}`);
     
-    // Record the scan
-    const scan = recordScan(barcode, true, deviceId);
+    // Record the scan in memory (for the test page)
+    const scanInMemory = recordScan(barcode, true, deviceId);
+
+    // --- Insert into temporary database table --- 
+    try {
+      console.log('API: Attempting Supabase client creation...');
+      const supabase = createClient(); // User removed cookieStore here
+      console.log('API: Supabase client created successfully.');
+      
+      const insertData = {
+        barcode_scanned: barcode,
+        device_id: deviceId,
+        job_id: jobId ? String(jobId) : null, // Ensure jobId is string or null
+        purchase_order_drum_serial: barcode // Assume barcode is the serial number for FK
+      };
+      console.log('API: Preparing to insert into temp_scan_log:', insertData);
+      
+      const { error: insertError } = await supabase
+        .from('temp_scan_log') // Use the new temporary table
+        .insert(insertData);
+        
+      console.log('API: Supabase insert operation completed.'); // Log regardless of error
+
+      if (insertError) {
+        // Log DB error but don't fail the request for now
+        console.error('API: Error inserting into temp_scan_log:', insertError);
+        // Optionally, update the in-memory scan record to show DB error
+        // scanInMemory.success = false; // Example if needed
+      } else {
+        console.log(`API: Successfully inserted scan for ${barcode} into temp_scan_log`);
+      }
+    } catch (dbError) {
+      console.error('API: Unexpected error during DB insertion block:', dbError);
+    }
+    // --- End of database insertion ---
     
     // For testing, just return success with the barcode
     return NextResponse.json(
@@ -145,7 +178,7 @@ export async function POST(request: NextRequest) {
         scan_id: `scan_${Date.now()}`,
         message: 'Scan received successfully',
         barcode: barcode,
-        timestamp: scan.timestamp
+        timestamp: scanInMemory.timestamp // Use timestamp from in-memory record
       },
       { headers: headers }
     );
