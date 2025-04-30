@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase/client-auth";
 import { Session } from "@supabase/auth-js";
 import { withAuth } from "./lib/auth/route-guard";
 import { ThemeProvider } from "./providers/theme-provider";
+import { ScanProvider } from "@/contexts/scan-context";
 
 const queryClient = new QueryClient();
 
@@ -40,10 +41,24 @@ const ErrorFallback = ({ error }: { error: Error }) => {
   );
 };
 
-// Apply the withAuth HOC to protected components
-const ProtectedIndex = withAuth(Index);
-const ProtectedScanView = withAuth(ScanView);
-const ProtectedTransportSettings = withAuth(TransportSettings);
+// Wrap our authenticated components with both auth and the ScanProvider
+// This ensures the ScanHandler is available in all authenticated routes
+const withAuthAndScan = <P extends object>(
+  Component: React.ComponentType<P>
+) => {
+  const AuthenticatedComponent = withAuth(Component);
+
+  return (props: P) => (
+    <ScanProvider>
+      <AuthenticatedComponent {...props} />
+    </ScanProvider>
+  );
+};
+
+// Apply the withAuthAndScan HOC to protected components
+const ProtectedIndex = withAuthAndScan(Index);
+const ProtectedScanView = withAuthAndScan(ScanView);
+const ProtectedTransportSettings = withAuthAndScan(TransportSettings);
 
 // Router component with console logs for debugging
 const RouterWithLogging = () => {

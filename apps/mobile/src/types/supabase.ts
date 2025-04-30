@@ -1635,7 +1635,6 @@ export type Database = {
       }
       drum_scan: {
         Row: {
-          action_type: Database["inventory"]["Enums"]["scan_mode"]
           detected_drum: string | null
           device_id: string
           error_code: string | null
@@ -1643,12 +1642,12 @@ export type Database = {
           parent_scan: number | null
           raw_barcode: string
           scan_id: number
+          scan_mode: Database["inventory"]["Enums"]["scan_mode"]
           scanned_at: string
           status: string
           user_id: string
         }
         Insert: {
-          action_type?: Database["inventory"]["Enums"]["scan_mode"]
           detected_drum?: string | null
           device_id: string
           error_code?: string | null
@@ -1656,12 +1655,12 @@ export type Database = {
           parent_scan?: number | null
           raw_barcode: string
           scan_id?: number
+          scan_mode?: Database["inventory"]["Enums"]["scan_mode"]
           scanned_at?: string
           status: string
           user_id: string
         }
         Update: {
-          action_type?: Database["inventory"]["Enums"]["scan_mode"]
           detected_drum?: string | null
           device_id?: string
           error_code?: string | null
@@ -1669,6 +1668,7 @@ export type Database = {
           parent_scan?: number | null
           raw_barcode?: string
           scan_id?: number
+          scan_mode?: Database["inventory"]["Enums"]["scan_mode"]
           scanned_at?: string
           status?: string
           user_id?: string
@@ -2161,6 +2161,22 @@ export type Database = {
       }
     }
     Functions: {
+      admin_enable_pgcrypto: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      check_drum_already_received: {
+        Args: { p_serial_number: string }
+        Returns: Json
+      }
+      check_purchase_order_completion: {
+        Args: { p_pol_id: string }
+        Returns: Json
+      }
+      count_pending_drums: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       create_mobile_app_passcode: {
         Args: { p_user_name: string; p_passcode: string; p_user_id: string }
         Returns: string
@@ -2168,6 +2184,22 @@ export type Database = {
       create_user_with_passcode: {
         Args: { p_email: string; p_user_name: string; p_passcode: string }
         Returns: string
+      }
+      find_pending_drum_by_serial: {
+        Args: { p_serial_number: string }
+        Returns: Json
+      }
+      get_pending_purchase_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: Json[]
+      }
+      get_purchase_order_drums: {
+        Args: { p_po_id: string }
+        Returns: Json[]
+      }
+      mark_drum_as_received: {
+        Args: { p_pod_id: string }
+        Returns: undefined
       }
       query_batches_view: {
         Args: {

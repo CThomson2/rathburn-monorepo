@@ -28,11 +28,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ModalProvider, useModal } from "@/contexts/modal-context";
 
-// import { getDirection } from "@/utils/view-direction";
-import { ScanContext } from "@/contexts/scan-context";
-// import { IntegratedNav } from "@/components/navbar/integrated-nav";
-// import { BottomTabBar } from "@/components/navbar/bottom-tab-bar";
-// import { CombinedNavigation } from "@/components/layout/combined-navigation";
+// Import the ScanProvider instead of just the context
+import { ScanProvider } from "@/contexts/scan-context";
 
 const statusColors = {
   transport: {
@@ -65,14 +62,8 @@ const IndexContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [scannedDrums, setScannedDrums] = useState<string[]>([]);
-  const [barcodeInput, setBarcodeInput] = useState("");
-  const [lastScannedValue, setLastScannedValue] = useState("");
-  const [showScanFeedback, setShowScanFeedback] = useState(false);
   const searchTimeoutRef = useRef<number | null>(null);
-  const scanFeedbackTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
   const { isSettingsModalOpen, openSettingsModal } = useModal();
   const [userInfo, setUserInfo] = useState<Record<string, string | null>>({
     userId: null,
@@ -126,125 +117,6 @@ const IndexContent = () => {
     fetchSession();
   }, []);
 
-  // Handle barcode scan input
-  const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    console.log("Barcode input changed:", value);
-
-    setBarcodeInput(value);
-    setLastScannedValue(value);
-    setShowScanFeedback(true);
-
-    // Clear previous timeout if exists
-    if (scanFeedbackTimeoutRef.current) {
-      window.clearTimeout(scanFeedbackTimeoutRef.current);
-    }
-
-    // Set timeout to hide the feedback after 3 seconds
-    scanFeedbackTimeoutRef.current = window.setTimeout(() => {
-      setShowScanFeedback(false);
-    }, 3000);
-
-    // Process the scan when input contains a complete barcode
-    // This is a simple implementation that processes on every change
-    // Real implementation might want to detect a complete scan (e.g., by enter key)
-    processBarcodeScan(value);
-  };
-
-  // Handle keydown events for the barcode input
-  const handleBarcodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    console.log("Barcode key pressed:", e.key, "Current value:", barcodeInput);
-
-    // If Enter key is pressed, process the current input
-    if (e.key === "Enter") {
-      console.log("Enter key pressed, processing scan:", barcodeInput);
-      processBarcodeScan(barcodeInput);
-    }
-  };
-
-  // Process the scanned barcode to find matching drum IDs
-  const processBarcodeScan = (scannedValue: string) => {
-    console.log("Processing barcode scan:", scannedValue);
-
-    // For this demo, we'll process immediately on any input
-    handleDrumScan(scannedValue);
-
-    // Clear the input field after processing
-    setTimeout(() => {
-      console.log("Clearing input field");
-      setBarcodeInput("");
-      // Re-focus the input for the next scan
-      barcodeInputRef.current?.focus();
-    }, 100);
-  };
-
-  // Check if scanned value contains any of the drum IDs and update state
-  const handleDrumScan = (scannedValue: string) => {
-    console.log("Handling drum scan for value:", scannedValue);
-
-    // All potential drum IDs to check against
-    const pentaneDrumIds = ["17583", "17584", "17585", "17586", "17587"];
-    const aceticAcidDrumIds = [
-      "16120",
-      "16121",
-      "16122",
-      "16123",
-      "16124",
-      "16125",
-      "16126",
-      "16127",
-      "16128",
-      "16129",
-      "16130",
-      "16131",
-    ];
-
-    // Check if the scanned value contains any drum IDs
-    const allDrumIds = [...pentaneDrumIds, ...aceticAcidDrumIds];
-    console.log("Checking against all drum IDs:", allDrumIds);
-
-    const foundDrumId = allDrumIds.find((drumId) =>
-      scannedValue.includes(drumId)
-    );
-
-    if (foundDrumId) {
-      console.log(`Found matching drum ID: ${foundDrumId}`);
-
-      if (scannedDrums.includes(foundDrumId)) {
-        console.log(`Drum ID ${foundDrumId} already scanned, skipping`);
-      } else {
-        // Add the drum ID to the scanned list
-        console.log(`Adding drum ID ${foundDrumId} to scanned list`);
-        setScannedDrums((prev) => [...prev, foundDrumId]);
-      }
-    } else {
-      console.log("No matching drum ID found in scanned value");
-    }
-  };
-
-  // Auto-focus the barcode input when component mounts
-  useEffect(() => {
-    console.log("Mounting Index component, focusing barcode input");
-    barcodeInputRef.current?.focus();
-
-    // Handle clicks anywhere on the document to refocus the barcode input
-    const handleDocumentClick = () => {
-      console.log("Document clicked, refocusing barcode input");
-      barcodeInputRef.current?.focus();
-    };
-
-    // Add event listener for clicks
-    document.addEventListener("click", handleDocumentClick);
-
-    // Clean up scan feedback timeout and event listener on unmount
-    return () => {
-      if (scanFeedbackTimeoutRef.current) {
-        window.clearTimeout(scanFeedbackTimeoutRef.current);
-      }
-      document.removeEventListener("click", handleDocumentClick);
-    };
-  }, []);
-
   const startSearchTimeout = () => {
     // Clear any existing timeout
     if (searchTimeoutRef.current) {
@@ -291,11 +163,6 @@ const IndexContent = () => {
       }
     };
   }, []);
-
-  // const handleLogout = async () => {
-  //   await logout();
-  //   navigate("/login");
-  // };
 
   const navLinks = [
     { name: "Transport", icon: Forklift },
@@ -370,12 +237,6 @@ const IndexContent = () => {
     }),
   };
 
-  // Function to reset scanned drums
-  const resetScannedDrums = () => {
-    console.log("Resetting scanned drums");
-    setScannedDrums([]);
-  };
-
   /**
    * Renders the currently active view.
    *
@@ -401,17 +262,9 @@ const IndexContent = () => {
           }}
           className="w-full h-[100%] overflow-auto pb-20"
         >
-          <ScanContext.Provider
-            value={{
-              scannedDrums,
-              handleDrumScan,
-              resetScannedDrums,
-            }}
-          >
-            {activeView === "Transport" && <TransportView />}
-            {activeView === "Production" && <ProductionView />}
-            {activeView === "Transport Settings" && <TransportSettingsView />}
-          </ScanContext.Provider>
+          {activeView === "Transport" && <TransportView />}
+          {activeView === "Production" && <ProductionView />}
+          {activeView === "Transport Settings" && <TransportSettingsView />}
         </motion.div>
       </AnimatePresence>
     );
@@ -422,22 +275,6 @@ const IndexContent = () => {
       className="h-screen w-full flex flex-col pt-10 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
       {...handlers}
     >
-      {/* Barcode input field - visible for testing */}
-      <div className="fixed bottom-28 left-0 right-0 px-4 z-50 flex flex-col items-center gap-2">
-        {/* <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 w-full max-w-md flex gap-2"> */}
-        <input
-          ref={barcodeInputRef}
-          type="text"
-          value={barcodeInput}
-          onChange={handleBarcodeInput}
-          onKeyDown={handleBarcodeKeyDown}
-          className="sr-only"
-          autoFocus
-          inputMode="none"
-          aria-label="Barcode Scanner Input"
-        />
-      </div>
-
       {/* Navigation Bar */}
       <TopNavbar
         navLinks={navLinks}
@@ -463,29 +300,6 @@ const IndexContent = () => {
             </div>
           </div>
         </div>
-
-        {/* Scan Feedback Overlay */}
-        <AnimatePresence>
-          {showScanFeedback && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="absolute bottom-20 left-0 right-0 flex justify-center z-50"
-            >
-              <div className="bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center max-w-md">
-                <Zap size={20} className="mr-2 text-yellow-300" />
-                <div>
-                  <p className="font-medium">Scan Detected</p>
-                  <p className="text-sm text-blue-100 truncate max-w-xs">
-                    {lastScannedValue || "Empty scan"}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Search Overlay */}
         <AnimatePresence>

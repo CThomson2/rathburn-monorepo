@@ -1,263 +1,182 @@
 // /src/services/transport/handle-scan.ts
-import { createClient } from "@/lib/supabase/client";
-import {
-  ScanMode,
-  ScanInput,
-  ScanResponse,
-  ScanResult,
-  ScanProcessingResponse,
-  ScanCancellationResponse,
-  ScanEvent,
-} from "@rathburn/types";
+import { ScanMode } from "@rathburn/types";
+import { mockScanService, setupMockScanEventSource } from './mock-scan-service';
 
-/**
- * Configuration for the scan service
- */
-const config = {
-  // URL of the NextJS API endpoint
-  apiUrl:
-    import.meta.env.DEV === true
-      ? "http://localhost:3000/api/"
-      : "https://rathburn.app/api/",
+// Base URL for the scan API
+const API_BASE_URL = import.meta.env.VITE_SCAN_API_URL || 'https://api.rathburn.com';
 
-  // Number of retries for failed requests
-  maxRetries: 3,
+// Flag to enable mock mode for testing - default to true for development
+const USE_MOCK_SERVICE = import.meta.env.VITE_USE_MOCK_SCAN_SERVICE !== 'false';
 
-  // Delay between retries (in milliseconds)
-  retryDelay: 1000,
-
-  // Timeout for requests (in milliseconds)
-  timeout: 10000,
-};
-
-interface ApiResponse {
-  scan_id?: string;
-  drum?: string;
-  [key: string]: unknown;
+interface ScanRequest {
+  barcode: string;
+  jobId: number;
+  scan_mode: ScanMode;
+  deviceId: string;
+  authToken: string;
 }
 
-export class ScanService {
-  private readonly apiUrl: string;
+interface ScanResponse {
+  success: boolean;
+  barcode?: string;
+  drum?: string;
+  error?: string;
+  timestamp?: string;
+  jobId?: number;
+}
 
-  constructor(apiUrl: string) {
-    this.apiUrl = apiUrl;
-    console.log("[SCAN-SERVICE] Initialized with API URL:", apiUrl);
-  }
+// Define the event types
+interface ScanEvent {
+  type: 'scan_success' | 'scan_error' | 'scan_exception' | 'connected';
+  barcode?: string;
+  drum?: string;
+  error?: string;
+  jobId: number;
+  scanId?: string;
+  scan_mode?: ScanMode;
+  timestamp?: string;
+  message?: string;
+}
 
-  private async makeRequest(
-    endpoint: string,
-    data: Record<string, unknown>,
-    authToken: string
-  ): Promise<ApiResponse> {
-    const url = `${this.apiUrl}${endpoint}`;
-    console.log(`[SCAN-API] Making request to ${url}`);
-    console.log(`[SCAN-API] Request data:`, data);
-    console.log(`[SCAN-API] Auth token length:`, authToken?.length || 0);
-    console.log(`[SCAN-API] Auth token preview:`, authToken ? `${authToken.substring(0, 10)}...` : 'none');
+const scanService = {
+  /**
+   * Test connection to the scan API
+   * @param authToken 
+   * @returns boolean indicating if the connection test was successful
+   */
+  testConnection: async (authToken: string): Promise<boolean> => {
+    if (USE_MOCK_SERVICE) {
+      console.log("[SCAN-API] Using mock service for connection test");
+      return mockScanService.testConnection(authToken);
+    }
     
     try {
-      const response = await fetch(url, {
-        method: "POST",
+      console.log("[SCAN-API] Testing connection to:", API_BASE_URL);
+      const response = await fetch(`${API_BASE_URL}/ping`, {
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(data),
-        // Explicitly set credentials mode to avoid CORS issues
-        credentials: 'omit',
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+        }
       });
-
-      console.log(`[SCAN-API] Response status:`, response.status);
       
       if (!response.ok) {
-        console.error(`[SCAN-API] HTTP error! status: ${response.status}`);
-        const errorText = await response.text();
-        console.error(`[SCAN-API] Error response:`, errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        console.warn("[SCAN-API] Connection test failed with status:", response.status);
+        return false;
       }
-
-      const responseData = await response.json();
-      console.log(`[SCAN-API] Response data:`, responseData);
-      return responseData;
+      
+      const data = await response.json();
+      return data.status === 'ok';
     } catch (error) {
-      console.error(`[SCAN-API] Request failed:`, error);
-      throw error;
-    }
-  }
-
-  public async processScan(input: ScanInput): Promise<ScanProcessingResponse> {
-    const { barcode, jobId, scan_mode, deviceId, authToken } = input;
-    console.log(`[SCAN-PROCESS] Processing scan: ${barcode}, job: ${jobId}, mode: ${scan_mode}`);
-    
-    const endpoint =
-      scan_mode === "single" ? "/scanner/scan/single" : "/scanner/scan/bulk";
-
-    const response = await this.makeRequest(
-      endpoint,
-      { 
-        barcode, 
-        jobId: jobId || undefined,
-        deviceId: deviceId || 'mobile-app' 
-      },
-      authToken
-    );
-    
-    console.log(`[SCAN-PROCESS] Scan processed, ID: ${response.scan_id}, drum: ${response.drum || 'N/A'}`);
-    return {
-      scan_id: response.scan_id || `scan_${Date.now()}`,
-      drum: response.drum,
-    };
-  }
-
-  /**
-   * Handles the scanning process by calling processScan and wrapping the result.
-   *
-   * @param input - The scan input containing barcode, job ID, scan_mode, and authentication token.
-   * @returns A promise that resolves to a ScanResult object indicating the success status,
-   *          scan ID, and optionally the detected drum or an error message.
-   */
-  async handleScan(input: ScanInput): Promise<ScanResult> {
-    try {
-      const response = await this.processScan(input);
-      return {
-        success: true,
-        scan_id: response.scan_id,
-        drum: response.drum,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
-        scan_id: `error_${Date.now()}`,
-      };
-    }
-  }
-
-  async handleSingleScan(
-    barcode: string,
-    jobId: number | undefined,
-    authToken: string
-  ): Promise<ScanResult> {
-    return this.handleScan({
-      barcode,
-      jobId,
-      scan_mode: "single",
-      authToken,
-    });
-  }
-
-  async handleBulkScan(
-    barcode: string,
-    jobId: number | undefined,
-    authToken: string
-  ): Promise<ScanResult> {
-    return this.handleScan({
-      barcode,
-      jobId,
-      scan_mode: "bulk",
-      authToken,
-    });
-  }
-
-  async cancelScan(scanId: string, authToken: string): Promise<boolean> {
-    try {
-      await this.makeRequest("/scanner/scan/cancel", { scanId }, authToken);
-      return true;
-    } catch (error) {
+      console.error("[SCAN-API] Connection test error:", error);
       return false;
     }
-  }
-
+  },
+  
   /**
-   * Test the connection to the API to check for CORS or auth issues
-   * @param authToken The authentication token
-   * @returns A promise that resolves to true if connected, false otherwise
+   * Handle a scan request
+   * @param request The scan request data
+   * @returns Scan response with the result
    */
-  async testConnection(authToken: string): Promise<boolean> {
+  handleScan: async (request: ScanRequest): Promise<ScanResponse> => {
+    if (USE_MOCK_SERVICE) {
+      console.log("[SCAN-API] Using mock service for scan");
+      return mockScanService.handleScan(request);
+    }
+
     try {
-      console.log("[SCAN-TEST] Testing API connection");
-      const response = await fetch(`${this.apiUrl}/ping`, {
-        method: "GET",
+      console.log("[SCAN-API] Sending scan request to:", API_BASE_URL);
+      const response = await fetch(`${API_BASE_URL}/scan`, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": authToken ? `Bearer ${authToken}` : '',
+          'Authorization': `Bearer ${request.authToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        // Explicitly set credentials mode to avoid CORS issues
-        credentials: 'omit',
+        body: JSON.stringify({
+          barcode: request.barcode,
+          job_id: request.jobId,
+          scan_mode: request.scan_mode,
+          device_id: request.deviceId
+        })
       });
       
-      console.log(`[SCAN-TEST] Ping response status:`, response.status);
-      const responseText = await response.text();
-      console.log(`[SCAN-TEST] Ping response:`, responseText);
+      const data = await response.json();
       
-      return response.ok;
+      if (!response.ok) {
+        console.warn("[SCAN-API] Scan request failed with status:", response.status);
+        return {
+          success: false,
+          error: data.error || `Server returned ${response.status}`,
+          barcode: request.barcode,
+          jobId: request.jobId
+        };
+      }
+      
+      return {
+        success: true,
+        ...data,
+        barcode: request.barcode,
+        jobId: request.jobId
+      };
     } catch (error) {
-      console.error(`[SCAN-TEST] Connection test failed:`, error);
-      return false;
+      console.error("[SCAN-API] Scan request error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        barcode: request.barcode,
+        jobId: request.jobId
+      };
     }
   }
-}
+};
 
 /**
- * Set up SSE connection for real-time scan updates
+ * Sets up an EventSource for real-time scan updates
+ * @param jobId The job ID to receive updates for
+ * @param eventCallback Callback function that receives the SSE events
+ * @returns Cleanup function that closes the connection
  */
-export function setupScanEventSource(
+export const setupScanEventSource = (
   jobId: number,
-  onEvent: (event: ScanEvent) => void
-): () => void {
-  const supabase = createClient();
+  eventCallback: (event: ScanEvent) => void
+) => {
+  if (USE_MOCK_SERVICE) {
+    console.log("[SSE-API] Using mock event source");
+    return setupMockScanEventSource(jobId, eventCallback);
+  }
 
-  // Subscribe to real-time updates for the job's scans
-  const subscription = supabase
-    .channel("drum_scans")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "logs",
-        table: "drum_scan",
-      },
-      (payload) => {
-        // Only process events for this job
-        if (payload.new?.metadata?.jobId === jobId) {
-          onEvent({
-            type: "scan_success",
-            barcode: payload.new.raw_barcode,
-            jobId: payload.new.metadata.jobId,
-            scanId: payload.new.scan_id,
-            scan_mode: payload.new.scan_mode,
-          });
-        }
-      }
-    )
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "logs",
-        table: "drum_scan",
-      },
-      (payload) => {
-        // Handle scan status updates (e.g., error state)
-        if (payload.new?.metadata?.jobId === jobId && payload.new?.status === 'error') {
-          onEvent({
-            type: "scan_error",
-            barcode: payload.new.raw_barcode,
-            jobId: payload.new.metadata.jobId,
-            scanId: payload.new.scan_id,
-            error: payload.new.error_code || 'Unknown error',
-            scan_mode: payload.new.scan_mode,
-          });
-        }
-      }
-    )
-    .subscribe();
-
-  // Return cleanup function
-  return () => {
-    subscription.unsubscribe();
+  console.log(`[SSE-API] Setting up event source for job ${jobId} at ${API_BASE_URL}`);
+  
+  const eventSource = new EventSource(`${API_BASE_URL}/events/job/${jobId}`);
+  
+  eventSource.onopen = () => {
+    console.log("[SSE-API] EventSource connection opened");
+    eventCallback({
+      type: "connected",
+      message: "EventSource connection established",
+      jobId
+    });
   };
-}
+  
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data) as ScanEvent;
+      console.log("[SSE-API] Received event:", data);
+      eventCallback(data);
+    } catch (error) {
+      console.error("[SSE-API] Error parsing event data:", error);
+    }
+  };
+  
+  eventSource.onerror = (error) => {
+    console.error("[SSE-API] EventSource error:", error);
+  };
+  
+  return () => {
+    console.log("[SSE-API] Closing EventSource connection");
+    eventSource.close();
+  };
+};
 
-export default new ScanService(config.apiUrl);
+export default scanService;

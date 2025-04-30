@@ -5,7 +5,7 @@ import scanService, {
   setupScanEventSource,
 } from "@/services/scanner/handle-scan";
 import { toast } from "@/components/ui/use-toast";
-import { createAuthClient as createClient } from "@/lib/supabase/client";
+import { createAuthClient } from "@/lib/supabase/client";
 import { ScanMode } from "@rathburn/types";
 
 interface ScanHandlerProps {
@@ -40,7 +40,7 @@ export function ScanHandler({
     const testApiConnection = async () => {
       try {
         console.log("[SCAN-INIT] Testing API connection");
-        const supabase = createClient();
+        const supabase = createAuthClient();
         const { data } = await supabase.auth.getSession();
         const session = data.session;
 
@@ -48,6 +48,15 @@ export function ScanHandler({
           console.warn("[SCAN-INIT] No access token available for API test");
           return;
         }
+
+        console.log(
+          "[SCAN-INIT] Got access token, length:",
+          session.access_token.length
+        );
+        console.log(
+          "[SCAN-INIT] Token preview:",
+          session.access_token.substring(0, 10) + "..."
+        );
 
         const connectionSuccessful = await scanService.testConnection(
           session.access_token
@@ -79,7 +88,7 @@ export function ScanHandler({
     try {
       // Get the current session for auth token
       console.log("[SCAN-AUTH] Retrieving auth session");
-      const supabase = createClient();
+      const supabase = createAuthClient();
       const {
         data: { session },
         error: authError,

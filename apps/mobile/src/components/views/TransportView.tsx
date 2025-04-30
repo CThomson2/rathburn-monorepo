@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -7,10 +7,37 @@ import {
   MapPin,
   RefreshCw,
   X,
+  ChevronRight,
+  ScanBarcode,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ScanContext } from "@/contexts/scan-context";
+import { ScanContext, useScan } from "@/contexts/scan-context";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
+import { ScanMode } from "@rathburn/types";
 
 const statusColors = {
   transport: {
@@ -26,198 +53,279 @@ const statusColors = {
   },
 };
 
+// Define the interface for our purchase order data from the RPC function
+interface PurchaseOrderData {
+  po_id: string;
+  po_number: string;
+  supplier: string;
+  order_date: string;
+  status: string;
+  eta_date: string | null;
+  item: string;
+  quantity: number;
+}
+
+// Define the interface for purchase order drums from the RPC function
+interface PurchaseOrderDrumData {
+  pod_id: string;
+  pol_id: string;
+  serial_number: string;
+  is_received: boolean;
+}
+
+interface ProductionJob {
+  id: string; // po_id
+  title: string; // po_number
+  supplier: string;
+  orderDate: string;
+  progress: number;
+  status: string;
+  etaDate: string | null;
+  item: string;
+  quantity: number;
+  drums: PurchaseOrderDrumData[];
+}
+
+// Custom badge variants for our UI
+const statusVariants = {
+  complete: "default",
+  "in-progress": "default",
+  pending: "secondary",
+} as const;
+
 /**
  * Transport view that displays goods in transport
  * Extracted from the original Index component
  */
 export function TransportView() {
-  // Get the scanned drums from context
-  const { scannedDrums, resetScannedDrums } = useContext(ScanContext);
-  // State for the selected job to display in modal
-  const [selectedJob, setSelectedJob] = useState<number | null>(null);
-
-  // Sample production jobs data with properly typed processedDrums
-  const [productionJobs, setProductionJobs] = useState([
-    {
-      id: 1,
-      name: "Pentane",
-      manufacturer: "Caldic",
-      containers: 5,
-      containerType: "Drums",
-      progress: 0,
-      color: statusColors.transport.pending,
-      expanded: false,
-      dateCreated: "2025-03-31",
-      dateScheduled: "2025-04-24",
-      assignedWorkers: ["James Doherty"],
-      drumIds: ["17583", "17584", "17585", "17586", "17587"],
-      still: "Still B",
-      location: "Old Site",
-      processedDrums: [] as string[],
-    },
-    {
-      id: 2,
-      name: "Acetic Acid",
-      manufacturer: "Univar",
-      containers: 12,
-      containerType: "Drums",
-      progress: 0,
-      color: statusColors.transport.pending,
-      expanded: false,
-      dateCreated: "2025-04-20",
-      dateScheduled: "2025-04-23",
-      assignedWorkers: ["Alistair Nottman"],
-      drumIds: [
-        "16120",
-        "16121",
-        "16122",
-        "16123",
-        "16124",
-        "16125",
-        "16126",
-        "16127",
-        "16128",
-        "16129",
-        "16130",
-        "16131",
-      ],
-      still: "Still G",
-      location: "New Site",
-      processedDrums: [] as string[],
-    },
-  ]);
-
-  // Add debug info to track state changes
-  useEffect(() => {
-    console.log("Current production jobs state:", productionJobs);
-  }, [productionJobs]);
-
-  // Update progress when scannedDrums changes
-  useEffect(() => {
-    if (scannedDrums.length === 0) {
-      // Reset all progress if scannedDrums is empty
-      setProductionJobs((prev) =>
-        prev.map((job) => ({
-          ...job,
-          progress: 0,
-          color: statusColors.transport.pending,
-          processedDrums: [],
-        }))
-      );
-      return;
-    }
-
-    console.log("TransportView: scannedDrums changed:", scannedDrums);
-
-    // Create a fresh copy of the production jobs array to ensure state update
-    const updatedJobs = [...productionJobs];
-    let hasChanges = false;
-
-    // Map over jobs and update them
-    const newJobs = updatedJobs.map((job) => {
-      // Get list of drums that are in scannedDrums but not yet in processedDrums
-      const newScannedDrums = scannedDrums.filter(
-        (drumId) =>
-          job.drumIds.includes(drumId) && !job.processedDrums.includes(drumId)
-      );
-
-      // If no new scans for this job, leave it unchanged
-      if (newScannedDrums.length === 0) {
-        return job;
-      }
-
-      // Mark that we have changes to apply
-      hasChanges = true;
-      console.log(
-        `TransportView: Job ${job.id} (${job.name}) - found ${newScannedDrums.length} newly scanned drums:`,
-        newScannedDrums
-      );
-
-      // Calculate new processed drums
-      const processedDrums = [...job.processedDrums, ...newScannedDrums];
-
-      // Calculate progress percentage based on containers
-      const progressPercentage = Math.min(
-        100,
-        Math.round((processedDrums.length / job.containers) * 100)
-      );
-
-      console.log(
-        `TransportView: Job ${job.id} - progress updated from ${job.progress}% to ${progressPercentage}%`
-      );
-
-      // Determine color based on progress
-      let color = job.color;
-      if (progressPercentage === 100) {
-        color = statusColors.shared.completed;
-      } else if (progressPercentage > 0) {
-        color = statusColors.transport.inProgress;
-      }
-
-      // Return updated job
-      return {
-        ...job,
-        progress: progressPercentage,
-        color,
-        processedDrums,
-      };
-    });
-
-    // Only update state if changes were made
-    if (hasChanges) {
-      console.log("TransportView: Updating state with new jobs:", newJobs);
-      setProductionJobs(newJobs);
-    }
-  }, [scannedDrums]);
-
-  // Define the type for goods inwards
-  type GoodsInData = {
-    eta_date: string | null;
-    item: string | null;
-    order_date: string | null;
-    po_number: string | null;
-    quantity: number | null;
-    status: string | null;
-    supplier: string | null;
-  };
-
-  const [goodsInwards, setGoodsInwards] = useState<GoodsInData[]>([]);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [jobDetail, setJobDetail] = useState<ProductionJob | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { scannedDrums, resetScannedDrums, scanMode, setScanMode } = useScan();
 
+  // Test data in case the RPC call fails
+  const testProductionJobs = [
+    {
+      id: "1",
+      title: "PO-2024-001",
+      supplier: "Supplier A",
+      orderDate: "2024-06-01",
+      progress: 60,
+      status: "in-progress",
+      etaDate: "2024-06-10",
+      item: "Material X",
+      quantity: 5,
+      drums: [
+        {
+          pod_id: "d1",
+          pol_id: "l1",
+          serial_number: "DR-0001",
+          is_received: true,
+        },
+        {
+          pod_id: "d2",
+          pol_id: "l1",
+          serial_number: "DR-0002",
+          is_received: true,
+        },
+        {
+          pod_id: "d3",
+          pol_id: "l1",
+          serial_number: "DR-0003",
+          is_received: true,
+        },
+        {
+          pod_id: "d4",
+          pol_id: "l1",
+          serial_number: "DR-0004",
+          is_received: false,
+        },
+        {
+          pod_id: "d5",
+          pol_id: "l1",
+          serial_number: "DR-0005",
+          is_received: false,
+        },
+      ],
+    },
+    {
+      id: "2",
+      title: "PO-2024-002",
+      supplier: "Supplier B",
+      orderDate: "2024-06-02",
+      progress: 33,
+      status: "pending",
+      etaDate: "2024-06-15",
+      item: "Material Y",
+      quantity: 3,
+      drums: [
+        {
+          pod_id: "d6",
+          pol_id: "l2",
+          serial_number: "DR-0006",
+          is_received: true,
+        },
+        {
+          pod_id: "d7",
+          pol_id: "l2",
+          serial_number: "DR-0007",
+          is_received: false,
+        },
+        {
+          pod_id: "d8",
+          pol_id: "l2",
+          serial_number: "DR-0008",
+          is_received: false,
+        },
+      ],
+    },
+  ];
+
+  const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([]);
+
+  // Fetch production jobs data
   useEffect(() => {
-    // Use IIFE for async operation
-    (async () => {
+    const fetchProductionJobs = async () => {
       try {
+        setIsLoading(true);
         const supabase = createClient();
-        // Modify the query to not include credentials
-        const { data, error } = await supabase.from("v_goods_in").select("*");
 
-        if (error) {
-          console.error("Error fetching goods inwards:", error);
-        } else if (data) {
-          console.log("Goods inwards data:", data);
-          setGoodsInwards(data as GoodsInData[]);
+        // Calling the RPC function
+        const { data: ordersData, error: ordersError } = (await supabase.rpc(
+          "get_pending_purchase_orders"
+        )) as { data: unknown; error: unknown };
+
+        if (ordersError) {
+          console.error("Error fetching purchase orders:", ordersError);
+          // Fallback to test data
+          setProductionJobs(testProductionJobs);
+          return;
         }
+
+        if (!ordersData) {
+          setProductionJobs([]);
+          return;
+        }
+
+        // Convert the data to our format and fetch drums for each PO
+        const jobsPromises = (ordersData as Record<string, unknown>[]).map(
+          async (po) => {
+            // Fetch drums for this purchase order
+            const { data: drumsData, error: drumsError } = (await supabase.rpc(
+              "get_purchase_order_drums",
+              { p_po_id: po.po_id as string }
+            )) as { data: unknown; error: unknown };
+
+            if (drumsError) {
+              console.error(
+                `Error fetching drums for PO ${po.po_id}:`,
+                drumsError
+              );
+              return null;
+            }
+
+            const drums = ((drumsData as Record<string, unknown>[]) || []).map(
+              (drum) => ({
+                pod_id: (drum.pod_id as string) || "",
+                pol_id: (drum.pol_id as string) || "",
+                serial_number: (drum.serial_number as string) || "",
+                is_received: !!drum.is_received,
+              })
+            );
+
+            const receivedCount = drums.filter((d) => d.is_received).length;
+            const progress =
+              drums.length > 0 ? (receivedCount / drums.length) * 100 : 0;
+
+            return {
+              id: (po.po_id as string) || "",
+              title: (po.po_number as string) || "",
+              supplier: (po.supplier as string) || "",
+              orderDate: (po.order_date as string) || "",
+              progress: progress,
+              status: (po.status as string) || "",
+              etaDate: (po.eta_date as string) || null,
+              item: (po.item as string) || "",
+              quantity: typeof po.quantity === "number" ? po.quantity : 0,
+              drums: drums,
+            };
+          }
+        );
+
+        const results = await Promise.all(jobsPromises);
+        const validJobs = results.filter(
+          (job): job is ProductionJob => job !== null
+        );
+
+        console.log("Fetched production jobs:", validJobs);
+        setProductionJobs(validJobs);
       } catch (err) {
-        console.error("Unexpected error:", err);
+        console.error("Unexpected error fetching production jobs:", err);
+        // Fallback to test data
+        setProductionJobs(testProductionJobs);
       } finally {
         setIsLoading(false);
       }
-    })();
-  }, []);
+    };
 
-  // Open job details modal
-  const openJobDetails = (id: number) => {
-    setSelectedJob(id);
+    fetchProductionJobs();
+  }, [refreshTrigger]);
+
+  // Update job progress based on scanned drums
+  const updatedJobs = useMemo(() => {
+    console.log("Recomputing job progress with scanned drums:", scannedDrums);
+
+    return productionJobs.map((job) => {
+      // Count how many drums from this job are in the scanned list
+      const updatedDrums = job.drums.map((drum) => {
+        // If the drum is in our scannedDrums list, mark it as received
+        if (scannedDrums.includes(drum.serial_number)) {
+          return { ...drum, is_received: true };
+        }
+        return drum;
+      });
+
+      const receivedCount = updatedDrums.filter((d) => d.is_received).length;
+      const progress =
+        updatedDrums.length > 0
+          ? (receivedCount / updatedDrums.length) * 100
+          : 0;
+
+      return {
+        ...job,
+        progress,
+        drums: updatedDrums,
+      };
+    });
+  }, [productionJobs, scannedDrums]);
+
+  // Function to reset scanned drums and refresh data
+  const handleRefresh = () => {
+    resetScannedDrums();
+    setRefreshTrigger((prev) => prev + 1);
+    setJobDetail(null);
   };
 
-  // Close job details modal
-  const closeJobDetails = () => {
-    setSelectedJob(null);
+  // Function to open job details
+  const openJobDetail = (job: ProductionJob) => {
+    setJobDetail(job);
+    // Set the scan mode to bulk for receiving drums
+    // We know from the type definition that ScanMode is 'single' | 'bulk'
+    setScanMode("bulk");
+  };
+
+  // Function to close job details modal
+  const closeJobDetail = () => {
+    setJobDetail(null);
   };
 
   // Function to render drum ID chips
-  const renderDrumChips = (drums: string[], processedDrums: string[]) => {
+  const renderDrumChips = (
+    drums: PurchaseOrderDrumData[],
+    processedDrums: string[]
+  ) => {
     const displayDrums = drums.slice(0, 8);
     return (
       <div className="grid grid-cols-4 gap-2">
@@ -225,12 +333,12 @@ export function TransportView() {
           <div
             key={index}
             className={`${
-              processedDrums.includes(drum)
+              processedDrums.includes(drum.serial_number)
                 ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
             } text-sm py-1 px-2 rounded text-center`}
           >
-            {drum}
+            {drum.serial_number}
           </div>
         ))}
         {drums.length > 8 && (
@@ -260,331 +368,162 @@ export function TransportView() {
   };
 
   return (
-    <div className="w-full">
-      {/* Section Header with Reset Button */}
-      <div className="flex justify-between items-center px-6 py-4">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-          Goods in Transport
-        </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={resetScannedDrums}
-            className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1"
-            title="Reset scanned drums"
-          >
-            <RefreshCw size={18} />
-            <span className="text-sm">Reset</span>
-          </button>
-          <button className="text-blue-600 dark:text-blue-400 font-medium">
-            View All
-          </button>
-        </div>
+    <div className="container py-4 space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Goods In</h2>
+        <Button variant="ghost" onClick={handleRefresh} disabled={isLoading}>
+          Refresh
+        </Button>
       </div>
 
-      {/* Progress Indicator */}
-      {scannedDrums.length > 0 && (
-        <div className="px-6 mb-4">
-          <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded-md">
-            <p className="text-sm font-medium">
-              Scanned drums: {scannedDrums.length}
-            </p>
-          </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-40">
+          <p>Loading...</p>
+        </div>
+      ) : updatedJobs.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            No pending purchase orders found
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {updatedJobs.map((job) => (
+            <Card key={job.id} className="relative">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between">
+                  <div>
+                    <CardTitle>{job.title}</CardTitle>
+                    <CardDescription>{job.supplier}</CardDescription>
+                  </div>
+                  <div className="text-right">
+                    <Badge
+                      variant={
+                        job.progress === 100
+                          ? "default" // Use default variant for completed
+                          : job.progress > 0
+                            ? "default" // Use default variant for in-progress
+                            : "secondary" // Use secondary variant for pending
+                      }
+                    >
+                      {job.progress === 100
+                        ? "Complete"
+                        : job.progress > 0
+                          ? "In Progress"
+                          : "Pending"}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(job.orderDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>{job.item}</span>
+                    <span>
+                      {job.drums.filter((d) => d.is_received).length} of{" "}
+                      {job.drums.length} drums received
+                    </span>
+                  </div>
+                  <Progress value={job.progress} className="h-2" />
+                </div>
+              </CardContent>
+              <CardFooter className="pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => openJobDetail(job)}
+                >
+                  <ScanBarcode className="h-4 w-4 mr-2" />
+                  Receive Drums
+                </Button>
+              </CardFooter>
+              <div className="absolute top-1/2 right-2 transform -translate-y-1/2">
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Production Jobs List */}
-      <div className="px-4 space-y-3">
-        {productionJobs.map((job) => (
-          <div
-            key={job.id}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
-            style={{ borderLeftWidth: "4px", borderLeftColor: job.color }}
-            onClick={() => openJobDetails(job.id)}
-          >
-            <div className="p-3">
-              <div className="flex justify-between items-start mb-1">
-                <div>
-                  <h3 className="font-bold text-gray-800 dark:text-gray-100">
-                    {job.name}
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-xs">
-                    {job.manufacturer}
-                  </p>
-                </div>
-                <div className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full flex items-center space-x-1">
-                  <span className="text-gray-700 dark:text-gray-300 text-xs">
-                    {job.containerType} × {job.containers}
-                  </span>
-                </div>
-              </div>
+      {/* Job Detail Modal */}
+      <AlertDialog
+        open={!!jobDetail}
+        onOpenChange={(open) => !open && closeJobDetail()}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {jobDetail?.title} - {jobDetail?.supplier}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {jobDetail?.item} - {jobDetail?.quantity} drums
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-              {/* Progress Bar */}
-              <div className="mt-2 relative">
-                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${job.progress}%`,
-                      backgroundColor: job.color,
-                    }}
-                  ></div>
-                </div>
-                {/* Progress percentage indicator */}
-                <div className="text-right mt-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {job.processedDrums.length}/{job.containers} ({job.progress}
-                    %)
-                  </span>
-                </div>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progress</span>
+                <span>
+                  {jobDetail?.drums.filter((d) => d.is_received).length} of{" "}
+                  {jobDetail?.drums.length} drums
+                </span>
+              </div>
+              <Progress value={jobDetail?.progress} className="h-2" />
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Drums</h4>
+              <div className="flex flex-wrap gap-2">
+                {jobDetail?.drums.map((drum) => (
+                  <Badge
+                    key={drum.pod_id}
+                    variant={
+                      drum.is_received ||
+                      scannedDrums.includes(drum.serial_number)
+                        ? "default" // Use default variant instead of success
+                        : "outline"
+                    }
+                    className="text-xs"
+                  >
+                    {drum.serial_number}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Recently Scanned</h4>
+              <div className="flex flex-wrap gap-2">
+                {scannedDrums.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No drums scanned yet
+                  </p>
+                ) : (
+                  scannedDrums.map((serial) => (
+                    <Badge key={serial} variant="default" className="text-xs">
+                      {serial}
+                    </Badge>
+                  ))
+                )}
               </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Job Details Modal */}
-      <AnimatePresence>
-        {selectedJob !== null && (
-          <>
-            {/* Modal Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 z-40"
-              onClick={closeJobDetails}
-            />
-
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="fixed left-[10%] top-[10%] right-[10%] bottom-[10%] bg-white dark:bg-gray-800 z-50 rounded-xl shadow-xl overflow-auto"
-            >
-              {/* Modal Header with Close Button */}
-              <div className="sticky top-0 flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {productionJobs.find((job) => job.id === selectedJob)?.name}
-                </h2>
-                <button
-                  onClick={closeJobDetails}
-                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
-                  aria-label="Close details"
-                  title="Close details"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Modal Body */}
-              <div className="p-4">
-                {productionJobs
-                  .filter((job) => job.id === selectedJob)
-                  .map((job) => (
-                    <div key={job.id} className="space-y-4">
-                      {/* Progress Info */}
-                      <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-750 rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            Progress
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {job.processedDrums.length} of {job.containers}{" "}
-                            drums scanned
-                          </p>
-                        </div>
-                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                          {job.progress}%
-                        </div>
-                      </div>
-
-                      {/* Dates */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-start">
-                          <Calendar
-                            size={18}
-                            className="text-gray-500 dark:text-gray-400 mt-0.5 mr-2 shrink-0"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                              Created
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {job.dateCreated}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <Calendar
-                            size={18}
-                            className="text-blue-500 dark:text-blue-400 mt-0.5 mr-2 shrink-0"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                              Scheduled
-                            </p>
-                            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                              {job.dateScheduled}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Assigned Workers */}
-                      <div>
-                        <div className="flex items-center mb-2">
-                          <Users
-                            size={18}
-                            className="text-gray-500 dark:text-gray-400 mr-2"
-                          />
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            Assigned Workers
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 ml-7">
-                          {job.assignedWorkers.map((worker, index) => (
-                            <div
-                              key={index}
-                              className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm py-1 px-3 rounded-full"
-                            >
-                              {worker}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Still Assignment */}
-                      <div className="flex items-start">
-                        <div className="bg-indigo-100 dark:bg-indigo-900/20 p-1 rounded-md mr-2">
-                          <div className="w-5 h-5 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                            <span className="text-sm font-bold">S</span>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            Still Assignment
-                          </p>
-                          <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-                            {job.still}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Location */}
-                      <div className="flex items-start">
-                        <MapPin
-                          size={18}
-                          className="text-gray-500 dark:text-gray-400 mt-0.5 mr-2 shrink-0"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            Location
-                          </p>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {renderLocation(job.location)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Drum IDs */}
-                      <div>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
-                          Drum IDs
-                        </p>
-                        {renderDrumChips(job.drumIds, job.processedDrums)}
-                      </div>
-
-                      {/* Container Info */}
-                      <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-750 rounded-lg mt-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            Container Type
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {job.containerType}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            Quantity
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 text-right">
-                            {job.containers}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Display Goods Inwards data if available */}
-      {goodsInwards.length > 0 && (
-        <div className="px-6 py-4 mt-4">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3">
-            Goods Inwards
-          </h2>
-          <div className="space-y-3">
-            {goodsInwards.map((item, index) => (
-              <div
-                key={index}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3"
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <h3 className="font-bold text-gray-800 dark:text-gray-100">
-                      {item.item}
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">
-                      {item.supplier}
-                    </p>
-                  </div>
-                  <div className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-                    <span className="text-gray-700 dark:text-gray-300 text-xs">
-                      Qty: {item.quantity}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-2 text-xs">
-                  <div className="flex gap-4">
-                    <div>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        Ordered:
-                      </span>{" "}
-                      {item.order_date}
-                    </div>
-                    <div>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        ETA:
-                      </span>{" "}
-                      {item.eta_date}
-                    </div>
-                    <div className="ml-auto">
-                      <span className="text-gray-500 dark:text-gray-400">
-                        Status:
-                      </span>{" "}
-                      {item.status}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Display loading state */}
-      {isLoading && (
-        <div className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-          Loading goods inwards data...
-        </div>
-      )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button variant="default" onClick={handleRefresh}>
+                Refresh Data
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
