@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/toaster";
+import { ToastProvider } from "@/providers/toast-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
@@ -119,10 +119,11 @@ const App = () => (
   <ThemeProvider defaultTheme="system">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <BrowserRouter>
-          <RouterWithLogging />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <RouterWithLogging />
+          </BrowserRouter>
+        </ToastProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

@@ -11,6 +11,8 @@ import { ScanMode } from "@rathburn/types";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Database } from "@/types/supabase";
+import scanService from "@/services/scanner/handle-scan";
+import { createAuthClient } from "@/lib/supabase/client";
 
 // Determine if we should show the scan tester (typically in development)
 const SHOW_SCAN_TESTER =
@@ -76,7 +78,7 @@ interface PendingDrumResult {
 }
 
 interface DrumReceivedCheckResult {
-  exists: boolean;
+  drum_exists: boolean;
   is_received: boolean;
 }
 
@@ -172,152 +174,62 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
     fetchPendingDrumCount();
   }, []);
 
-  // Find and update a drum by barcode (serial number)
-  const findAndUpdateDrum = async (barcode: string) => {
-    console.log(`ScanContext: Searching for drum with barcode: ${barcode}`);
-
-    try {
-      const supabase = createClient();
-
-      // Look up the drum by executing a raw query
-      const { data: drumData, error: drumError } = await supabase.rpc(
-        "find_pending_drum_by_serial",
-        { p_serial_number: barcode }
-      );
-
-      if (drumError) {
-        console.error("Error searching for drum:", drumError);
-        toast({
-          title: "Error Searching Drum",
-          description: drumError.message,
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      if (!drumData || typeof drumData !== "object") {
-        // Check if already received
-        const { data: existingDrum, error: existingError } = await supabase.rpc(
-          "check_drum_already_received",
-          { p_serial_number: barcode }
-        );
-
-        if (
-          !existingError &&
-          existingDrum &&
-          typeof existingDrum === "object" &&
-          "is_received" in existingDrum &&
-          existingDrum.is_received
-        ) {
-          toast({
-            title: "Drum Already Received",
-            description: `Drum with serial number ${barcode} has already been received`,
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Drum Not Found",
-            description: `No pending drum found with serial number: ${barcode}`,
-            variant: "destructive",
-          });
-        }
-        return false;
-      }
-
-      console.log(`ScanContext: Found drum:`, drumData);
-      // Type assertion to safely access properties
-      const drumInfo = drumData as unknown as PendingDrumResult;
-      const pod_id = drumInfo.pod_id;
-      const pol_id = drumInfo.pol_id;
-
-      // Update the drum status to received using raw query
-      const { error: updateError } = await supabase.rpc(
-        "mark_drum_as_received",
-        { p_pod_id: pod_id }
-      );
-
-      if (updateError) {
-        console.error("Error updating drum status:", updateError);
-        toast({
-          title: "Update Failed",
-          description: updateError.message,
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      console.log(
-        `ScanContext: Successfully marked drum ${barcode} as received`
-      );
-
-      // Update the local pending/processed counts
-      setPendingDrums((prev) => Math.max(prev - 1, 0));
-      setProcessedDrums((prev) => prev + 1);
-
-      // Check if all drums in this order line are now received
-      const { data: orderStatus, error: statusError } = await supabase.rpc(
-        "check_purchase_order_completion",
-        { p_pol_id: pol_id }
-      );
-
-      if (!statusError && orderStatus && typeof orderStatus === "object") {
-        // Type assertion to safely access properties
-        const statusInfo = orderStatus as unknown as OrderCompletionResult;
-        if (statusInfo.line_complete) {
-          console.log(
-            `ScanContext: All drums for line ${pol_id} have been received`
-          );
-
-          if (statusInfo.order_complete) {
-            console.log(
-              `ScanContext: All drums for purchase order have been received`
-            );
-            toast({
-              title: "Order Complete",
-              description: `All drums for this purchase order have been received.`,
-              variant: "default",
-            });
-          }
-        }
-      }
-
-      toast({
-        title: "Drum Received",
-        description: `Successfully marked drum ${barcode} as received.`,
-        variant: "default",
-      });
-
-      return true;
-    } catch (err) {
-      console.error("Unexpected error processing drum scan:", err);
-      toast({
-        title: "Error Processing Scan",
-        description:
-          err instanceof Error ? err.message : "Unknown error processing scan",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
   const handleDrumScan = async (barcode: string) => {
     console.log("ScanContext: Handling drum scan for value:", barcode);
     setIsProcessing(true);
 
     try {
-      // Process the scanned barcode
-      const result = await findAndUpdateDrum(barcode);
+      // Get auth token for the scan service
+      const supabase = createAuthClient();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
 
-      // If found and updated in the database, add to the local scanned list
-      if (result) {
+      if (sessionError || !sessionData.session?.access_token) {
+        console.error("Error getting auth session:", sessionError);
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to scan drums",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Process the scan using the scan service
+      const scanResult = await scanService.handleScan({
+        barcode: barcode.trim(),
+        jobId: currentJobId || 0,
+        scan_mode: scanMode,
+        deviceId: "mobile-app",
+        authToken: sessionData.session.access_token,
+      });
+
+      if (scanResult.success) {
+        console.log("ScanContext: Scan successful:", scanResult);
+
+        // Update the pending/processed counts
+        setPendingDrums((prev) => Math.max(prev - 1, 0));
+        setProcessedDrums((prev) => prev + 1);
+
+        // Add to the scanned list if not already present
         if (!scannedDrums.includes(barcode)) {
           console.log(`ScanContext: Adding drum ID ${barcode} to scanned list`);
           setScannedDrums((prev) => [...prev, barcode]);
-        } else {
-          console.log(
-            `ScanContext: Drum ID ${barcode} already in local scanned list`
-          );
         }
+
+        toast({
+          title: "Drum Received",
+          description: `Successfully received drum ${barcode}`,
+          variant: "default",
+        });
+      } else {
+        console.error("ScanContext: Scan failed:", scanResult.error);
+
+        // Show an appropriate error message
+        toast({
+          title: "Scan Failed",
+          description: scanResult.error || "Unknown error occurred",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Error during drum scan processing:", err);

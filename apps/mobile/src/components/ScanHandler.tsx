@@ -13,18 +13,21 @@ interface ScanHandlerProps {
   scan_mode: ScanMode;
   onScanSuccess?: (barcode: string) => void;
   onScanError?: (barcode: string, error: string) => void;
-  // onScanCancel?: (barcode: string) => void;
 }
 
 /**
  * Global Scan Handler
- * Handles scanning a barcode and performs the appropriate action based on the scan type
- * @param jobId The ID of the job
+ * Handles scanning a barcode and performs the appropriate action based on the scan type.
+ * It provides:
+ * - An invisible input field that captures barcode scans
+ * - API integration to process scans
+ * - Real-time updates via server-sent events (SSE)
+ * - Visual indicators for scan status
+ *
+ * @param jobId The ID of the job (used for associating scans)
  * @param scan_mode The scan mode ('single' or 'bulk')
  * @param onScanSuccess Called when a scan is successful
  * @param onScanError Called when a scan fails
- * @param onScanCancel Called when a scan is cancelled
- * @param autoFocus Whether to auto-focus the input when the component mounts and when the window regains focus
  */
 export function ScanHandler({
   jobId,
@@ -53,10 +56,6 @@ export function ScanHandler({
           "[SCAN-INIT] Got access token, length:",
           session.access_token.length
         );
-        console.log(
-          "[SCAN-INIT] Token preview:",
-          session.access_token.substring(0, 10) + "..."
-        );
 
         const connectionSuccessful = await scanService.testConnection(
           session.access_token
@@ -75,50 +74,26 @@ export function ScanHandler({
 
   // Handle barcode scan
   const handleScan = async (barcode: string) => {
-    console.log("[SCAN-INIT] Scan detected:", barcode);
-
     if (!barcode.trim()) {
       console.log("[SCAN-VALIDATE] Empty barcode, ignoring");
       return;
     }
 
+    console.log("[SCAN-INIT] Scan detected:", barcode);
     setIsScanning(true);
-    console.log("[SCAN-PROCESS] Starting scan processing");
 
     try {
       // Get the current session for auth token
-      console.log("[SCAN-AUTH] Retrieving auth session");
       const supabase = createAuthClient();
-      const {
-        data: { session },
-        error: authError,
-      } = await supabase.auth.getSession();
+      const { data, error: authError } = await supabase.auth.getSession();
+      const session = data.session;
 
-      if (authError) {
-        console.error("[SCAN-AUTH] Auth error:", authError);
+      if (authError || !session?.access_token) {
+        console.error("[SCAN-AUTH] Auth error:", authError || "No session");
         throw new Error("Authentication required");
       }
 
-      if (!session) {
-        console.error("[SCAN-AUTH] No session found");
-        throw new Error("No active session found");
-      }
-
-      if (!session.access_token) {
-        console.error("[SCAN-AUTH] Session found but no access token");
-        throw new Error("Access token missing");
-      }
-
-      console.log(
-        "[SCAN-AUTH] Session found, token length:",
-        session.access_token.length
-      );
-      console.log(
-        "[SCAN-AUTH] Token prefix:",
-        session.access_token.substring(0, 10) + "..."
-      );
-
-      console.log("[SCAN-API] Sending scan request to API");
+      // Process the scan via the scan service
       const result = await scanService.handleScan({
         barcode: barcode.trim(),
         jobId,
@@ -127,45 +102,26 @@ export function ScanHandler({
         authToken: session.access_token,
       });
 
-      console.log("[SCAN-RESULT] API response received", {
-        success: result.success,
-      });
-
       if (result.success) {
-        console.log("[SCAN-SUCCESS] Scan completed successfully:", result);
+        console.log("[SCAN-SUCCESS] Scan completed successfully");
 
         // Handle successful scan
         if (onScanSuccess) {
-          console.log("[SCAN-CALLBACK] Calling onScanSuccess");
           onScanSuccess(barcode);
         }
-
-        toast({
-          title: "Scan Successful",
-          description: `Scanned: ${barcode}, Drum: ${result.drum || "N/A"}`,
-          variant: "default",
-        });
       } else {
         console.error("[SCAN-ERROR] Scan failed:", result.error);
 
         // Handle scan error
         if (onScanError) {
-          console.log("[SCAN-CALLBACK] Calling onScanError");
           onScanError(barcode, result.error || "Unknown error");
         }
-
-        toast({
-          title: "Scan Error",
-          description: result.error || "Unknown error",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error("[SCAN-EXCEPTION] Error processing scan:", error);
 
       // Handle scan exception
       if (onScanError) {
-        console.log("[SCAN-CALLBACK] Calling onScanError with exception");
         onScanError(
           barcode,
           error instanceof Error ? error.message : String(error)
@@ -179,7 +135,6 @@ export function ScanHandler({
         variant: "destructive",
       });
     } finally {
-      console.log("[SCAN-COMPLETE] Scan processing completed");
       setIsScanning(false);
     }
   };
@@ -210,13 +165,12 @@ export function ScanHandler({
 
         // Handle real-time scan success (from another device)
         if (onScanSuccess) {
-          console.log("[SSE-CALLBACK] Calling onScanSuccess for remote scan");
           onScanSuccess(event.barcode);
         }
 
         toast({
           title: "Remote Scan Success",
-          description: `Device: ${event.scanId || "Unknown"} - Mode: ${event.scan_mode || "N/A"}`,
+          description: `Device: ${event.scanId || "Unknown"} - Barcode: ${event.barcode}`,
           variant: "default",
         });
       } else if (
@@ -228,7 +182,6 @@ export function ScanHandler({
 
         // Handle real-time scan error (from another device)
         if (onScanError) {
-          console.log("[SSE-CALLBACK] Calling onScanError for remote scan");
           onScanError(event.barcode, event.error || "Unknown error");
         }
 
@@ -251,7 +204,7 @@ export function ScanHandler({
       {/* Hidden scan input */}
       <ScanInput onScan={handleScan} />
 
-      {/* Optional visual indicators */}
+      {/* Visual indicators */}
       {isScanning && (
         <div className="fixed bottom-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
           Processing...
