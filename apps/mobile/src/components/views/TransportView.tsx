@@ -393,7 +393,7 @@ export function TransportView() {
       ) : (
         <div className="space-y-4">
           {updatedJobs.map((job) => (
-            <Card key={`job-${job.id}`} className="relative">
+            <Card key={`job-${job.id}-${job.item}`} className="relative">
               <CardHeader className="pb-2">
                 <div className="flex justify-between">
                   <div>
