@@ -3,7 +3,6 @@
 
 import { createLogger } from '@/lib/api/utils/logger';
 import { ScannerConfig } from '@rathburn/types';
-import { extractApiKey } from '@/lib/api/validation';
 
 const logger = createLogger('auth');
 

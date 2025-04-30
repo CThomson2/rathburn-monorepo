@@ -2,15 +2,15 @@
 // API route for system health checks
 
 import { NextResponse } from 'next/server';
-import { healthMonitor } from '@/lib/utils/healthMonitor';
-import { createLogger } from '@/lib/utils/logger';
+import { healthMonitor, HealthCheckResult } from '@/lib/api/utils/health-monitor';
+import { createLogger } from '@/lib/api/utils/logger';
 
 const logger = createLogger('api/health');
 
 /**
  * Handle GET requests for health checks
  */
-export async function GET() {
+export async function GET(): Promise<NextResponse<HealthCheckResult>> {
   logger.info('Received health check request');
   
   try {

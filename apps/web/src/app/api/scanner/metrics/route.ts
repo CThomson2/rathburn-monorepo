@@ -2,16 +2,22 @@
 // API route for system metrics
 
 import { NextRequest, NextResponse } from 'next/server';
-import { healthMonitor } from '@/lib/utils/healthMonitor';
-import { validateAuth } from '@/lib/auth';
-import { createLogger } from '@/lib/utils/logger';
+import { healthMonitor, SystemMetrics } from '@/lib/api/utils/health-monitor';
+import { validateAuth } from '@/lib/api/auth';
+import { createLogger } from '@/lib/api/utils/logger';
 
 const logger = createLogger('api/metrics');
+
+interface MetricsResponse {
+  success: boolean;
+  metrics: SystemMetrics;
+  timestamp: string;
+}
 
 /**
  * Handle GET requests for system metrics
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse<MetricsResponse | { error: string; message: string } | { success: false; error: string; message: string }>> {
   logger.info('Received metrics request');
   
   try {

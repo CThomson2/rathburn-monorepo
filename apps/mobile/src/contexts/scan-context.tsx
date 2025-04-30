@@ -295,7 +295,9 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
         jobId={currentJobId || 0}
         scan_mode={scanMode}
         onScanSuccess={handleDrumScan}
-        onScanError={(barcode, error) => console.error("Scan error:", error)}
+        onScanError={(barcode, error) =>
+          console.error("Scan error:", barcode, error)
+        }
       />
       {/* Show the scan tester in development mode for easier testing */}
       {SHOW_SCAN_TESTER && <ScanTester />}

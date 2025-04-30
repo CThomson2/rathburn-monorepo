@@ -1,223 +1,189 @@
 // /src/components/transport/ScanHandler.tsx
 import { useState, useEffect } from "react";
-import { ScanInput } from "@/features/transport/ScanInput";
-import scanService, {
-  setupScanEventSource,
-} from "@/services/scanner/handle-scan";
-import { toast } from "@/components/ui/use-toast";
-import { createAuthClient } from "@/lib/supabase/client";
-import { ScanMode } from "@rathburn/types";
-
-interface ScanHandlerProps {
-  jobId: number;
-  scan_mode: ScanMode;
-  onScanSuccess?: (barcode: string) => void;
-  onScanError?: (barcode: string, error: string) => void;
-}
+import { Card, CardContent } from "@/components/ui/card";
+import { useScanJob } from "@/hooks/useScanJob";
+import { Button } from "@/components/ui/button";
+import { handleScan } from "@/services/scanner/handle-scan";
+import { Badge } from "@/components/ui/badge";
+import Barcode from "./Barcode";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
- * Global Scan Handler
- * Handles scanning a barcode and performs the appropriate action based on the scan type.
- * It provides:
- * - An invisible input field that captures barcode scans
- * - API integration to process scans
- * - Real-time updates via server-sent events (SSE)
- * - Visual indicators for scan status
- *
- * @param jobId The ID of the job (used for associating scans)
- * @param scan_mode The scan mode ('single' or 'bulk')
- * @param onScanSuccess Called when a scan is successful
- * @param onScanError Called when a scan fails
+ * ScanHandler component
+ * Handles barcode scanning through manual entry or scanner device
  */
-export function ScanHandler({
-  jobId,
-  scan_mode = "single",
-  onScanSuccess,
-  onScanError,
-}: ScanHandlerProps) {
-  const [isScanning, setIsScanning] = useState(false);
-  const [sseConnected, setSseConnected] = useState(false);
+export function ScanHandler() {
+  const { jobId, setLastScan } = useScanJob();
+  const { token } = useAuth();
+  const [barcode, setBarcode] = useState("");
+  const [scanResult, setScanResult] = useState<{
+    success: boolean;
+    message?: string;
+    error?: string;
+  } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Test API connection when component mounts
-  useEffect(() => {
-    const testApiConnection = async () => {
-      try {
-        console.log("[SCAN-INIT] Testing API connection");
-        const supabase = createAuthClient();
-        const { data } = await supabase.auth.getSession();
-        const session = data.session;
+  // Process a barcode scan
+  const processScan = async (scanBarcode: string) => {
+    if (!scanBarcode || isProcessing) return;
 
-        if (!session?.access_token) {
-          console.warn("[SCAN-INIT] No access token available for API test");
-          return;
-        }
-
-        console.log(
-          "[SCAN-INIT] Got access token, length:",
-          session.access_token.length
-        );
-
-        const connectionSuccessful = await scanService.testConnection(
-          session.access_token
-        );
-        console.log(
-          "[SCAN-INIT] API connection test result:",
-          connectionSuccessful ? "Success" : "Failed"
-        );
-      } catch (error) {
-        console.error("[SCAN-INIT] API connection test error:", error);
-      }
-    };
-
-    testApiConnection();
-  }, []);
-
-  // Handle barcode scan
-  const handleScan = async (barcode: string) => {
-    if (!barcode.trim()) {
-      console.log("[SCAN-VALIDATE] Empty barcode, ignoring");
-      return;
-    }
-
-    console.log("[SCAN-INIT] Scan detected:", barcode);
-    setIsScanning(true);
+    setIsProcessing(true);
+    setScanResult(null);
 
     try {
-      // Get the current session for auth token
-      const supabase = createAuthClient();
-      const { data, error: authError } = await supabase.auth.getSession();
-      const session = data.session;
-
-      if (authError || !session?.access_token) {
-        console.error("[SCAN-AUTH] Auth error:", authError || "No session");
-        throw new Error("Authentication required");
+      // Validate the barcode format
+      if (scanBarcode.length < 3) {
+        setScanResult({
+          success: false,
+          error: "Invalid barcode format",
+        });
+        setIsProcessing(false);
+        return;
       }
 
-      // Process the scan via the scan service
-      const result = await scanService.handleScan({
-        barcode: barcode.trim(),
-        jobId,
-        scan_mode,
-        deviceId: "mobile-app",
-        authToken: session.access_token,
+      console.log(
+        `[SCAN] Processing barcode: ${scanBarcode} for job: ${jobId || "no job"}`
+      );
+
+      // Call the scan API
+      const result = await handleScan({
+        barcode: scanBarcode,
+        jobId: jobId || undefined,
+        authToken: token || "",
+        scan_mode: "single",
+        deviceId: navigator.userAgent,
       });
 
+      console.log("[SCAN] Result:", result);
+
+      // Update the UI with the result
+      setScanResult(result);
+
+      // If successful, update the job's last scan
+      if (result.success && setLastScan) {
+        setLastScan({
+          barcode: scanBarcode,
+          timestamp: new Date().toISOString(),
+          success: true,
+        });
+      }
+
+      // Clear the barcode field on success
       if (result.success) {
-        console.log("[SCAN-SUCCESS] Scan completed successfully");
-
-        // Handle successful scan
-        if (onScanSuccess) {
-          onScanSuccess(barcode);
-        }
-      } else {
-        console.error("[SCAN-ERROR] Scan failed:", result.error);
-
-        // Handle scan error
-        if (onScanError) {
-          onScanError(barcode, result.error || "Unknown error");
-        }
+        setBarcode("");
       }
     } catch (error) {
-      console.error("[SCAN-EXCEPTION] Error processing scan:", error);
-
-      // Handle scan exception
-      if (onScanError) {
-        onScanError(
-          barcode,
-          error instanceof Error ? error.message : String(error)
-        );
-      }
-
-      toast({
-        title: "Scan Failed",
-        description:
-          error instanceof Error ? error.message : "Failed to process scan",
-        variant: "destructive",
+      console.error("[SCAN] Error:", error);
+      setScanResult({
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
       });
     } finally {
-      setIsScanning(false);
+      setIsProcessing(false);
     }
   };
 
-  // Set up SSE connection for real-time updates
+  // Handle barcode input
+  const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBarcode(e.target.value);
+  };
+
+  // Handle barcode submission
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    processScan(barcode);
+  };
+
+  // Handle keyboard events for barcode scanner
   useEffect(() => {
-    if (typeof jobId !== "number" || isNaN(jobId)) {
-      console.warn(
-        "[SSE-INIT] Invalid jobId provided to ScanHandler, SSE not initialized."
-      );
-      return;
+    let scannedBarcode = "";
+    let lastKeyTime = 0;
+    const SCANNER_TIMEOUT = 50; // Time between keystrokes (ms)
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const currentTime = new Date().getTime();
+
+      // If this is a hardware scanner (keys come in rapid succession)
+      if (currentTime - lastKeyTime <= SCANNER_TIMEOUT) {
+        // Enter key signals end of scan from hardware scanner
+        if (e.key === "Enter") {
+          processScan(scannedBarcode);
+          scannedBarcode = "";
+        } else {
+          scannedBarcode += e.key;
+        }
+      } else {
+        // Reset if too much time has passed (likely manual typing)
+        scannedBarcode = e.key;
+      }
+
+      lastKeyTime = currentTime;
+    };
+
+    // Only add the global event listener when jobId exists
+    if (jobId) {
+      window.addEventListener("keydown", handleKeyDown);
     }
 
-    console.log("[SSE-INIT] Setting up SSE connection for job:", jobId);
-
-    const cleanup = setupScanEventSource(jobId, (event) => {
-      console.log("[SSE-EVENT] Received SSE event:", event);
-
-      if (event.type === "connected") {
-        setSseConnected(true);
-        console.log("[SSE-CONNECTED] SSE connection established");
-      } else if (
-        event.type === "scan_success" &&
-        event.barcode &&
-        event.jobId === jobId
-      ) {
-        console.log("[SSE-SCAN] Remote scan success:", event);
-
-        // Handle real-time scan success (from another device)
-        if (onScanSuccess) {
-          onScanSuccess(event.barcode);
-        }
-
-        toast({
-          title: "Remote Scan Success",
-          description: `Device: ${event.scanId || "Unknown"} - Barcode: ${event.barcode}`,
-          variant: "default",
-        });
-      } else if (
-        (event.type === "scan_error" || event.type === "scan_exception") &&
-        event.barcode &&
-        event.jobId === jobId
-      ) {
-        console.log("[SSE-ERROR] Remote scan error:", event);
-
-        // Handle real-time scan error (from another device)
-        if (onScanError) {
-          onScanError(event.barcode, event.error || "Unknown error");
-        }
-
-        toast({
-          title: "Remote Scan Error",
-          description: `Error: ${event.error || "Unknown"}`,
-          variant: "destructive",
-        });
-      }
-    });
-
     return () => {
-      console.log("[SSE-CLEANUP] Cleaning up SSE connection");
-      cleanup();
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [jobId, onScanSuccess, onScanError]);
+  }, [jobId, isProcessing]);
 
   return (
-    <>
-      {/* Hidden scan input */}
-      <ScanInput onScan={handleScan} />
+    <Card className="w-full">
+      <CardContent className="pt-6">
+        <form onSubmit={handleBarcodeSubmit} className="space-y-4">
+          <div className="flex flex-col space-y-2">
+            <h3 className="text-lg font-medium">Scan Drum</h3>
+            <div className="flex items-center space-x-2">
+              <Barcode
+                value={barcode}
+                onChange={handleBarcodeInput}
+                disabled={isProcessing}
+                placeholder="Enter or scan barcode"
+                autoFocus
+              />
+              <Button
+                type="submit"
+                disabled={!barcode || isProcessing}
+                className="h-10"
+              >
+                Scan
+              </Button>
+            </div>
+          </div>
 
-      {/* Visual indicators */}
-      {isScanning && (
-        <div className="fixed bottom-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-          Processing...
-        </div>
-      )}
+          {/* Display job ID if available */}
+          {jobId && (
+            <div>
+              <Badge variant="outline" className="bg-muted">
+                Job ID: {jobId}
+              </Badge>
+            </div>
+          )}
 
-      {sseConnected && (
-        <div
-          className="fixed bottom-4 right-4 bg-green-500 text-white w-3 h-3 rounded-full"
-          title="Real-time connection active"
-        />
-      )}
-    </>
+          {/* Display scan result with Unicode symbols instead of react-icons */}
+          {scanResult && (
+            <div
+              className={`p-3 rounded-md flex items-center space-x-2 ${
+                scanResult.success
+                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                  : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+              }`}
+            >
+              <span className="text-lg">{scanResult.success ? "✓" : "⚠️"}</span>
+              <span>
+                {scanResult.success
+                  ? scanResult.message || "Scan successful"
+                  : scanResult.error || "Scan failed"}
+              </span>
+            </div>
+          )}
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 

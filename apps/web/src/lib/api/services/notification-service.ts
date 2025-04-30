@@ -1,8 +1,8 @@
 // lib/services/notificationService.ts
 // Service for sending notifications related to barcode scans
 
-import { BarcodeData, StoredScanData } from '@/lib/types';
-import { createLogger } from '@/lib/utils/logger';
+import { BarcodeData, StoredScanData } from '@rathburn/types';
+import { createLogger } from '@/lib/api/utils/logger';
 
 const logger = createLogger('services/notificationService');
 
@@ -58,7 +58,7 @@ export class NotificationService {
     try {
       if (this.emailEnabled) {
         await this.sendEmail(
-          ['warehouse-alerts@example.com'],
+          ['design@rathburn.co.uk'],
           template.subject,
           template.body
         );
@@ -66,7 +66,7 @@ export class NotificationService {
       
       if (this.smsEnabled) {
         await this.sendSms(
-          ['+15551234567'], // Example phone number
+          ['+447375298220'], // Example phone number
           `New scan: ${scanData.scan_id} at ${scanData.scan_location || 'unknown location'}`
         );
       }

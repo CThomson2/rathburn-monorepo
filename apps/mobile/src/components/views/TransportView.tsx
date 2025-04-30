@@ -329,9 +329,9 @@ export function TransportView() {
     const displayDrums = drums.slice(0, 8);
     return (
       <div className="grid grid-cols-4 gap-2">
-        {displayDrums.map((drum, index) => (
+        {displayDrums.map((drum) => (
           <div
-            key={index}
+            key={drum.pod_id}
             className={`${
               processedDrums.includes(drum.serial_number)
                 ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
@@ -356,7 +356,10 @@ export function TransportView() {
       return (
         <div className="flex flex-col">
           {location.map((loc, index) => (
-            <span key={index} className="flex items-center">
+            <span
+              key={`location-${loc}-${index}`}
+              className="flex items-center"
+            >
               <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
               {loc}
             </span>
@@ -481,7 +484,7 @@ export function TransportView() {
               <div className="flex flex-wrap gap-2">
                 {jobDetail?.drums.map((drum) => (
                   <Badge
-                    key={drum.pod_id}
+                    key={`drum-${drum.pod_id}`}
                     variant={
                       drum.is_received ||
                       scannedDrums.includes(drum.serial_number)
@@ -505,7 +508,11 @@ export function TransportView() {
                   </p>
                 ) : (
                   scannedDrums.map((serial) => (
-                    <Badge key={serial} variant="default" className="text-xs">
+                    <Badge
+                      key={`scanned-${serial}`}
+                      variant="default"
+                      className="text-xs"
+                    >
                       {serial}
                     </Badge>
                   ))

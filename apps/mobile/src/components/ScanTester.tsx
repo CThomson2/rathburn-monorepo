@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useScan } from "@/contexts/scan-context";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * A component for testing the scan functionality during development
@@ -44,18 +45,26 @@ export function ScanTester() {
   };
 
   // Generate known test barcodes that should be in the database
-  const generateKnownBarcode = () => {
+  const generateKnownBarcode = async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .schema("inventory")
+      .from("purchase_order_drums")
+      .select("serial_number", { count: "exact", head: true });
+    let knownBarcodes: string[] = [];
+    if (error) {
+      console.error("Error fetching PO drums:", error);
+      knownBarcodes = [
+        "DR-18087",
+        "DR-18088",
+        "DR-18089",
+        "DR-18090",
+        "DR-18091",
+      ];
+    } else {
+      knownBarcodes = data?.map((drum) => drum.serial_number) || [];
+    }
     // Known PO drum serial numbers (for testing with real data)
-    const knownBarcodes = [
-      "DR-0001",
-      "DR-0002",
-      "DR-0003",
-      "DR-0004",
-      "DR-0005",
-      "DR-0006",
-      "DR-0007",
-      "DR-0008",
-    ];
     const randomIndex = Math.floor(Math.random() * knownBarcodes.length);
     setInputValue(knownBarcodes[randomIndex]);
   };
@@ -166,7 +175,7 @@ export function ScanTester() {
               {scannedDrums.length > 0 ? (
                 scannedDrums.map((drum, i) => (
                   <div
-                    key={i}
+                    key={`tester-${drum}-${i}`}
                     className="border-b border-gray-100 dark:border-gray-800 py-1"
                   >
                     {drum}

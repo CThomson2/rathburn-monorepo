@@ -29,7 +29,7 @@ import { useSwipeable } from "react-swipeable";
 import { ModalProvider, useModal } from "@/contexts/modal-context";
 
 // Import the ScanProvider instead of just the context
-import { ScanProvider } from "@/contexts/scan-context";
+//
 
 const statusColors = {
   transport: {
@@ -287,7 +287,7 @@ const IndexContent = () => {
         {renderView()}
 
         {/* User Info Display */}
-        <div className="absolute top-2 right-2 z-50">
+        {/* <div className="absolute top-2 right-2 z-50">
           <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 w-full max-w-md flex gap-2">
             <div className="flex-1">
               <p className="text-sm font-medium">User ID:</p>
@@ -299,7 +299,7 @@ const IndexContent = () => {
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Search Overlay */}
         <AnimatePresence>

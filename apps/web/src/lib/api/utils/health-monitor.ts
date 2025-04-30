@@ -10,7 +10,7 @@ const logger = createLogger('healthMonitor');
 /**
  * Health check result
  */
-interface HealthCheckResult {
+export interface HealthCheckResult {
   status: 'ok' | 'degraded' | 'failed';
   message: string;
   details?: Record<string, any>;
@@ -20,7 +20,7 @@ interface HealthCheckResult {
 /**
  * System metrics
  */
-interface SystemMetrics {
+export interface SystemMetrics {
   requestsProcessed: number;
   successfulScans: number;
   failedScans: number;
@@ -146,7 +146,7 @@ export class HealthMonitor {
       const responseTime = Date.now() - startTime;
       
       if (error) {
-        logger.error('Database health check failed', { error: error.message });
+        logger.error('Database health check failed');
         
         return {
           status: 'failed',

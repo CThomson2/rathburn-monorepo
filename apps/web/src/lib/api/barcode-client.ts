@@ -1,7 +1,8 @@
-// lib/api/scannerClient.ts
+// lib/api/barcode-client.ts
 // Client-side API utility for interacting with the barcode scanning API
+// NOT IN USE
 
-import { BarcodeData, ApiResponse, StoredScanData } from '../types';
+import { BarcodeData, ApiResponse, StoredScanData } from '@rathburn/types';
 
 /**
  * API client configuration

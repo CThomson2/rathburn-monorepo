@@ -209,40 +209,39 @@ export async function GET(
       });
 
       // Generate and draw code128 barcode at bottom center
+      // Moved up from previous position and removed border
       const barcodeBuf = await bwipjs.toBuffer({
         bcid: "code128",
         text: drum.serialNumber,
-        includetext: true,
-        textsize: 14,
-        textyoffset: -4, // lift/lower text relative to bars
+        includetext: false, // Don't include text in the barcode itself
         scale: 3,
-        height: 17,
+        height: 15,
       });
+      
       const barcodeImg = await pdfDoc.embedPng(new Uint8Array(barcodeBuf));
       const bDim = barcodeImg.scale(1);
       const bW = Math.min(PAGE_WIDTH * 0.6, bDim.width);
       const bH = 50;
-      const bX = (PAGE_WIDTH - bW) * (1 / 3);
-      const bY = 20;
-      page.drawRectangle({
-        x: bX - 4,
-        y: bY - 4,
-        width: bW + 8,
-        height: bH + 8,
-        borderColor: rgb(0, 0, 0),
-        borderWidth: 0.5,
-      });
+      const bX = (PAGE_WIDTH - bW) / 2; // Center horizontally
+      const bY = 40; // Moved up from 20 to 40
+      
+      // Draw the barcode without border
       page.drawImage(barcodeImg, { x: bX, y: bY, width: bW, height: bH });
-      // now draw your own two-line legend
-      page.drawText(`Date: ${dateStr}`, {
-        x: 20,
-        y: bY + bH / 2,
-        size: 9,
-        font,
+      
+      // Draw the serial number text clearly below the barcode
+      const serialText = drum.serialNumber;
+      const serialTextWidth = boldFont.widthOfTextAtSize(serialText, 14);
+      page.drawText(serialText, {
+        x: (PAGE_WIDTH - serialTextWidth) / 2, // Center the text
+        y: bY - 20, // Position below the barcode
+        size: 14,
+        font: boldFont,
       });
+      
+      // Draw unit info to the right
       page.drawText(`Unit ${unitNumber}/${totalUnits}`, {
         x: PAGE_WIDTH - 100,
-        y: bY + bH / 2,
+        y: bY - 20,
         size: 9,
         font,
       });

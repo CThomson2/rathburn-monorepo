@@ -4,7 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { sendScanEvent } from "@/app/api/events/scan/route";
+import { sendScanEvent } from "@/app/api/scanner/events/scan/route";
 import { ScanMode, ScanEvent } from "@rathburn/types";
 
 interface ScanActionParams {

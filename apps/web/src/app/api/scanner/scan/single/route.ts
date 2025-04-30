@@ -2,137 +2,145 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createNewClient as createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
-import { processBarcodeScan } from '@/app/actions/scan';
-import { ScanInput, ScanResult, ScanError } from '@rathburn/types'; // Import shared types
-import { z } from 'zod'; // Import Zod for validation
 
 // Define allowed origins (you can customize this based on your environments)
 const allowedOrigins = [
-  'http://localhost:4173', // Vite dev server
-  'http://localhost:8080', // Vite dev server
+  'http://localhost:3000',  // Next.js dev
+  'http://localhost:4173',  // Vite preview
+  'http://192.168.9.47:8080/',
+  'http://192.168.9.47:4173/',
+  'http://localhost:8080',  // Vite dev
+  'http://localhost:5173',  // Vite dev alternative
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:4173',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5173',
   'https://mobile.rathburn.app', // Production mobile app
   // Add any other origins as needed
 ];
 
-// Define Zod schema for input validation
-const scanInputSchema = z.object({
-  barcode: z.string().min(1, "Barcode is required"),
-  jobId: z.number().optional(), // Job ID is optional
-  deviceId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
-});
+// Set up CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+  'Access-Control-Allow-Credentials': 'true',
+  'Access-Control-Max-Age': '86400', // 24 hours
+};
+
+/**
+ * Store scans in memory for the test page to retrieve
+ * This is just for testing - in production you'd use a database
+ */
+const recentScans: {
+  barcode: string;
+  timestamp: string;
+  success: boolean;
+  deviceId?: string;
+}[] = [];
+
+// Function to add a scan to the recent scans list
+function recordScan(barcode: string, success: boolean, deviceId?: string) {
+  const scan = {
+    barcode,
+    timestamp: new Date().toISOString(),
+    success,
+    deviceId
+  };
+  
+  // Add to the beginning of the array
+  recentScans.unshift(scan);
+  
+  // Keep only the last 20 scans
+  if (recentScans.length > 20) {
+    recentScans.pop();
+  }
+  
+  return scan;
+}
 
 /**
  * Handle CORS preflight requests
  */
 export async function OPTIONS(request: NextRequest) {
+  // Log the request details for debugging
+  console.log(`API: OPTIONS request for scan/single with headers:`, {
+    origin: request.headers.get('origin'),
+    method: request.method,
+    accessControlRequestMethod: request.headers.get('access-control-request-method'),
+    accessControlRequestHeaders: request.headers.get('access-control-request-headers')
+  });
+  
+  // Directly return a 204 response with CORS headers
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders
+  });
+}
+
+/**
+ * API endpoint to get recent scans (for the test page)
+ */
+export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin') || '';
+  console.log('API: GET scans request from origin:', origin);
   
-  // Check if the origin is allowed
-  if (allowedOrigins.includes(origin)) {
-    return new NextResponse(null, {
-      status: 204, // No content
-      headers: {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Max-Age': '86400', // 24 hours
-      },
-    });
-  }
-  
-  // Return 403 for disallowed origins
-  return new NextResponse(null, { status: 403 });
+  return NextResponse.json(
+    { scans: recentScans },
+    { headers: corsHeaders }
+  );
 }
 
 /**
  * Handle POST requests for single drum scans
+ * This is a simplified version for testing API connectivity
  */
-export async function POST(request: NextRequest): Promise<NextResponse<ScanResult>> { // Use ScanResult for response type
+export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin') || '';
-  const corsHeaders = { 'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '' };
+  console.log('API: POST scan request from origin:', origin);
 
   try {
-    // Validate origin for CORS
-    if (!allowedOrigins.includes(origin)) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden', scan_id: `error_${Date.now()}` },
-        { status: 403, headers: corsHeaders }
-      );
-    }
+    console.log('API: Received scan request');
     
-    // Get authorization token from request
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { success: false, error: ScanError.AUTHORIZATION_ERROR, scan_id: `error_${Date.now()}` }, // Use ScanError enum
-        { status: 401, headers: corsHeaders }
-      );
-    }
-    
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
-    // Create a Supabase client with the token (for auth check ONLY)
-    // The server action will use its own server client for DB operations
-    const supabaseAuthClient = createClient(); 
-    const { data: authData, error: authError } = await supabaseAuthClient.auth.getUser(token);
-    
-    if (authError || !authData.user) {
-      return NextResponse.json(
-        { success: false, error: ScanError.AUTHORIZATION_ERROR, scan_id: `error_${Date.now()}` }, // Use ScanError enum
-        { status: 401, headers: corsHeaders }
-      );
-    }
-    
-    // Parse and validate request body using Zod
+    // Parse request body
     const body = await request.json();
-    const validationResult = scanInputSchema.safeParse(body);
-
-    if (!validationResult.success) {
-        return NextResponse.json(
-            { 
-                success: false, 
-                error: ScanError.VALIDATION_ERROR, 
-                scan_id: `error_${Date.now()}`,
-                // Optionally include Zod error details
-                // errorDetails: validationResult.error.flatten(), 
-            },
-            { status: 400, headers: corsHeaders }
-        );
+    console.log('API: Request body:', body);
+    
+    // Get the barcode from the request
+    const { barcode, jobId, deviceId } = body;
+    
+    if (!barcode) {
+      console.log('API: Missing barcode in request');
+      recordScan('unknown', false, deviceId);
+      return NextResponse.json(
+        { success: false, error: 'Missing barcode' },
+        { status: 400, headers: corsHeaders }
+      );
     }
     
-    const { barcode, jobId, deviceId, metadata } = validationResult.data;
+    console.log(`API: Processing barcode: ${barcode}, jobId: ${jobId || 'none'}, deviceId: ${deviceId || 'unknown'}`);
     
-    // Process the scan using the server action
-    const result = await processBarcodeScan({
-      barcode,
-      jobId,
-      scan_mode: "single", // Explicitly set scan_mode
-      deviceId,
-      metadata,
-    });
+    // Record the scan
+    const scan = recordScan(barcode, true, deviceId);
     
-    // Return the result from the server action
-    // The server action now returns { success, data?, error?, errorDetail? }
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        scan_id: result.data?.scan_id || `scan_${Date.now()}`, // Extract scan_id from data
-        drum: result.data?.detected_drum || undefined, // Extract drum from data
-      }, { headers: corsHeaders });
-    } else {
-      return NextResponse.json({
-        success: false,
-        scan_id: `error_${Date.now()}`,
-        error: result.error || ScanError.UNKNOWN_ERROR,
-      }, { status: 500, headers: corsHeaders }); // Use 500 for processing errors
-    }
+    // For testing, just return success with the barcode
+    return NextResponse.json(
+      { 
+        success: true, 
+        scan_id: `scan_${Date.now()}`,
+        message: 'Scan received successfully',
+        barcode: barcode,
+        timestamp: scan.timestamp
+      },
+      { headers: corsHeaders }
+    );
     
   } catch (error) {
-    console.error('Error processing single scan:', error);
+    console.error('API: Error processing scan:', error);
+    recordScan('error', false);
     
     return NextResponse.json(
-      { success: false, error: ScanError.SCAN_EXCEPTION, scan_id: `error_${Date.now()}` }, // Use ScanError enum
+      { success: false, error: 'Internal server error' },
       { status: 500, headers: corsHeaders }
     );
   }

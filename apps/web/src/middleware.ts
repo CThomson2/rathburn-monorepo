@@ -17,18 +17,30 @@ type UpdateSessionResult = {
   session: Session | null;
 };
 
-  /**
-   * This middleware handles session authentication and redirects.
-   *
-   * The following logic applies:
-   * 1. If on an auth route and logged in, redirect to dashboard.
-   * 2. If on a protected route and not logged in, redirect to sign-in.
-   * 3. Otherwise, return the response.
-   *
-   * @param request - The Next.js request object.
-   * @returns The response to return to the client.
-   */
+/**
+ * This middleware handles session authentication and redirects.
+ *
+ * The following logic applies:
+ * 1. If on an auth route and logged in, redirect to dashboard.
+ * 2. If on a protected route and not logged in, redirect to sign-in.
+ * 3. Otherwise, return the response.
+ *
+ * @param request - The Next.js request object.
+ * @returns The response to return to the client.
+ */
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  
+  // Skip middleware for API routes to prevent CORS issues
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+  
+  // Skip middleware for OPTIONS requests (CORS preflight)
+  if (request.method === 'OPTIONS') {
+    return NextResponse.next();
+  }
+  
   // Get the response and session from updateSession
   const result = (await updateSession(request)) as UpdateSessionResult;
   const { response, session } = result || { response: null, session: null };
@@ -39,8 +51,6 @@ export async function middleware(request: NextRequest) {
     const fallbackResponse = NextResponse.next();
     
     // Continue with your auth logic using the fallback response
-    const pathname = request.nextUrl.pathname;
-    
     const isAuthRoute = publicRoutes.some(
       (route) => pathname === route || pathname.startsWith(route)
     );
@@ -54,8 +64,6 @@ export async function middleware(request: NextRequest) {
     return fallbackResponse;
   }
 
-  const pathname = request.nextUrl.pathname;
-  
   // Set the pathname in response headers for layouts to access
   response.headers.set("x-pathname", pathname);
   
@@ -92,7 +100,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - api/ (API routes)
      */
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api/).*)",
   ],
 };
