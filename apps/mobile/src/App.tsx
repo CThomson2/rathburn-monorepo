@@ -116,17 +116,17 @@ const RouterWithLogging = () => {
 };
 
 const App = () => (
-  <ThemeProvider defaultTheme="system">
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <RouterWithLogging />
-          </BrowserRouter>
-        </ToastProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+  // <ThemeProvider defaultTheme="system">
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <RouterWithLogging />
+        </BrowserRouter>
+      </ToastProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
+  // </ThemeProvider>
 );
 
 export default App;
