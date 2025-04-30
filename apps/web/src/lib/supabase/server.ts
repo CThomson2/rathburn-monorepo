@@ -148,13 +148,31 @@ export const createNewClient = () => {
  */
 export const createServiceClient = () => {
   // For service role, we don't need cookie handling since we're not dealing with user sessions
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL_NEW || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL_NEW || !process.env.SUPABASE_SERVICE_ROLE_KEY_NEW) {
     console.error("Missing Supabase environment variables for service client");
     throw new Error("Missing required environment variables for Supabase service client");
   }
 
+  // Log the first few characters of the key to help debug (avoid logging the full key)
+  const keyPrefix = process.env.SUPABASE_SERVICE_ROLE_KEY_NEW.substring(0, 5) + '...';
+  console.log(`Creating service client with URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL_NEW} and key prefix: ${keyPrefix}`);
+
+  // Create the service client
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY_NEW!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+      global: {
+        headers: {
+          // Explicitly set the role to be service_role
+          'X-Client-Info': 'service_role'
+        }
+      }
+    }
   );
 };

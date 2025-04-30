@@ -1,6 +1,6 @@
 // /src/app/api/scanner/scan/single/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createNewClient, createServiceClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 
 // Define allowed origins (you can customize this based on your environments)
@@ -140,33 +140,69 @@ export async function POST(request: NextRequest) {
 
     // --- Insert into temporary database table --- 
     try {
-      console.log('API: Attempting Supabase client creation with SERVICE_ROLE...');
+      // Check for authorization header with Bearer token
+      const authHeader = request.headers.get('authorization');
+      let supabase;
       
-      const supabase = createServiceClient(); // Using service client to bypass RLS
-      console.log('API: Supabase SERVICE_ROLE client created successfully.');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        console.log('API: Authorization header found, using token authentication');
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        
+        // Create a Supabase client
+        supabase = createNewClient();
+        
+        // Set the session using the token
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: '',
+        });
+        
+        if (sessionError) {
+          console.error('API: Error setting session with token:', sessionError);
+          // Fall back to service role if token auth fails
+          console.log('API: Falling back to service role client');
+          supabase = createServiceClient();
+        } else {
+          console.log('API: User authenticated successfully:', sessionData.user?.id);
+        }
+      } else {
+        // No auth header or invalid format, use service role
+        console.log('API: No valid authorization header, using service role client');
+        supabase = createServiceClient();
+      }
       
       const insertData = {
         barcode_scanned: barcode,
         device_id: deviceId,
-        job_id: jobId ? String(jobId) : null, // Ensure jobId is string or null
-        purchase_order_drum_serial: barcode // Assume barcode is the serial number for FK
+        job_id: jobId ? String(jobId) : null,
+        purchase_order_drum_serial: barcode
       };
       console.log('API: Preparing to insert into temp_scan_log:', insertData);
       
-      const { error: insertError } = await supabase
-        .schema('logs')
-        .from('temp_scan_log') // Use the new temporary table
-        .insert(insertData);
-        
-      console.log('API: Supabase insert operation completed.'); // Log regardless of error
+      // Debug the JWT token being used
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      console.log('API: Using session with role:', session?.access_token ? 'authenticated user' : 'service role');
+      
+      // Instead of direct schema insert, use the RPC function
+      console.log('API: Using RPC function to insert scan data');
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        'insert_temp_scan_log',
+        {
+          p_barcode_scanned: insertData.barcode_scanned,
+          p_device_id: insertData.device_id,
+          p_job_id: insertData.job_id,
+          p_purchase_order_drum_serial: insertData.purchase_order_drum_serial
+        }
+      );
+      
+      console.log('API: RPC function call completed');
 
-      if (insertError) {
-        // Log DB error but don't fail the request for now
-        console.error('API: Error inserting into temp_scan_log:', insertError);
-        // Optionally, update the in-memory scan record to show DB error
-        // scanInMemory.success = false; // Example if needed
+      if (rpcError) {
+        console.error('API: Error calling insert_temp_scan_log RPC:', rpcError);
       } else {
-        console.log(`API: Successfully inserted scan for ${barcode} into temp_scan_log`);
+        console.log(`API: Successfully inserted scan for ${barcode} using RPC:`, rpcResult);
       }
     } catch (dbError) {
       console.error('API: Unexpected error during DB insertion block:', dbError);
