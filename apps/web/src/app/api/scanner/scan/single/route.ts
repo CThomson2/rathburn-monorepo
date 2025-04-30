@@ -178,6 +178,10 @@ export async function POST(request: NextRequest) {
         purchase_order_drum_serial: barcode
       };
       console.log('API: Preparing to insert into temp_scan_log:', insertData);
+
+      const { data, error } = await supabase.rpc('mark_drum_as_received', {
+        p_serial_number: barcode
+      });
       
       // Debug the JWT token being used
       const {

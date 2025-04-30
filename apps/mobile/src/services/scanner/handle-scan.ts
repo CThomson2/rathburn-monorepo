@@ -3,6 +3,8 @@
  * Handle-scan service
  * This service handles all scanning functionality for the application
  */
+import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client-auth";
 
 // Define the structure of a scan response
 export interface ScanResponse {
@@ -11,6 +13,7 @@ export interface ScanResponse {
   message?: string;
   error?: string;
   timestamp?: string;
+  updatedInDb?: boolean;
 }
 
 // Define the structure of a scan event
@@ -120,17 +123,36 @@ export async function handleScan({
     }
     
     // Parse the JSON response
-    const data = await response.json();
+    const apiData = await response.json();
     
     // Log the complete response
-    console.log(`[SCAN-API] Scan response data:`, data);
+    console.log(`[SCAN-API] Scan response data:`, apiData);
+    
+    // Update drum status in database directly
+    let dbUpdateSuccess = false;
+    try {
+      console.log('[SUPABASE] Updating drum received status for:', barcode);
+      const { data, error: dbError } = await supabase.rpc('mark_drum_as_received', {
+        p_serial_number: barcode
+      });
+      
+      if (dbError) {
+        console.error('[SUPABASE] Error marking drum as received:', dbError);
+      } else {
+        console.log('[SUPABASE] Successfully marked drum as received:', barcode);
+        dbUpdateSuccess = true;
+      }
+    } catch (dbErr) {
+      console.error('[SUPABASE] Unexpected error marking drum as received:', dbErr);
+    }
     
     return {
       success: response.ok,
-      scanId: data.scanId || data.scan_id,
-      message: data.message,
-      error: data.error,
-      timestamp: data.timestamp
+      scanId: apiData.scanId || apiData.scan_id,
+      message: apiData.message,
+      error: apiData.error,
+      timestamp: apiData.timestamp,
+      updatedInDb: dbUpdateSuccess
     };
   } catch (error) {
     console.error('[SCAN-API] Scan error:', error);

@@ -301,11 +301,12 @@ export function TransportView() {
     });
   }, [productionJobs, scannedDrums]);
 
-  // Function to reset scanned drums and refresh data
+  // Function to reload page
   const handleRefresh = () => {
-    resetScannedDrums();
-    setRefreshTrigger((prev) => prev + 1);
-    setJobDetail(null);
+    window.location.reload();
+    // resetScannedDrums();
+    // setRefreshTrigger((prev) => prev + 1);
+    // setJobDetail(null);
   };
 
   // Function to open job details
@@ -392,7 +393,7 @@ export function TransportView() {
       ) : (
         <div className="space-y-4">
           {updatedJobs.map((job) => (
-            <Card key={job.id} className="relative">
+            <Card key={`job-${job.id}`} className="relative">
               <CardHeader className="pb-2">
                 <div className="flex justify-between">
                   <div>

@@ -27,6 +27,9 @@ import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ModalProvider, useModal } from "@/contexts/modal-context";
+import { ScanInput } from "@/features/transport/ScanInput";
+import { useScan } from "@/contexts/scan-context";
+import { useToast } from "@/components/ui/use-toast";
 
 // Import the ScanProvider instead of just the context
 //
@@ -65,12 +68,29 @@ const IndexContent = () => {
   const searchTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { isSettingsModalOpen, openSettingsModal } = useModal();
+  const { handleDrumScan, isProcessing } = useScan();
+  const { toast } = useToast();
   const [userInfo, setUserInfo] = useState<Record<string, string | null>>({
     userId: null,
     userName: null,
     sessionToken: null,
     email: null,
   });
+
+  // Handle barcode scan
+  const handleBarcodeScan = (barcode: string) => {
+    console.log("Barcode scanned:", barcode);
+
+    // Show toast notification for the scan
+    toast({
+      title: "Barcode Scanned",
+      description: `Processing barcode: ${barcode}`,
+      duration: 3000,
+    });
+
+    // Always forward to scan context handler
+    handleDrumScan(barcode);
+  };
 
   // Navigation handler for the floating menu
   const handleNavigation = (itemId: string) => {
@@ -275,6 +295,9 @@ const IndexContent = () => {
       className="h-screen w-full flex flex-col pt-10 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
       {...handlers}
     >
+      {/* Invisible Scan Input - Always active */}
+      <ScanInput onScan={handleBarcodeScan} />
+
       {/* Navigation Bar */}
       <TopNavbar
         navLinks={navLinks}

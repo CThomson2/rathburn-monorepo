@@ -7,6 +7,7 @@ import { handleScan } from "@/services/scanner/handle-scan";
 import { Badge } from "@/components/ui/badge";
 import Barcode from "./Barcode";
 import { useAuth } from "@/hooks/useAuth";
+import { useScan } from "@/contexts/scan-context";
 
 /**
  * ScanHandler component
@@ -15,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 export function ScanHandler() {
   const { jobId, setLastScan } = useScanJob();
   const { token } = useAuth();
+  const { scannedDrums, setScanMode, resetScannedDrums } = useScan();
   const [barcode, setBarcode] = useState("");
   const [scanResult, setScanResult] = useState<{
     success: boolean;
@@ -66,6 +68,16 @@ export function ScanHandler() {
           timestamp: new Date().toISOString(),
           success: true,
         });
+
+        // Add to scanned drums in context to update UI
+        // Using the existing context to track scanned drums
+        if (!scannedDrums.includes(scanBarcode)) {
+          const updatedDrums = [...scannedDrums, scanBarcode];
+          const scanContextEvent = new CustomEvent("scan:update", {
+            detail: { drums: updatedDrums },
+          });
+          window.dispatchEvent(scanContextEvent);
+        }
       }
 
       // Clear the barcode field on success

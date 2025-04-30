@@ -2,14 +2,14 @@ import {
   createContext,
   useState,
   useContext,
-  ReactNode,
   useEffect,
+  ReactNode,
 } from "react";
 import { ScanHandler } from "@/components/ScanHandler";
 import { ScanTester } from "@/components/ScanTester";
 import { ScanMode } from "@rathburn/types";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast, useToast } from "@/components/ui/use-toast";
 import { Database } from "@/types/supabase";
 import scanService from "@/services/scanner/handle-scan";
 import { createAuthClient } from "@/lib/supabase/client";
@@ -97,7 +97,7 @@ interface ScanContextType {
   setCurrentJobId: (jobId: number | null) => void;
   scanMode: ScanMode;
   setScanMode: (mode: ScanMode) => void;
-  isProcessing: boolean;
+  // isProcessing: boolean; // Commented out as requested
   pendingDrums: number;
   processedDrums: number;
 }
@@ -112,7 +112,7 @@ export const ScanContext = createContext<ScanContextType>({
   setCurrentJobId: () => {},
   scanMode: "single",
   setScanMode: () => {},
-  isProcessing: false,
+  // isProcessing: false, // Commented out as requested
   pendingDrums: 0,
   processedDrums: 0,
 });
@@ -143,9 +143,10 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
   const [scannedDrums, setScannedDrums] = useState<string[]>([]);
   const [currentJobId, setCurrentJobId] = useState<number | null>(null);
   const [scanMode, setScanMode] = useState<ScanMode>("single");
-  const [isProcessing, setIsProcessing] = useState(false);
+  // const [isProcessing, setIsProcessing] = useState(false); // Commented out as requested
   const [pendingDrums, setPendingDrums] = useState(0);
   const [processedDrums, setProcessedDrums] = useState(0);
+  const { toast } = useToast(); // Get toast function here, in the component body
 
   // Fetch pending drums count on mount
   useEffect(() => {
@@ -176,7 +177,24 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
 
   const handleDrumScan = async (barcode: string) => {
     console.log("ScanContext: Handling drum scan for value:", barcode);
-    setIsProcessing(true);
+
+    // If already processing, log it but proceed with the API call.
+    // The setIsProcessing state below prevents rapid UI updates.
+    // if (isProcessing) { // Commented out as requested
+    //   console.warn("ScanContext: New scan received while previous one is still processing.");
+    //   // Optionally, you could queue scans here on the frontend if needed,
+    //   // but for now, we'll let the backend handle potential concurrency.
+    // } // Commented out as requested
+
+    // setIsProcessing(true); // Commented out as requested
+
+    // Show initial scanning toast
+    toast({
+      title: "Scanning...",
+      description: `Processing drum: ${barcode}`,
+      variant: "default",
+      duration: 2000,
+    });
 
     try {
       // Get auth token for the scan service
@@ -195,8 +213,13 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
       }
 
       // Process the scan using the scan service
+      console.log(
+        "[SCAN CONTEXT] Calling scan service with token:",
+        sessionData.session.access_token.substring(0, 10) + "..."
+      );
+
       const scanResult = await scanService.handleScan({
-        barcode: barcode.trim(),
+        barcode: barcode, // Using the already trimmed barcode
         jobId: currentJobId || 0,
         scan_mode: scanMode,
         deviceId: "mobile-app",
@@ -216,31 +239,40 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
           setScannedDrums((prev) => [...prev, barcode]);
         }
 
+        // Show success toast with confirmation the database was updated
         toast({
-          title: "Drum Received",
-          description: `Successfully received drum ${barcode}`,
+          title: "Drum Received ✅",
+          description: scanResult.updatedInDb
+            ? `Successfully received drum ${barcode} and updated database`
+            : `Successfully received drum ${barcode}`,
           variant: "default",
         });
+
+        // Dispatch custom event for UI update
+        window.dispatchEvent(
+          new CustomEvent("scan:update", {
+            detail: { drums: [...scannedDrums, barcode] },
+          })
+        );
       } else {
         console.error("ScanContext: Scan failed:", scanResult.error);
 
         // Show an appropriate error message
         toast({
-          title: "Scan Failed",
-          description: scanResult.error || "Unknown error occurred",
+          title: "Scan Failed ❌",
+          description: `Error: ${scanResult.error || "Unknown error occurred"} (${barcode})`,
           variant: "destructive",
         });
       }
     } catch (err) {
       console.error("Error during drum scan processing:", err);
       toast({
-        title: "Scan Error",
-        description:
-          err instanceof Error ? err.message : "Failed to process scan",
+        title: "Scan Error ❌",
+        description: `${err instanceof Error ? err.message : "Failed to process scan"} (${barcode})`,
         variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      // setIsProcessing(false); // Commented out as requested
     }
   };
 
@@ -284,21 +316,16 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
         setCurrentJobId,
         scanMode,
         setScanMode,
-        isProcessing,
+        // isProcessing, // Commented out as requested
         pendingDrums,
         processedDrums,
       }}
     >
       {children}
-      {/* The ScanHandler is now rendered at the root level for all authenticated content */}
-      <ScanHandler
-        jobId={currentJobId || 0}
-        scan_mode={scanMode}
-        onScanSuccess={handleDrumScan}
-        onScanError={(barcode, error) =>
-          console.error("Scan error:", barcode, error)
-        }
-      />
+
+      {/* The ScanHandler is now rendered at the root level for all authenticated content.
+          We're removing this component since we're now using ScanInput at the app level instead */}
+
       {/* Show the scan tester in development mode for easier testing */}
       {SHOW_SCAN_TESTER && <ScanTester />}
     </ScanContext.Provider>

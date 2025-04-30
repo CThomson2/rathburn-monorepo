@@ -2008,6 +2008,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      _test_permissions: {
+        Row: {
+          id: number
+          test_data: string | null
+        }
+        Insert: {
+          id?: number
+          test_data?: string | null
+        }
+        Update: {
+          id?: number
+          test_data?: string | null
+        }
+        Relationships: []
+      }
       drum_inventory: {
         Row: {
           category: string | null
@@ -2224,9 +2239,32 @@ export type Database = {
         Args: { p_po_id: string }
         Returns: Json[]
       }
+      insert_temp_scan_log: {
+        Args: {
+          p_barcode_scanned: string
+          p_device_id: string
+          p_job_id?: string
+          p_purchase_order_drum_serial?: string
+        }
+        Returns: Json
+      }
+      list_schemas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          schema_name: string
+        }[]
+      }
       mark_drum_as_received: {
-        Args: { p_pod_id: string }
-        Returns: undefined
+        Args: { p_serial_number: string }
+        Returns: {
+          created_at: string
+          drum_id: string | null
+          is_printed: boolean
+          is_received: boolean
+          pod_id: string
+          pol_id: string
+          serial_number: string
+        }[]
       }
       query_batches_view: {
         Args: {
@@ -2260,6 +2298,10 @@ export type Database = {
       reset_passcode_with_token: {
         Args: { p_token: string; p_new_passcode: string }
         Returns: boolean
+      }
+      test_service_role_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       validate_passcode: {
         Args: { p_user_name: string; p_passcode: string }
