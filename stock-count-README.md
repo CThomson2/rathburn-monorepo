@@ -6,6 +6,7 @@ This system allows for efficient physical stock taking using barcode scanning fo
 
 The stock count system consists of:
 
+
 1. **Barcode Generation Scripts** - Creates PDFs with barcodes for all materials and suppliers
 2. **Supabase Database Table** - Stores the stock count data
 3. **Mobile App Integration** - Scans barcodes to record inventory
