@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
-import { useAuth } from './useAuth'; // Assuming useAuth provides session/token
+// Remove useAuth import as we'll get token directly
+// import { useAuth } from './useAuth'; 
 import { handleStockTakeScan, StocktakeScanResponse } from '../services/stockTakeScan';
+import { createAuthClient } from '@/lib/supabase/client'; // Import supabase client
 
 // Define the state structure for the hook
 interface UseStockTakeState {
@@ -22,11 +24,33 @@ interface UseStockTakeReturn extends UseStockTakeState {
 // TODO: Implement actual device ID retrieval if needed
 function getDeviceId(): string {
     // Placeholder - implement logic to get a unique device ID if required by API
-    return navigator.userAgent || 'unknown_device'; 
+    // return navigator.userAgent || 'unknown_device'; 
+    return '4f096e70-33fd-4913-9df1-8e1fae9591bc';
 }
 
+/**
+ * Custom hook to manage stocktake sessions and process barcode scans.
+ *
+ * This hook provides state management and functions for starting and ending
+ * stocktake sessions, as well as processing barcode scans within an active
+ * session. It handles authentication, device identification, and communicates
+ * with the backend API for scan processing.
+ *
+ * State Variables:
+ * - currentSessionId: ID of the active stocktake session.
+ * - isScanning: Indicates if a scan is currently being processed.
+ * - lastScanStatus: Status of the last scan ('success', 'error', or 'idle').
+ * - lastScanMessage: Message associated with the last scan result.
+ * - lastScanId: ID of the last successful scan.
+ *
+ * Returns:
+ * - startStocktakeSession: Function to initiate a new stocktake session.
+ * - endStocktakeSession: Function to terminate the current stocktake session.
+ * - processStocktakeScan: Async function to process a barcode scan.
+ */
 export function useStockTake(): UseStockTakeReturn {
-  const { token } = useAuth(); // Use token directly from useAuth
+  // Remove useAuth hook call
+  // const { token } = useAuth(); 
   const [state, setState] = useState<UseStockTakeState>({
     currentSessionId: null,
     isScanning: false,
@@ -65,12 +89,18 @@ export function useStockTake(): UseStockTakeReturn {
       return;
     }
 
-    if (!token) { // Check for token directly
-        console.error('[useStockTake] No auth token available.');
+    // Get Supabase client and current session token directly
+    const supabase = createAuthClient();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (sessionError || !token) { // Check for token directly from session
+        console.error('[useStockTake] Authentication error or no token found:', sessionError);
         setState((prevState) => ({
             ...prevState,
+            isScanning: false, // Ensure isScanning is reset
             lastScanStatus: 'error',
-            lastScanMessage: 'Authentication error. Please log in again.',
+            lastScanMessage: 'Authentication error. Please ensure you are logged in.',
         }));
         return;
     }
@@ -85,19 +115,20 @@ export function useStockTake(): UseStockTakeReturn {
       deviceId,
     };
 
-    const response = await handleStockTakeScan(payload, token); // Pass token directly
+    const response = await handleStockTakeScan(payload, token); // Pass the fetched token
 
     setState((prevState) => ({
       ...prevState,
       isScanning: false,
       lastScanStatus: response.success ? 'success' : 'error',
       lastScanMessage: response.message || response.error || (response.success ? 'Scan successful' : 'Scan failed'),
-      lastScanId: response.success ? response.scanId || null : prevState.lastScanId, // Update scan ID on success
+      lastScanId: response.success ? response.scanId || null : prevState.lastScanId,
     }));
     
     console.log(`[useStockTake] Scan result:`, response);
 
-  }, [state.currentSessionId, token]); // Add token as dependency
+  // state.currentSessionId is the only dependency needed now for this callback
+  }, [state.currentSessionId]); 
 
   return {
     ...state,

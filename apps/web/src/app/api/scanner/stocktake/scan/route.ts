@@ -22,7 +22,7 @@ const allowedOrigins = [
 // Helper function to generate dynamic CORS headers (consider centralizing this)
 function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400', // 24 hours
@@ -59,7 +59,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
   const headers = getCorsHeaders(requestOrigin);
-  const supabase = createClient(cookies()); // Use cookie-based auth client
+  const supabase = createClient(); // Use cookie-based auth client
 
   try {
     console.log(`[API Stocktake Scan] POST request from origin: ${requestOrigin}`);
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       const { data: materialData, error: materialError } = await supabase
         .from('materials')
         .select('material_id')
-        .or(`material_id.eq.${barcode},code.eq.${barcode}`)
+        .or(`material_id.ilike.%${barcode}%,code.ilike.%${barcode}%`)
         .limit(1)
         .single(); // Use single to expect zero or one result
 
@@ -111,10 +111,10 @@ export async function POST(request: NextRequest) {
         const { data: supplierData, error: supplierError } = await supabase
           .from('suppliers')
           .select('supplier_id')
-          .or(`supplier_id.eq.${barcode},code.eq.${barcode}`) // Adjust if supplier code is used
+          .or(`supplier_id.ilike.%${barcode}%`) // Adjust if supplier code is used
           .limit(1)
-          .single();
-
+      .single();
+    
         if (supplierError && supplierError.code !== 'PGRST116') { // Ignore 'No rows found' error
             throw new Error(`Supplier lookup failed: ${supplierError.message}`);
         }

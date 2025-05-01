@@ -300,6 +300,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   // Provide toast functionality to children via context
   return (
     <ToastContext.Provider value={{ toast, dismiss, toasts }}>
+      <ToastContextSetter />
       {children}
     </ToastContext.Provider>
   );
@@ -365,7 +366,40 @@ export function useToast() {
  * // 2. If you get "useToast must be used within a ToastProvider" error,
  * //    you're trying to use toast outside of the ToastProvider context
  */
-export const toast = (props: ToastProps) => {
-  const { toast } = useToast();
-  return toast(props);
-};
+export const toast = (() => {
+  // This is a closure that creates a singleton access to the toast context
+  let toastContextValue: ToastContextType | undefined;
+
+  // This function will be returned and used as the toast function
+  const toastFn = (props: ToastProps) => {
+    if (!toastContextValue) {
+      console.error(
+        "Toast was called before it could access ToastContext. " +
+          "This can happen if toast() is called outside a component. " +
+          "The toast will not be displayed."
+      );
+      return { id: "error", update: () => {}, dismiss: () => {} };
+    }
+    return toastContextValue.toast(props);
+  };
+
+  // Function to update the toast context reference
+  toastFn.setToastContext = (context: ToastContextType) => {
+    toastContextValue = context;
+  };
+
+  return toastFn;
+})();
+
+// Add a hook to update the toast context when it's available
+export function ToastContextSetter() {
+  const context = useContext(ToastContext);
+
+  useEffect(() => {
+    if (context) {
+      toast.setToastContext(context);
+    }
+  }, [context]);
+
+  return null;
+}

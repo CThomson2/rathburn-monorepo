@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface NavItem {
   name: string;
+  value: string;
   icon: LucideIcon;
 }
 
@@ -22,7 +23,7 @@ interface NavBarProps {
  *
  * @param {{ items: NavItem[]; activeView?: string; onViewChange?: (viewName: string) => void; className?: string; showLabels?: boolean }} props
  * @param {NavItem[]} props.items - Navigation items to display
- * @param {string} [props.activeView] - Currently active view name
+ * @param {string} [props.activeView] - Currently active view value
  * @param {function} [props.onViewChange] - Callback when view is changed
  * @param {string} [props.className] - Additional CSS classes
  * @param {boolean} [props.showLabels] - Whether to show text labels next to icons
@@ -32,11 +33,11 @@ interface NavBarProps {
  * @example
  * <NavBar
  *   items={[
- *     { name: "Transport", icon: ForkliftIcon },
- *     { name: "Production", icon: AtomIcon },
+ *     { name: "Transport", value: "transport", icon: ForkliftIcon },
+ *     { name: "Production", value: "production", icon: AtomIcon },
  *   ]}
- *   activeView="Transport"
- *   onViewChange={(view) => setActiveView(view)}
+ *   activeView="transport"
+ *   onViewChange={(view) => setCurrentView(view)}
  *   className="bg-background"
  *   showLabels={false}
  * />
@@ -48,7 +49,7 @@ export function NavBar({
   className,
   showLabels = false,
 }: NavBarProps) {
-  const [activeTab, setActiveTab] = useState(activeView || items[0].name);
+  const [activeTab, setActiveTab] = useState(activeView || items[0].value);
 
   useEffect(() => {
     if (activeView) {
@@ -56,10 +57,11 @@ export function NavBar({
     }
   }, [activeView]);
 
-  const handleTabChange = (tabName: string) => {
-    setActiveTab(tabName);
+  const handleTabChange = (item: NavItem) => {
+    console.log(`Tab change requested: ${item.name} (${item.value})`);
+    setActiveTab(item.value);
     if (onViewChange) {
-      onViewChange(tabName);
+      onViewChange(item.name);
     }
   };
 
@@ -73,12 +75,12 @@ export function NavBar({
       <div className="flex items-center gap-2 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg mx-auto">
         {items.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.name;
+          const isActive = activeTab === item.value;
 
           return (
             <button
-              key={item.name}
-              onClick={() => handleTabChange(item.name)}
+              key={item.value}
+              onClick={() => handleTabChange(item)}
               className={cn(
                 "relative cursor-pointer text-sm font-semibold px-4 py-1.5 rounded-full transition-colors",
                 "text-foreground/80 hover:text-primary dark:text-foreground/60 dark:hover:text-primary",

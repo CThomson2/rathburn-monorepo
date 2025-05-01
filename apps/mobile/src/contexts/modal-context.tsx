@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useState, ReactNode } from "react";
 
-interface ModalContextType {
+export interface ModalContextType {
   isSettingsModalOpen: boolean;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
@@ -10,11 +10,24 @@ interface ModalContextType {
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
+/**
+ * Provides modal state management
+ *
+ * This provider allows components to share modal state and control
+ * without prop drilling or complex state management.
+ */
 export function ModalProvider({ children }: { children: ReactNode }) {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
-  const openSettingsModal = () => setIsSettingsModalOpen(true);
-  const closeSettingsModal = () => setIsSettingsModalOpen(false);
+  const openSettingsModal = () => {
+    console.log("[ModalProvider] Opening settings modal");
+    setIsSettingsModalOpen(true);
+  };
+
+  const closeSettingsModal = () => {
+    console.log("[ModalProvider] Closing settings modal");
+    setIsSettingsModalOpen(false);
+  };
 
   return (
     <ModalContext.Provider
@@ -27,12 +40,4 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       {children}
     </ModalContext.Provider>
   );
-}
-
-export function useModal() {
-  const context = useContext(ModalContext);
-  if (context === undefined) {
-    throw new Error("useModal must be used within a ModalProvider");
-  }
-  return context;
 }

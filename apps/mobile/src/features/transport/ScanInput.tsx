@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 
 interface ScanInputProps {
   onScan: (barcode: string) => void;
+  isActive?: boolean; // Add a prop to control whether the input should maintain focus
 }
 
 /**
@@ -13,11 +14,12 @@ interface ScanInputProps {
  * the virtual keyboard from appearing on mobile devices.
  *
  * @prop {function} onScan - called with the scanned barcode string
+ * @prop {boolean} isActive - determines if the input should maintain focus (default: true)
  *
  * @example
- * <ScanInput onScan={barcode => console.log(barcode)} />
+ * <ScanInput onScan={barcode => console.log(barcode)} isActive={true} />
  */
-export function ScanInput({ onScan }: ScanInputProps) {
+export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [barcode, setBarcode] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -29,6 +31,9 @@ export function ScanInput({ onScan }: ScanInputProps) {
   // Global keydown listener to capture keyboard-wedge barcode scanner input
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Only process keys if the component is active
+      if (!isActive) return;
+
       const now = Date.now();
       // Reset buffer if pause between keys is too long
       if (lastTimeRef.current && now - lastTimeRef.current > 100) {
@@ -52,11 +57,11 @@ export function ScanInput({ onScan }: ScanInputProps) {
     window.addEventListener("keydown", handleGlobalKeyDown, true);
     return () =>
       window.removeEventListener("keydown", handleGlobalKeyDown, true);
-  }, [onScan]);
+  }, [onScan, isActive]);
 
   // Auto-send the barcode after a delay of inactivity
   useEffect(() => {
-    if (!barcode.trim()) return;
+    if (!barcode.trim() || !isActive) return;
 
     const timeoutId = setTimeout(() => {
       if (barcode.trim().length >= 3) {
@@ -67,12 +72,15 @@ export function ScanInput({ onScan }: ScanInputProps) {
     }, 300); // 300ms delay
 
     return () => clearTimeout(timeoutId);
-  }, [barcode, onScan]);
+  }, [barcode, onScan, isActive]);
 
-  // Focus the input element on component mount
+  // Focus the input element on component mount and when isActive changes
   useEffect(() => {
+    console.log(`[ScanInput] isActive changed to: ${isActive}`);
+
     const focusInput = () => {
-      if (inputRef.current) {
+      if (inputRef.current && isActive) {
+        console.log(`[ScanInput] Focusing input element`);
         // Focus the input but don't show the keyboard on mobile
         inputRef.current.focus();
         setIsFocused(true);
@@ -84,39 +92,57 @@ export function ScanInput({ onScan }: ScanInputProps) {
             inputRef.current.removeAttribute("readonly");
           }
         }, 100);
+      } else if (
+        !isActive &&
+        inputRef.current &&
+        inputRef.current === document.activeElement
+      ) {
+        console.log(`[ScanInput] Blurring input element`);
+        inputRef.current.blur();
+        setIsFocused(false);
       }
     };
 
-    // Initial focus
-    focusInput();
-
-    // Re-focus the input when the window regains focus
-    const handleFocus = () => {
+    // Focus immediately when becoming active
+    if (isActive) {
       focusInput();
-    };
 
-    // Periodically check if input has lost focus and refocus if needed
-    const focusInterval = setInterval(() => {
-      if (inputRef.current && document.activeElement !== inputRef.current) {
-        console.log("ScanInput lost focus, refocusing...");
-        focusInput();
-      }
-    }, 1000);
+      // Set up a focus interval for maintaining focus
+      const focusInterval = setInterval(() => {
+        if (
+          inputRef.current &&
+          document.activeElement !== inputRef.current &&
+          isActive
+        ) {
+          console.log("[ScanInput] Input lost focus, refocusing...");
+          focusInput();
+        }
+      }, 1000);
 
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("click", handleFocus);
-    document.addEventListener("touchstart", handleFocus);
+      // Set up event listeners to help maintain focus
+      const handleFocus = () => {
+        if (isActive) {
+          setTimeout(focusInput, 100);
+        }
+      };
 
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("click", handleFocus);
-      document.removeEventListener("touchstart", handleFocus);
-      clearInterval(focusInterval);
-    };
-  }, []);
+      window.addEventListener("focus", handleFocus);
+      document.addEventListener("click", handleFocus);
+      document.addEventListener("touchstart", handleFocus);
+
+      return () => {
+        window.removeEventListener("focus", handleFocus);
+        document.removeEventListener("click", handleFocus);
+        document.removeEventListener("touchstart", handleFocus);
+        clearInterval(focusInterval);
+      };
+    }
+  }, [isActive]);
 
   // Handle keypress events for barcode scanning
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isActive) return;
+
     console.log("Key pressed:", e.key, "Current barcode:", barcode);
 
     // If Enter key is pressed, process the barcode
@@ -130,26 +156,42 @@ export function ScanInput({ onScan }: ScanInputProps) {
 
   // Capture input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isActive) return;
+
     setBarcode(e.target.value);
     console.log("Barcode input changed:", e.target.value);
   };
 
-  // Handle focus and blur events
-  const handleFocus = () => {
-    setIsFocused(true);
-    console.log("ScanInput focused");
+  // Handle blur events - only refocus if still active
+  const handleBlur = () => {
+    if (!isActive) return;
+
+    setIsFocused(false);
+    console.log("[ScanInput] Input blurred, waiting to refocus...");
+
+    // Refocus after a short delay only if still active
+    // Use a longer delay to avoid focus fighting with other elements
+    setTimeout(() => {
+      if (
+        inputRef.current &&
+        isActive &&
+        document.activeElement !== inputRef.current
+      ) {
+        console.log("[ScanInput] Refocusing after blur");
+        inputRef.current.focus();
+        setIsFocused(true);
+      }
+    }, 300);
   };
 
-  const handleBlur = () => {
-    setIsFocused(false);
-    console.log("ScanInput blurred, refocusing...");
-    // Refocus after a short delay
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }, 100);
-  };
+  // Add a special effect to log when component mounts/unmounts
+  useEffect(() => {
+    console.log("[ScanInput] Component mounted");
+
+    return () => {
+      console.log("[ScanInput] Component unmounted");
+    };
+  }, []);
 
   return (
     <input
@@ -158,7 +200,10 @@ export function ScanInput({ onScan }: ScanInputProps) {
       value={barcode}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
+      onFocus={() => {
+        console.log("[ScanInput] Input focused directly");
+        setIsFocused(true);
+      }}
       onBlur={handleBlur}
       style={{
         position: "fixed", // Use fixed instead of absolute to ensure it stays in view
@@ -168,16 +213,18 @@ export function ScanInput({ onScan }: ScanInputProps) {
         height: 10, // Small but not zero height
         width: 10, // Small but not zero width
         zIndex: 9999, // Very high z-index
-        pointerEvents: "none", // Prevents it from intercepting touch events
+        pointerEvents: isActive ? "auto" : "none", // Prevents it from intercepting touch events when not active
       }}
       autoComplete="off"
       autoCorrect="off"
       autoCapitalize="off"
       spellCheck={false}
       inputMode="none"
-      autoFocus
+      autoFocus={isActive}
       aria-hidden="true"
+      aria-label="Barcode scanner input"
       data-testid="barcode-input"
+      disabled={!isActive}
     />
   );
 }

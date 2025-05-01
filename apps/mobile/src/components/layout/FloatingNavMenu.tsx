@@ -67,7 +67,6 @@ const FloatingNavMenu = ({
       id: "settings",
       label: "Settings",
       icon: <Settings size={20} />,
-      path: "/settings",
     },
   ];
 
@@ -93,11 +92,15 @@ const FloatingNavMenu = ({
     if (onMenuToggle) {
       onMenuToggle(false);
     }
+
+    console.log(`FloatingNavMenu: Navigating to ${item.id}`);
+
     if (onNavigate) {
       onNavigate(item.id);
     } else if (item.path) {
       navigate(item.path);
     } else {
+      // Default for items without path
       navigate("/");
     }
   };

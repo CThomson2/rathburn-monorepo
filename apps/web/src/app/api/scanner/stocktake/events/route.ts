@@ -6,6 +6,16 @@ import {
   removeSSEClient,
 } from "@/lib/events/sse";
 
+/**
+ * Handles GET requests for Server-Sent Events (SSE) to stream stocktake events.
+ *
+ * This function sets up a stream that sends real-time updates about stocktake events
+ * to connected clients using SSE. It initializes the connection, sends an initial
+ * connection event, and cleans up the listener when the client disconnects.
+ *
+ * @param req - The incoming Next.js request object.
+ * @returns A Response object with the SSE stream and appropriate headers.
+ */
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   

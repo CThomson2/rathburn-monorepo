@@ -15,6 +15,7 @@ import { Session } from "@supabase/auth-js";
 import { withAuth } from "./lib/auth/route-guard";
 import { ThemeProvider } from "./providers/theme-provider";
 import { ScanProvider } from "@/contexts/scan-context";
+import { ToastContextSetter } from "@/components/ui/use-toast";
 
 const queryClient = new QueryClient();
 
@@ -120,6 +121,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ToastProvider>
+          <ToastContextSetter />
           <BrowserRouter>
             <RouterWithLogging />
           </BrowserRouter>

@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useModal } from "@/contexts/modal-context";
+import { useModal } from "@/hooks/use-modal";
 import { useState, useEffect } from "react";
 import { createAuthClient as createClient } from "@/lib/supabase/client";
 import { logout } from "@/services/auth";
