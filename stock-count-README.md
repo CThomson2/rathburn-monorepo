@@ -6,7 +6,6 @@ This system allows for efficient physical stock taking using barcode scanning fo
 
 The stock count system consists of:
 
-
 1. **Barcode Generation Scripts** - Creates PDFs with barcodes for all materials and suppliers
 2. **Supabase Database Table** - Stores the stock count data
 3. **Mobile App Integration** - Scans barcodes to record inventory
@@ -28,12 +27,14 @@ npm run generate-barcodes
 ```
 
 This will create two PDFs in the root directory:
+
 - `materials-barcodes.pdf` - Contains barcodes for all materials
 - `suppliers-barcodes.pdf` - Contains barcodes for all suppliers
 
 ### 2. Print Barcodes
 
 Print both PDFs and organize them for your inventory process:
+
 - Consider laminating the supplier barcodes for durability
 - Cut and organize the material barcodes for easy access
 - The supplier barcodes are marked with a red "SUPPLIER" label for clear identification
@@ -64,7 +65,7 @@ CREATE TABLE public.stock_count (
   quantity INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  
+
   CONSTRAINT unique_supplier_material UNIQUE (supplier_id, material_id)
 );
 ```
@@ -85,12 +86,12 @@ DECLARE
 BEGIN
   INSERT INTO public.stock_count (supplier_id, material_id, quantity)
   VALUES (p_supplier_id, p_material_id, 1)
-  ON CONFLICT (supplier_id, material_id) 
+  ON CONFLICT (supplier_id, material_id)
   DO UPDATE SET
     quantity = stock_count.quantity + 1,
     updated_at = now()
   RETURNING quantity INTO v_new_quantity;
-  
+
   RETURN v_new_quantity;
 END;
 $$;
@@ -99,15 +100,18 @@ $$;
 ## Usage Workflow
 
 1. **Begin Counting**
+
    - Start by scanning a supplier barcode (marked with red "SUPPLIER" label)
    - This sets the "context" for subsequent material scans
 
 2. **Count Materials**
+
    - For each unit of a material from the current supplier, scan its barcode
    - Each scan increments the quantity by 1
    - If it's the first scan for that supplier/material combo, it creates a new record
 
 3. **Change Suppliers**
+
    - To count materials from a different supplier, scan that supplier's barcode
    - This changes the context for subsequent scans
 
@@ -152,4 +156,4 @@ ORDER BY m.name;
 
 - **Barcode Generation**: Uses JSBarcode, PDFKit, and xmldom to create PDF barcodes
 - **Database Integration**: Uses Supabase with PostgreSQL for data storage
-- **Mobile Scanner**: Uses react-native with expo-barcode-scanner for the scanning interface 
+- **Mobile Scanner**: Uses react-native with expo-barcode-scanner for the scanning interface
