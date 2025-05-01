@@ -6,6 +6,9 @@ import {
   removeSSEClient,
 } from "@/lib/events/sse";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 /**
  * Handles GET requests for Server-Sent Events (SSE) to stream stocktake events.
  *

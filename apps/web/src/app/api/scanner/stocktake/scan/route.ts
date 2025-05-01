@@ -22,8 +22,8 @@ const allowedOrigins = [
 // Helper function to generate dynamic CORS headers (consider centralizing this)
 function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'GET,POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS', // Ensure POST is here
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With', // Ensure all needed headers are here
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400', // 24 hours
   };
