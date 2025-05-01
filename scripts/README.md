@@ -82,3 +82,82 @@ The `process_drums_to_stock.sql` script:
 2. Indicates which codes are missing from the `ref_materials` reference table
 3. Only transfers drums with valid material codes to `stock_repro`
 4. Reports on drums that couldn't be processed due to missing material code mappings
+
+# Stock Count Barcode Generator
+
+This package contains scripts to generate barcode PDFs for physical stock taking.
+
+## Setup
+
+Install dependencies:
+
+```bash
+cd scripts
+npm install
+```
+
+## Generate Barcode PDFs
+
+Generate material barcodes:
+
+```bash
+npm run generate-material-barcodes
+```
+
+Generate supplier barcodes:
+
+```bash
+npm run generate-supplier-barcodes
+```
+
+Generate both PDFs:
+
+```bash
+npm run generate-all
+```
+
+The PDFs will be saved in the root directory as:
+- `materials-barcodes.pdf`
+- `suppliers-barcodes.pdf`
+
+## Stock Count System Usage Instructions
+
+### Database Setup
+
+A `stock_count` table has been created in the Supabase database with the following structure:
+
+- `id` (UUID, Primary Key)
+- `supplier_id` (UUID, Foreign Key to inventory.suppliers)
+- `material_id` (UUID, Foreign Key to inventory.materials)
+- `quantity` (Integer)
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
+
+### Workflow
+
+1. Print both the material and supplier barcode PDFs.
+2. Start your stock count by scanning a supplier barcode (red "SUPPLIER" label) to set the context.
+3. For each item from that supplier, scan the material barcode. Each scan will:
+   - If it's the first scan for that supplier-material combination, create a new record with quantity 1
+   - If the combination already exists, increment the quantity by 1
+4. To change suppliers, scan a new supplier barcode.
+
+### Mobile App Integration
+
+The mobile app should implement the following logic:
+
+1. Keep track of the currently selected supplier_id
+2. When a barcode is scanned:
+   - If it matches a supplier_id pattern, update the current supplier context
+   - If it matches a material_id pattern, execute an UPSERT query
+
+Sample UPSERT query:
+
+```sql
+INSERT INTO public.stock_count (supplier_id, material_id, quantity)
+VALUES ('[current_supplier_id]', '[scanned_material_id]', 1)
+ON CONFLICT (supplier_id, material_id) 
+DO UPDATE SET
+  quantity = stock_count.quantity + 1,
+  updated_at = now();
+```

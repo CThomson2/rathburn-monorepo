@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 // Interface for the stock count record
 interface StockCountRecord {
@@ -45,9 +45,11 @@ export const clearSupplierContext = () => {
  */
 export const processBarcodeScan = async (barcode: string) => {
   try {
+    const supabase = createClient();
     // Check if this is a supplier or material barcode
     const { data: supplierData } = await supabase
-      .from('inventory.suppliers')
+      .schema('inventory')
+      .from('suppliers')
       .select('supplier_id, name')
       .eq('supplier_id', barcode)
       .single();

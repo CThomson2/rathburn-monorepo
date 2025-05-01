@@ -1,39 +1,157 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
-import { Camera } from 'expo-camera';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import { processBarcodeScan, getSupplierContext } from '../api/stockCount';
+import { processBarcodeScan, getSupplierContext, clearSupplierContext } from '../services/stockCount';
+
+// Define the Html5Qrcode interface to avoid type errors
+interface Html5QrcodeConfig {
+  fps: number;
+  qrbox: { width: number; height: number } | number;
+  aspectRatio?: number;
+  disableFlip?: boolean;
+  videoConstraints?: MediaTrackConstraints;
+}
+
+interface Html5QrcodeScannerInterface {
+  render: (
+    onScanSuccess: (decodedText: string, decodedResult: any) => void,
+    onScanFailure?: (error: any) => void
+  ) => Promise<void>;
+  clear: () => Promise<void>;
+}
 
 interface BarcodeScannerProps {
   onScanComplete?: (result: any) => void;
 }
 
 export default function BarcodeScanner({ onScanComplete }: BarcodeScannerProps) {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [scanned, setScanned] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [currentSupplier, setCurrentSupplier] = useState<string | null>(null);
   const [scanHistory, setScanHistory] = useState<Array<{ type: string; message: string; timestamp: Date }>>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scannerInitialized, setScannerInitialized] = useState(false);
+  const scannerContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const scannerRef = React.useRef<any>(null);
 
   useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
+    // Check for existing supplier context on component mount
+    const supplierContext = getSupplierContext();
+    if (supplierContext) {
+      setCurrentSupplier(supplierContext.name);
+    }
 
-    // Check for existing supplier context
-    const supplier = getSupplierContext();
-    setCurrentSupplier(supplier);
+    // Start by initializing and loading the HTML5QrCode script
+    const loadScanner = async () => {
+      try {
+        // Dynamically import the scanner library
+        if (!window.Html5Qrcode) {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+          script.async = true;
+          script.onload = () => {
+            setScannerInitialized(true);
+          };
+          document.body.appendChild(script);
+        } else {
+          setScannerInitialized(true);
+        }
+      } catch (error) {
+        console.error('Error loading scanner library:', error);
+      }
+    };
+
+    loadScanner();
+
+    return () => {
+      // Clean up scanner when component unmounts
+      if (scannerRef.current) {
+        stopScanning();
+      }
+    };
   }, []);
 
-  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+  useEffect(() => {
+    // Initialize the scanner when it's ready
+    if (scannerInitialized && window.Html5Qrcode && !scannerRef.current) {
+      initializeScanner();
+    }
+  }, [scannerInitialized]);
+
+  const initializeScanner = () => {
+    if (!scannerContainerRef.current || !window.Html5Qrcode) {
+      console.error('Scanner container or library not found');
+      return;
+    }
+
+    try {
+      // Clear the existing HTML content
+      if (scannerContainerRef.current) {
+        scannerContainerRef.current.innerHTML = '';
+      }
+
+      const scannerId = 'scanner-' + Date.now();
+      const div = document.createElement('div');
+      div.id = scannerId;
+      div.style.width = '100%';
+      div.style.height = '100%';
+      
+      if (scannerContainerRef.current) {
+        scannerContainerRef.current.appendChild(div);
+      }
+
+      // Create scanner instance
+      scannerRef.current = new window.Html5Qrcode(scannerId);
+      console.log('Scanner initialized successfully');
+    } catch (error) {
+      console.error('Error initializing barcode scanner:', error);
+      Alert.alert('Error', 'Failed to initialize barcode scanner');
+    }
+  };
+
+  const startScanning = async () => {
+    if (!scannerRef.current) {
+      Alert.alert('Error', 'Scanner not initialized');
+      return;
+    }
+
+    setScanning(true);
+
+    try {
+      await scannerRef.current.start(
+        { facingMode: 'environment' }, // Use rear camera
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        handleBarCodeScanned,
+        () => {} // Empty onFailure callback to avoid console spam
+      );
+    } catch (error) {
+      console.error('Error starting barcode scanner:', error);
+      Alert.alert('Error', 'Failed to start barcode scanner');
+      setScanning(false);
+    }
+  };
+
+  const stopScanning = async () => {
+    if (scannerRef.current && scanning) {
+      try {
+        await scannerRef.current.stop();
+        setScanning(false);
+      } catch (error) {
+        console.error('Error stopping barcode scanner:', error);
+      }
+    }
+  };
+
+  const handleBarCodeScanned = async (decodedText: string) => {
     if (isProcessing) return;
     
-    setScanned(true);
     setIsProcessing(true);
+    await stopScanning(); // Stop scanning while processing
     
     try {
-      const result = await processBarcodeScan(data);
+      const result = await processBarcodeScan(decodedText);
       
       // Add to scan history
       setScanHistory(prev => [
@@ -65,16 +183,24 @@ export default function BarcodeScanner({ onScanComplete }: BarcodeScannerProps) 
     } finally {
       setIsProcessing(false);
       // Allow scanning again after a short delay
-      setTimeout(() => setScanned(false), 1500);
+      setTimeout(() => {
+        startScanning();
+      }, 1500);
     }
   };
 
-  if (hasPermission === null) {
-    return <Text>Requesting camera permission...</Text>;
-  }
-  if (hasPermission === false) {
-    return <Text>No access to camera</Text>;
-  }
+  const handleClearSupplier = () => {
+    clearSupplierContext();
+    setCurrentSupplier(null);
+    setScanHistory(prev => [
+      { 
+        type: 'info', 
+        message: 'Supplier context cleared', 
+        timestamp: new Date() 
+      },
+      ...prev.slice(0, 9)
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -82,17 +208,32 @@ export default function BarcodeScanner({ onScanComplete }: BarcodeScannerProps) 
         <Text style={styles.statusText}>
           Current Supplier: {currentSupplier || 'None - Scan a supplier barcode first'}
         </Text>
+        {currentSupplier && (
+          <TouchableOpacity style={styles.clearButton} onPress={handleClearSupplier}>
+            <Text style={styles.clearButtonText}>Clear</Text>
+          </TouchableOpacity>
+        )}
       </View>
       
       <View style={styles.cameraContainer}>
-        <BarCodeScanner
-          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-          style={styles.camera}
-        />
-        {scanned && (
+        <div ref={scannerContainerRef} style={{ width: '100%', height: '100%' }}></div>
+        
+        {isProcessing && (
           <View style={styles.scanOverlay}>
             <Text style={styles.scanningText}>Processing...</Text>
           </View>
+        )}
+      </View>
+      
+      <View style={styles.controlBar}>
+        {!scanning ? (
+          <TouchableOpacity style={styles.button} onPress={startScanning}>
+            <Text style={styles.buttonText}>Start Scanning</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[styles.button, styles.stopButton]} onPress={stopScanning}>
+            <Text style={styles.buttonText}>Stop Scanning</Text>
+          </TouchableOpacity>
         )}
       </View>
       
@@ -104,7 +245,8 @@ export default function BarcodeScanner({ onScanComplete }: BarcodeScannerProps) 
               styles.historyText,
               scan.type === 'error' ? styles.errorText : 
               scan.type === 'supplier' ? styles.supplierText : 
-              scan.type === 'material' ? styles.materialText : styles.unknownText
+              scan.type === 'material' ? styles.materialText : 
+              scan.type === 'info' ? styles.infoText : styles.unknownText
             ]}>
               {scan.message}
             </Text>
@@ -117,14 +259,15 @@ export default function BarcodeScanner({ onScanComplete }: BarcodeScannerProps) 
           <Text style={styles.emptyHistoryText}>No scans yet</Text>
         )}
       </View>
-      
-      {scanned && (
-        <TouchableOpacity style={styles.button} onPress={() => setScanned(false)}>
-          <Text style={styles.buttonText}>Scan Again</Text>
-        </TouchableOpacity>
-      )}
     </SafeAreaView>
   );
+}
+
+// Add Html5Qrcode to window type
+declare global {
+  interface Window {
+    Html5Qrcode: any;
+  }
 }
 
 const styles = StyleSheet.create({
@@ -137,17 +280,29 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   statusText: {
     fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  clearButton: {
+    backgroundColor: '#ff6b6b',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  clearButtonText: {
+    color: 'white',
     fontWeight: 'bold',
   },
   cameraContainer: {
     flex: 1,
     position: 'relative',
-  },
-  camera: {
-    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
   },
   scanOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -158,6 +313,24 @@ const styles = StyleSheet.create({
   scanningText: {
     color: 'white',
     fontSize: 24,
+    fontWeight: 'bold',
+  },
+  controlBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  button: {
+    backgroundColor: '#2196F3',
+    padding: 12,
+    alignItems: 'center',
+    width: '100%',
+  },
+  stopButton: {
+    backgroundColor: '#ff6b6b',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
     fontWeight: 'bold',
   },
   historyContainer: {
@@ -190,6 +363,9 @@ const styles = StyleSheet.create({
   materialText: {
     color: 'green',
   },
+  infoText: {
+    color: 'purple',
+  },
   unknownText: {
     color: 'gray',
   },
@@ -201,15 +377,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#999',
     marginTop: 20,
-  },
-  button: {
-    backgroundColor: '#2196F3',
-    padding: 20,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 }); 

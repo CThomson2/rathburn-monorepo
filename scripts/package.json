@@ -1,0 +1,16 @@
+{
+  "name": "stock-count-barcode-generator",
+  "version": "1.0.0",
+  "description": "Generates barcode PDFs for stock count",
+  "scripts": {
+    "generate-material-barcodes": "node generate-material-barcodes.js",
+    "generate-supplier-barcodes": "node generate-supplier-barcodes.js",
+    "generate-all": "npm run generate-material-barcodes && npm run generate-supplier-barcodes"
+  },
+  "dependencies": {
+    "jsbarcode": "^3.11.5",
+    "pdfkit": "^0.13.0",
+    "svg-to-pdfkit": "^0.1.8",
+    "xmldom": "^0.6.0"
+  }
+} 
