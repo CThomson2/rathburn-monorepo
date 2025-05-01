@@ -100,18 +100,27 @@ CROSS JOIN inventory.materials m -- Assuming inventory.materials exists
 LEFT JOIN logs.stocktake_scans s ON s.stocktake_session_id = ss.id AND s.material_id = m.material_id
 GROUP BY ss.id, ss.name, ss.status, m.material_id, m.code, m.name;
 
+-- Add a UNIQUE INDEX required for CONCURRENT refreshes
+CREATE UNIQUE INDEX stocktake_material_counts_unique_idx 
+ON public.stocktake_material_counts (session_id, material_id);
+
 COMMENT ON MATERIALIZED VIEW public.stocktake_material_counts IS 'Real-time updated view of successful material scan counts per session.';
 
 -- 4. Create Refresh Function for the Materialized View
 CREATE OR REPLACE FUNCTION public.refresh_stocktake_material_counts()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 BEGIN
+    -- Consider adding logging here in the future if needed
+    -- RAISE LOG 'Refreshing stocktake_material_counts view';
     REFRESH MATERIALIZED VIEW CONCURRENTLY public.stocktake_material_counts;
     RETURN NULL; -- Result is ignored since this is an AFTER trigger
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-COMMENT ON FUNCTION public.refresh_stocktake_material_counts() IS 'Refreshes the stocktake_material_counts materialized view.';
+COMMENT ON FUNCTION public.refresh_stocktake_material_counts() IS 'Refreshes the stocktake_material_counts materialized view. SECURITY DEFINER.';
 
 -- 5. Create Trigger to auto-refresh the Materialized View
 CREATE TRIGGER refresh_stocktake_counts_trigger

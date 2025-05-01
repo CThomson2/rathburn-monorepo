@@ -1,6 +1,7 @@
 // /src/app/api/scanner/scan/single/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createNewClient, createServiceClient } from '@/lib/supabase/server';
+// Revert import: Use existing clients
+import { createNewClient, createServiceClient } from '@/lib/supabase/server'; 
 import { cookies } from 'next/headers';
 
 // Define allowed origins (you can customize this based on your environments)
@@ -84,7 +85,6 @@ export async function OPTIONS(request: NextRequest) {
   console.log(`API: OPTIONS request for scan/single from origin: ${requestOrigin}`);
   const headers = getCorsHeaders(requestOrigin);
   
-  // Directly return a 204 response with CORS headers
   return new Response(null, {
     status: 204,
     headers: headers
@@ -107,16 +107,72 @@ export async function GET(request: NextRequest) {
 
 /**
  * Handle POST requests for single drum scans
- * This is a simplified version for testing API connectivity
  */
 export async function POST(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
-  console.log('API: POST scan request from origin:', requestOrigin);
   const headers = getCorsHeaders(requestOrigin);
+  console.log(`API: POST scan request from origin: ${requestOrigin}`);
+
+  let supabase;
+  let userId = null;
+  let sessionError = null;
+  let authMethod = 'unknown';
 
   try {
-    console.log('API: Received scan request');
+    // Prioritize Authorization header for API clients (like mobile app)
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      authMethod = 'token';
+      console.log('API: Attempting authentication via Bearer token.');
+      const token = authHeader.substring(7); // Remove 'Bearer '
+      supabase = createNewClient(); // Use the client suitable for programmatic access
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error) {
+        console.error('API: Token authentication error:', error);
+        sessionError = error;
+      } else if (user) {
+        userId = user.id;
+        console.log('API: Token authentication successful. User ID:', userId);
+      } else {
+        console.log('API: Token provided but no user found.');
+        sessionError = new Error('Invalid token or user not found');
+      }
+    } else {
+      // Fallback to cookie-based auth for web clients
+      authMethod = 'cookie';
+      console.log('API: No Bearer token found, attempting cookie authentication.');
+      // createNewClient might implicitly handle cookies, or you might need a specific server client
+      // Let's stick with createNewClient for now, assuming it can handle cookies if needed, or createServerClient if available/necessary
+      supabase = createNewClient(); 
+      const { data: { session }, error } = await supabase.auth.getSession(); // Standard session check
+      
+      if (error) {
+        console.error('API: Cookie session error:', error);
+        sessionError = error;
+      } else if (session) {
+        userId = session.user.id;
+        console.log('API: Cookie authentication successful. User ID:', userId);
+      } else {
+         console.log('API: No active cookie session found.');
+      }
+    }
+
+    // Check if authentication succeeded by either method
+    if (sessionError || !userId) {
+      console.log(`API: Authentication failed (Method: ${authMethod}). Error:`, sessionError);
+      recordScan('unknown', false, 'unknown');
+      const errorMsg = sessionError ? sessionError.message : 'Authentication required';
+      const status = sessionError && (sessionError as any).status === 401 ? 401 : 401; // Default to 401
+      return NextResponse.json(
+        { success: false, error: errorMsg },
+        { status: status, headers: headers } 
+      );
+    }
     
+    console.log(`API: User authenticated (ID: ${userId}, Method: ${authMethod}). Proceeding...`);
+
+    // --- Proceed with processing the scan --- 
     // Parse request body
     const body = await request.json();
     console.log('API: Request body:', body);
@@ -138,66 +194,31 @@ export async function POST(request: NextRequest) {
     // Record the scan in memory (for the test page)
     const scanInMemory = recordScan(barcode, true, deviceId);
 
-    // --- Insert into temporary database table --- 
+    // --- Insert into database using the authenticated client --- 
+    // Ensure supabase client is valid (it should be if userId is set)
+    if (!supabase) {
+        console.error('API: Supabase client not initialized despite successful auth check!');
+        return NextResponse.json({ success: false, error: 'Internal server error: Client init failed' }, { status: 500, headers: headers });
+    }
+    
     try {
-      // Check for authorization header with Bearer token
-      const authHeader = request.headers.get('authorization');
-      let supabase;
-      
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        console.log('API: Authorization header found, using token authentication');
-        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-        
-        // Create a Supabase client
-        supabase = createNewClient();
-        
-        // Set the session using the token
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: token,
-          refresh_token: '',
-        });
-        
-        if (sessionError) {
-          console.error('API: Error setting session with token:', sessionError);
-          // Fall back to service role if token auth fails
-          console.log('API: Falling back to service role client');
-          supabase = createServiceClient();
-        } else {
-          console.log('API: User authenticated successfully:', sessionData.user?.id);
-        }
-      } else {
-        // No auth header or invalid format, use service role
-        console.log('API: No valid authorization header, using service role client');
-        supabase = createServiceClient();
-      }
-      
       const insertData = {
         barcode_scanned: barcode,
         device_id: deviceId,
         job_id: jobId ? String(jobId) : null,
-        purchase_order_drum_serial: barcode
+        purchase_order_drum_serial: barcode,
+        user_id: userId // Include the authenticated user ID
       };
-      console.log('API: Preparing to insert into temp_scan_log:', insertData);
-
-      const { data, error } = await supabase.rpc('mark_drum_as_received', {
-        p_serial_number: barcode
-      });
+      console.log('API: Preparing to insert scan log using RPC');
       
-      // Debug the JWT token being used
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      console.log('API: Using session with role:', session?.access_token ? 'authenticated user' : 'service role');
-      
-      // Instead of direct schema insert, use the RPC function
-      console.log('API: Using RPC function to insert scan data');
       const { data: rpcResult, error: rpcError } = await supabase.rpc(
         'insert_temp_scan_log',
         {
           p_barcode_scanned: insertData.barcode_scanned,
           p_device_id: insertData.device_id,
           p_job_id: insertData.job_id,
-          p_purchase_order_drum_serial: insertData.purchase_order_drum_serial
+          p_purchase_order_drum_serial: insertData.purchase_order_drum_serial,
+          p_user_id: insertData.user_id // Pass user ID to RPC
         }
       );
       
@@ -205,33 +226,45 @@ export async function POST(request: NextRequest) {
 
       if (rpcError) {
         console.error('API: Error calling insert_temp_scan_log RPC:', rpcError);
+        return NextResponse.json(
+          { success: false, error: 'Database error during scan log insertion.', details: rpcError.message },
+          { status: 500, headers: headers }
+        );
       } else {
         console.log(`API: Successfully inserted scan for ${barcode} using RPC:`, rpcResult);
       }
     } catch (dbError) {
       console.error('API: Unexpected error during DB insertion block:', dbError);
+      return NextResponse.json(
+        { success: false, error: 'Internal server error during database operation.' },
+        { status: 500, headers: headers }
+      );
     }
     // --- End of database insertion ---
     
-    // For testing, just return success with the barcode
+    // Return success
     return NextResponse.json(
       { 
         success: true, 
         scan_id: `scan_${Date.now()}`,
         message: 'Scan received successfully',
         barcode: barcode,
-        timestamp: scanInMemory.timestamp // Use timestamp from in-memory record
+        timestamp: scanInMemory.timestamp
       },
       { headers: headers }
     );
     
   } catch (error) {
-    console.error('API: Error processing scan:', error);
+    console.error('API: General error processing scan:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     recordScan('error', false);
     
+    // Check if it looks like an auth error based on message content if needed
+    const status = errorMessage.includes('Auth') || errorMessage.includes('authentic') ? 401 : 500;
+
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500, headers: headers }
+      { success: false, error: errorMessage },
+      { status: status, headers: headers } 
     );
   }
 }

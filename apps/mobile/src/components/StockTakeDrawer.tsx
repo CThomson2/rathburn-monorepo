@@ -42,7 +42,7 @@ interface StockTakeDrawerProps {
   isScanning: boolean;
   lastScanStatus: "success" | "error" | "idle";
   lastScanMessage: string | null;
-  onStartSession: (sessionId: string) => void;
+  onStartSession: () => void;
   onEndSession: () => void;
 }
 
@@ -56,15 +56,8 @@ export function StockTakeDrawer({
   onStartSession,
   onEndSession,
 }: StockTakeDrawerProps) {
-  const [sessionIdInput, setSessionIdInput] = React.useState<string>("");
-
-  const isSessionIdValid = sessionIdInput.trim().length > 0;
-
   const handleStartSession = () => {
-    if (isSessionIdValid) {
-      onStartSession(sessionIdInput);
-      setSessionIdInput("");
-    }
+    onStartSession();
   };
 
   const handleEndSession = () => {
@@ -117,18 +110,11 @@ export function StockTakeDrawer({
         <div className="flex-1 grid gap-4 py-4 overflow-y-auto px-4">
           {!currentSessionId ? (
             <div className="grid gap-2">
-              <Label htmlFor="session-id">Session ID</Label>
-              <Input
-                id="session-id"
-                value={sessionIdInput}
-                onChange={(e) => setSessionIdInput(e.target.value)}
-                placeholder="Enter session ID or Name"
-              />
-              <Button
-                onClick={handleStartSession}
-                disabled={!isSessionIdValid}
-                className="mt-2"
-              >
+              <p className="text-sm text-muted-foreground">
+                Click the button below to generate a new Session UUID and start
+                a stock take session.
+              </p>
+              <Button onClick={handleStartSession} className="mt-2">
                 <Play className="mr-2 h-4 w-4" /> Start Session
               </Button>
             </div>

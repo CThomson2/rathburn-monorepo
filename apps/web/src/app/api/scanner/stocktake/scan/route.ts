@@ -1,6 +1,6 @@
 // app/api/scanner/stocktake/scan/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server'; // Use server client for auth & RLS
+import { createServiceClient as createClient, createClient as createAuthClient } from '@/lib/supabase/server'; // Use server client for auth & RLS
 import { cookies } from 'next/headers';
 import { StocktakeScanEvent, broadcastScanEvent } from '@/lib/events/sse';
 
@@ -59,17 +59,46 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
   const headers = getCorsHeaders(requestOrigin);
-  const supabase = createClient(); // Use cookie-based auth client
+  const supabaseAuth = createAuthClient(); // Client for auth operations
+  const supabaseService = createClient(); // Service client for DB ops (might bypass RLS)
 
   try {
     console.log(`[API Stocktake Scan] POST request from origin: ${requestOrigin}`);
     
-    // 1. Authenticate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('[API Stocktake Scan] Authentication error:', authError);
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401, headers });
+    // 1. Authenticate user via Bearer token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    let user = null;
+    let authError: any = null; // Use any for flexibility or define a specific error type
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        console.log('[API Stocktake Scan] Attempting authentication with Bearer token.');
+        
+        // Validate the token using the auth client
+        const { data: { user: tokenUser }, error: tokenError } = await supabaseAuth.auth.getUser(token);
+        
+        if (tokenError) {
+            console.error('[API Stocktake Scan] Error validating token:', tokenError);
+            authError = tokenError;
+        } else if (!tokenUser) {
+             console.warn('[API Stocktake Scan] Token provided but no user found.');
+             authError = { message: 'Invalid token provided' };
+        } else {
+            console.log(`[API Stocktake Scan] User authenticated via token: ${tokenUser.id}`);
+            user = tokenUser; // Assign the validated user object
+        }
+    } else {
+        console.warn('[API Stocktake Scan] No Authorization Bearer token found in request headers.');
+        authError = { message: 'Authorization header missing or invalid' };
     }
+    
+    // --- Check authentication result ---
+    if (authError || !user) {
+      console.error('[API Stocktake Scan] Authentication failed:', authError?.message || 'No user found');
+      // Return 401 Unauthorized
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401, headers }); 
+    }
+    // User is authenticated, proceed...
     console.log(`[API Stocktake Scan] User authenticated: ${user.id}`);
 
     // 2. Parse request body
@@ -82,61 +111,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing barcode or session ID' }, { status: 400, headers });
     }
 
-    // 3. Identify barcode type and related ID (Material or Supplier)
+    // 3. Identify barcode type and related ID via RPC call
     let barcodeType: 'material' | 'supplier' | 'unknown' | 'error' = 'unknown';
     let materialId: string | null = null;
     let supplierId: string | null = null;
     let identificationError: string | null = null;
 
     try {
-      // Check if it's a material (assuming barcode might be material_id or code)
-      // Adjust query based on actual barcode format/content
-      const { data: materialData, error: materialError } = await supabase
-        .from('materials')
-        .select('material_id')
-        .or(`material_id.ilike.%${barcode}%,code.ilike.%${barcode}%`)
-        .limit(1)
-        .single(); // Use single to expect zero or one result
+      console.log(`[API Stocktake Scan] Calling RPC find_item_by_barcode_prefix with prefix: ${barcode}`);
+      const { data: rpcData, error: rpcError } = await supabaseService.rpc(
+        'find_item_by_barcode_prefix',
+        { p_barcode_prefix: barcode } // Pass the barcode as the argument
+      );
 
-      if (materialError && materialError.code !== 'PGRST116') { // Ignore 'No rows found' error
-          throw new Error(`Material lookup failed: ${materialError.message}`);
+      if (rpcError) {
+        console.error('[API Stocktake Scan] RPC Error:', rpcError);
+        throw new Error(`Database function error: ${rpcError.message}`);
       }
-
-      if (materialData) {
-        barcodeType = 'material';
-        materialId = materialData.material_id;
-        console.log(`[API Stocktake Scan] Identified as Material: ${materialId}`);
+      
+      // The RPC function returns an array, even if only one row matches
+      if (rpcData && rpcData.length > 0) {
+         const item = rpcData[0]; // Get the first (and only) result
+         if (item.item_type === 'material') {
+             barcodeType = 'material';
+             materialId = item.item_id;
+             console.log(`[API Stocktake Scan] RPC identified as Material: ${materialId}`);
+         } else if (item.item_type === 'supplier') {
+             barcodeType = 'supplier';
+             supplierId = item.item_id;
+             console.log(`[API Stocktake Scan] RPC identified as Supplier: ${supplierId}`);
+         } else {
+             // Should not happen based on RPC logic, but handle defensively
+             console.warn(`[API Stocktake Scan] RPC returned unknown item type: ${item.item_type}`);
+             barcodeType = 'unknown';
+         }
       } else {
-        // Check if it's a supplier (assuming barcode might be supplier_id or code)
-        const { data: supplierData, error: supplierError } = await supabase
-          .from('suppliers')
-          .select('supplier_id')
-          .or(`supplier_id.ilike.%${barcode}%`) // Adjust if supplier code is used
-          .limit(1)
-      .single();
-    
-        if (supplierError && supplierError.code !== 'PGRST116') { // Ignore 'No rows found' error
-            throw new Error(`Supplier lookup failed: ${supplierError.message}`);
-        }
-        
-        if (supplierData) {
-          barcodeType = 'supplier';
-          supplierId = supplierData.supplier_id;
-          console.log(`[API Stocktake Scan] Identified as Supplier: ${supplierId}`);
-        }
-      }
-
-      if(barcodeType === 'unknown') {
-          console.log(`[API Stocktake Scan] Barcode ${barcode} not identified.`);
+         // RPC returned empty array, meaning no match found
+         console.log(`[API Stocktake Scan] Barcode ${barcode} not identified via RPC.`);
+         barcodeType = 'unknown';
       }
 
     } catch (lookupError: any) {
-      console.error('[API Stocktake Scan] Error identifying barcode:', lookupError);
+      console.error('[API Stocktake Scan] Error identifying barcode via RPC:', lookupError);
       identificationError = lookupError.message || 'Barcode identification failed';
-      barcodeType = 'error'; // Mark as error type due to lookup failure
+      barcodeType = 'error'; 
     }
     
-    // 4. Insert scan record into logs.stocktake_scans
+    // 4a. Insert session into logs.stocktake_sessions
+    
+
+    const sessionRecord = {
+        session_id: sessionId,
+        user_id: user.id,
+    };
+
+    // 4b. Insert scan record into logs.stocktake_scans
     let insertedScanData: any = null;
     let insertError: any = null;
 
@@ -154,9 +183,12 @@ export async function POST(request: NextRequest) {
         // scanned_at is default now()
     };
 
+    console.log('[API Stocktake Scan] Scan record:', scanRecord);
+
     try {
-        const { data, error } = await supabase
-            .from('stocktake_scans') // Assuming RLS allows user inserts or using service client
+        const { data, error } = await supabaseService
+          .schema('logs')
+          .from('stocktake_scans') // Assuming RLS allows user inserts or using service client
             .insert(scanRecord)
             .select() // Return the inserted row
             .single(); // Expecting a single row back

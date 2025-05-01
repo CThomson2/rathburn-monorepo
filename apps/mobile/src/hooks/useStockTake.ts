@@ -2,7 +2,17 @@ import { useState, useCallback } from 'react';
 // Remove useAuth import as we'll get token directly
 // import { useAuth } from './useAuth'; 
 import { handleStockTakeScan, StocktakeScanResponse } from '../services/stockTakeScan';
-import { createAuthClient } from '@/lib/supabase/client'; // Import supabase client
+import { createClient, createAuthClient } from '@/lib/supabase/client'; // Import supabase client
+
+// Define API endpoint for starting a session
+const START_SESSION_ENDPOINT = '/api/stocktake/sessions/start'; // Relative to web app
+
+// Interface for the start session API response
+interface StartSessionResponse {
+    success: boolean;
+    session?: { id: string; name: string; /* other fields if needed */ };
+    error?: string;
+}
 
 // Define the state structure for the hook
 interface UseStockTakeState {
@@ -15,7 +25,7 @@ interface UseStockTakeState {
 
 // Define the return type of the hook
 interface UseStockTakeReturn extends UseStockTakeState {
-  startStocktakeSession: (sessionId: string) => void;
+  startStocktakeSession: () => Promise<void>;
   endStocktakeSession: () => void;
   processStocktakeScan: (barcode: string) => Promise<void>; // Make async for potential awaits
 }
@@ -59,24 +69,81 @@ export function useStockTake(): UseStockTakeReturn {
     lastScanId: null,
   });
 
-  const startStocktakeSession = useCallback((sessionId: string) => {
-    console.log(`[useStockTake] Starting session: ${sessionId}`);
-    setState((prevState) => ({
-      ...prevState,
-      currentSessionId: sessionId,
-      lastScanStatus: 'idle', // Reset status on new session
-      lastScanMessage: null,
-      lastScanId: null,
-    }));
-  }, []);
+  // Updated startStocktakeSession function
+  const startStocktakeSession = useCallback(async () => {
+    console.log(`[useStockTake] Attempting to start new session...`);
+    setState((prevState) => ({ ...prevState, isScanning: true, lastScanStatus: 'idle' }));
+
+    // const supabase = createClient();
+    const supabaseAuth = createAuthClient();
+  
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    const token = session?.access_token;
+
+    if (sessionError || !token) {
+        console.error('[useStockTake] Authentication error fetching token for start session:', sessionError);
+        setState((prevState) => ({
+            ...prevState,
+            isScanning: false,
+            lastScanStatus: 'error',
+            lastScanMessage: 'Authentication error. Cannot start session.',
+        }));
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}${START_SESSION_ENDPOINT}`, {
+            method: 'POST',
+            headers: {
+                 'Content-Type': 'application/json',
+                 'Authorization': `Bearer ${token}`,
+            },
+            // No body needed for this simple start request
+        });
+
+        const result: StartSessionResponse = await response.json();
+
+        if (response.ok && result.success && result.session) {
+             // Assign to a new variable to help TypeScript narrow the type
+             const sessionData = result.session;
+             if (!sessionData) { // Check the new variable
+                 throw new Error('API returned success but session data is missing');
+             }
+             console.log(`[useStockTake] Session started successfully: ${sessionData.id}`);
+             setState((prevState) => ({
+                 ...prevState,
+                 isScanning: false,
+                 currentSessionId: sessionData.id, // Use the new variable
+                 lastScanStatus: 'idle',
+                 lastScanMessage: `Session '${sessionData.name}' started. Ready to scan.`,
+             }));
+        } else {
+             throw new Error(result.error || 'Failed to start session');
+        }
+
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error starting session';
+        console.error('[useStockTake] Error starting session:', error);
+        setState((prevState) => ({
+            ...prevState,
+            isScanning: false,
+            lastScanStatus: 'error',
+            lastScanMessage: message,
+        }));
+    }
+
+  }, []); // No dependencies needed as it fetches token fresh each time
 
   const endStocktakeSession = useCallback(() => {
-    console.log(`[useStockTake] Ending session: ${state.currentSessionId}`);
-    setState((prevState) => ({
-      ...prevState,
-      currentSessionId: null,
-    }));
-  }, [state.currentSessionId]); // Include dependency
+     console.log(`[useStockTake] Ending session: ${state.currentSessionId}`);
+     // Potentially call an API endpoint to mark session as completed in DB
+     setState((prevState) => ({
+       ...prevState,
+       currentSessionId: null,
+       lastScanStatus: 'idle', // Reset scan status
+       lastScanMessage: 'Session ended.',
+     }));
+  }, [state.currentSessionId]); 
 
   const processStocktakeScan = useCallback(async (barcode: string) => {
     if (!state.currentSessionId) {
@@ -90,8 +157,8 @@ export function useStockTake(): UseStockTakeReturn {
     }
 
     // Get Supabase client and current session token directly
-    const supabase = createAuthClient();
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const supabaseAuth = createAuthClient();
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
     const token = session?.access_token;
 
     if (sessionError || !token) { // Check for token directly from session

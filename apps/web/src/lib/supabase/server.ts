@@ -170,7 +170,7 @@ export const createServiceClient = () => {
       global: {
         headers: {
           // Explicitly set the role to be service_role
-          'X-Client-Info': 'service_role'
+          // 'X-Client-Info': 'service_role'
         }
       }
     }
