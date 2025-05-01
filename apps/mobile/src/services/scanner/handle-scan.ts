@@ -29,7 +29,7 @@ export interface ScanEvent {
 }
 
 // Get the base API URL from environment
-const API_URL = import.meta.env.VITE_SCAN_API_URL || 'http://localhost:3000/api/scanner';
+const API_URL = import.meta.env.VITE_API_URL ?? 'https://rathburn.app/api/scanner';
 
 /**
  * Create base fetch options with CORS settings
