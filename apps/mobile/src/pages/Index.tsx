@@ -15,6 +15,9 @@ import {
   Settings,
   Search,
   Zap,
+  Truck,
+  Factory,
+  ClipboardList,
 } from "lucide-react";
 import { createClient, createAuthClient } from "@/lib/supabase/client";
 import { logout } from "@/services/auth";
@@ -26,13 +29,11 @@ import { TransportSettingsView } from "@/components/views/TransportSettingsView"
 import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
-import { ModalProvider, useModal } from "@/contexts/modal-context";
 import { ScanInput } from "@/features/transport/ScanInput";
 import { useScan } from "@/hooks/use-scan";
-import { toast } from "@/components/ui/toaster";
-
-// Import the ScanProvider instead of just the context
-//
+import { useStockTake } from "@/hooks/useStockTake";
+import { useToast } from "@/components/ui/use-toast";
+import { StockTakeView } from "@/components/StockTakeView";
 
 const statusColors = {
   transport: {
@@ -67,24 +68,46 @@ const IndexContent = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const searchTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { isSettingsModalOpen, openSettingsModal } = useModal();
-  const { handleDrumScan } = useScan();
   const [userInfo, setUserInfo] = useState<Record<string, string | null>>({
     userId: null,
     userName: null,
     sessionToken: null,
     email: null,
   });
+  const [currentView, setCurrentView] = useState("transport");
+  const { toast } = useToast();
+  const transportScan = useScan();
+  const stockTake = useStockTake();
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
-  // Handle barcode scan
-  const handleBarcodeScan = (barcode: string) => {
-    console.log("Barcode scanned:", barcode);
-
-    // Show toast notification for the scan
-    toast.notify("Barcode Scanned", `Processing barcode: ${barcode}`, "info");
-
-    // Always forward to scan context handler
-    handleDrumScan(barcode);
+  // Unified scan handler - determines which context to use
+  const handleGlobalScan = (barcode: string) => {
+    console.log(
+      `[IndexPage] Global scan received: ${barcode}, Current View: ${currentView}`
+    );
+    // Decide which scan processor to call based on the current view or mode
+    if (currentView === "stocktake") {
+      if (stockTake.currentSessionId) {
+        console.log("[IndexPage] Routing scan to useStockTake");
+        stockTake.processStocktakeScan(barcode);
+      } else {
+        console.warn("[IndexPage] Stocktake scan ignored: No active session.");
+        toast({
+          title: "Scan Ignored",
+          description: "Start a stock take session first.",
+          variant: "destructive",
+        });
+      }
+    } else if (currentView === "transport") {
+      // Assuming transportScan.handleDrumScan is the correct function for this view
+      console.log("[IndexPage] Routing scan to useScan (Transport)");
+      transportScan.handleDrumScan(barcode);
+    } else {
+      console.log(
+        `[IndexPage] Scan ignored: View ${currentView} does not handle scans.`
+      );
+      // Optionally provide feedback for unhandled scans
+    }
   };
 
   // Navigation handler for the floating menu
@@ -108,7 +131,7 @@ const IndexContent = () => {
         startSearchTimeout();
         break;
       case "settings":
-        openSettingsModal();
+        // openSettingsModal();
         break;
       default:
         navigate("/");
@@ -165,6 +188,7 @@ const IndexContent = () => {
 
   // Hide search when menu opens
   const handleMenuToggle = (isOpen: boolean) => {
+    setIsMenuOpen(isOpen);
     if (isOpen && isSearchVisible) {
       setIsSearchVisible(false);
     }
@@ -182,6 +206,7 @@ const IndexContent = () => {
   const navLinks = [
     { name: "Transport", icon: Forklift },
     { name: "Production", icon: Atom },
+    { name: "Stock Take", icon: ClipboardList },
     { name: "Transport Settings", icon: Settings },
   ];
 
@@ -196,16 +221,11 @@ const IndexContent = () => {
   }, [activeView, prevView]);
 
   const handleViewChange = (viewName: string) => {
-    // Calculate direction before changing the view
-    const oldIndex = navLinks.findIndex((link) => link.name === activeView);
-    const newIndex = navLinks.findIndex((link) => link.name === viewName);
-    const direction = newIndex - oldIndex;
-
-    // Store the swipe direction in state
-    setSwipeDirection(direction);
-
-    // Update the active view
-    setActiveView(viewName);
+    setCurrentView(viewName);
+    if (isMenuOpen) {
+      handleMenuToggle(false);
+    }
+    setSearchQuery("");
   };
 
   // State to track the swipe direction
@@ -262,27 +282,18 @@ const IndexContent = () => {
    * @returns {JSX.Element}
    */
   const renderView = () => {
-    return (
-      <AnimatePresence initial={false} mode="wait" custom={swipeDirection}>
-        <motion.div
-          key={activeView}
-          custom={swipeDirection}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.2 },
-          }}
-          className="w-full h-[100%] overflow-auto pb-20"
-        >
-          {activeView === "Transport" && <TransportView />}
-          {activeView === "Production" && <ProductionView />}
-          {activeView === "Transport Settings" && <TransportSettingsView />}
-        </motion.div>
-      </AnimatePresence>
-    );
+    switch (currentView) {
+      case "transport":
+        return <TransportView />;
+      case "production":
+        return <ProductionView />;
+      case "stocktake":
+        return <StockTakeView />;
+      case "transportSettings":
+        return <TransportSettingsView />;
+      default:
+        return <TransportView />;
+    }
   };
 
   return (
@@ -291,7 +302,7 @@ const IndexContent = () => {
       {...handlers}
     >
       {/* Invisible Scan Input - Always active */}
-      <ScanInput onScan={handleBarcodeScan} />
+      <ScanInput onScan={handleGlobalScan} />
 
       {/* Navigation Bar */}
       <TopNavbar
@@ -302,7 +313,23 @@ const IndexContent = () => {
 
       {/* Main Content - View Container */}
       <div className="flex-1 overflow-hidden relative">
-        {renderView()}
+        <AnimatePresence initial={false} mode="wait" custom={swipeDirection}>
+          <motion.div
+            key={currentView}
+            custom={swipeDirection}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 },
+            }}
+            className="w-full h-[100%] overflow-auto pb-20"
+          >
+            {renderView()}
+          </motion.div>
+        </AnimatePresence>
 
         {/* User Info Display */}
         {/* <div className="absolute top-2 right-2 z-50">
@@ -351,7 +378,7 @@ const IndexContent = () => {
 
         {/* Settings Modal */}
         <AnimatePresence>
-          {isSettingsModalOpen && <SettingsView />}
+          {/* {isSettingsModalOpen && <SettingsView />} */}
         </AnimatePresence>
       </div>
 
@@ -366,13 +393,11 @@ const IndexContent = () => {
   );
 };
 
-// Wrapper component to provide the modal context
-const Index = () => {
-  return (
-    <ModalProvider>
-      <IndexContent />
-    </ModalProvider>
-  );
-};
+const Index = () => (
+  // Remove the ModalProvider wrapper if not needed
+  // <ModalProvider>
+  <IndexContent />
+  // </ModalProvider>
+);
 
 export default Index;

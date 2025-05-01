@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 ## 1. **Clarify Feature Scope & Requirements**
 - **Define the purpose**: What will this page or feature accomplish for your users?  
