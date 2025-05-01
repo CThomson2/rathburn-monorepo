@@ -42,6 +42,14 @@ interface TransportCardProps {
   onCancelScan: (drumId: string) => void;
 }
 
+/**
+ * A transport job card that displays job details and drum IDs.
+ *
+ * @param {TransportJob} job - The transport job to display.
+ * @param {boolean} active - Whether the card is active (i.e., can be interacted with).
+ * @param {() => void} onSelect - Callback function to call when the card is selected.
+ * @param {(drumId: string) => void} onCancelScan - Callback function to call when a drum ID is cancelled.
+ */
 export function TransportCard({
   job,
   active,

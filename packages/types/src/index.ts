@@ -111,5 +111,3 @@ export interface RequestOptions {
   signal?: AbortSignal;
   timeout?: number;
 }
-
-export * from './scanner/drum-scan';

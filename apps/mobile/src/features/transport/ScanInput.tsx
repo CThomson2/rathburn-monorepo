@@ -22,8 +22,39 @@ export function ScanInput({ onScan }: ScanInputProps) {
   const [barcode, setBarcode] = useState("");
   const [isFocused, setIsFocused] = useState(false);
 
+  // Buffer and timing refs for global barcode scanner detection
+  const bufferRef = useRef<string>("");
+  const lastTimeRef = useRef<number>(0);
+
+  // Global keydown listener to capture keyboard-wedge barcode scanner input
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const now = Date.now();
+      // Reset buffer if pause between keys is too long
+      if (lastTimeRef.current && now - lastTimeRef.current > 100) {
+        bufferRef.current = "";
+      }
+      lastTimeRef.current = now;
+
+      // On Enter, treat buffer as full scan
+      if (e.key === "Enter") {
+        const code = bufferRef.current.trim();
+        bufferRef.current = "";
+        if (code.length >= 3) {
+          console.log("Global scan detected:", code);
+          onScan(code);
+        }
+      } else if (e.key.length === 1) {
+        // Append character to buffer
+        bufferRef.current += e.key;
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown, true);
+    return () =>
+      window.removeEventListener("keydown", handleGlobalKeyDown, true);
+  }, [onScan]);
+
   // Auto-send the barcode after a delay of inactivity
-  // This helps with scanning barcodes that don't end with Enter key
   useEffect(() => {
     if (!barcode.trim()) return;
 

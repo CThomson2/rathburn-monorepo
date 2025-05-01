@@ -29,7 +29,7 @@ import { useSwipeable } from "react-swipeable";
 import { ModalProvider, useModal } from "@/contexts/modal-context";
 import { ScanInput } from "@/features/transport/ScanInput";
 import { useScan } from "@/contexts/scan-context";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 
 // Import the ScanProvider instead of just the context
 //
@@ -68,8 +68,7 @@ const IndexContent = () => {
   const searchTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { isSettingsModalOpen, openSettingsModal } = useModal();
-  const { handleDrumScan, isProcessing } = useScan();
-  const { toast } = useToast();
+  const { handleDrumScan } = useScan();
   const [userInfo, setUserInfo] = useState<Record<string, string | null>>({
     userId: null,
     userName: null,
@@ -82,11 +81,7 @@ const IndexContent = () => {
     console.log("Barcode scanned:", barcode);
 
     // Show toast notification for the scan
-    toast({
-      title: "Barcode Scanned",
-      description: `Processing barcode: ${barcode}`,
-      duration: 3000,
-    });
+    toast.notify("Barcode Scanned", `Processing barcode: ${barcode}`, "info");
 
     // Always forward to scan context handler
     handleDrumScan(barcode);

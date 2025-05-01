@@ -4,7 +4,6 @@
  * This service handles all scanning functionality for the application
  */
 import { createClient } from "@/lib/supabase/client";
-import { supabase } from "@/lib/supabase/client-auth";
 
 // Define the structure of a scan response
 export interface ScanResponse {
@@ -131,6 +130,8 @@ export async function handleScan({
     // Update drum status in database directly
     let dbUpdateSuccess = false;
     try {
+      const supabase = createClient();
+      
       console.log('[SUPABASE] Updating drum received status for:', barcode);
       const { data, error: dbError } = await supabase.rpc('mark_drum_as_received', {
         p_serial_number: barcode

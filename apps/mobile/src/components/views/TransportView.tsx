@@ -11,8 +11,8 @@ import {
   ScanBarcode,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ScanContext, useScan } from "@/contexts/scan-context";
-import { motion, AnimatePresence } from "framer-motion";
+import { useScan } from "@/contexts/scan-context";
+// import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -105,83 +105,83 @@ export function TransportView() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { scannedDrums, resetScannedDrums, scanMode, setScanMode } = useScan();
 
-  // Test data in case the RPC call fails
-  const testProductionJobs = [
-    {
-      id: "1",
-      title: "PO-2024-001",
-      supplier: "Supplier A",
-      orderDate: "2024-06-01",
-      progress: 60,
-      status: "in-progress",
-      etaDate: "2024-06-10",
-      item: "Material X",
-      quantity: 5,
-      drums: [
-        {
-          pod_id: "d1",
-          pol_id: "l1",
-          serial_number: "DR-0001",
-          is_received: true,
-        },
-        {
-          pod_id: "d2",
-          pol_id: "l1",
-          serial_number: "DR-0002",
-          is_received: true,
-        },
-        {
-          pod_id: "d3",
-          pol_id: "l1",
-          serial_number: "DR-0003",
-          is_received: true,
-        },
-        {
-          pod_id: "d4",
-          pol_id: "l1",
-          serial_number: "DR-0004",
-          is_received: false,
-        },
-        {
-          pod_id: "d5",
-          pol_id: "l1",
-          serial_number: "DR-0005",
-          is_received: false,
-        },
-      ],
-    },
-    {
-      id: "2",
-      title: "PO-2024-002",
-      supplier: "Supplier B",
-      orderDate: "2024-06-02",
-      progress: 33,
-      status: "pending",
-      etaDate: "2024-06-15",
-      item: "Material Y",
-      quantity: 3,
-      drums: [
-        {
-          pod_id: "d6",
-          pol_id: "l2",
-          serial_number: "DR-0006",
-          is_received: true,
-        },
-        {
-          pod_id: "d7",
-          pol_id: "l2",
-          serial_number: "DR-0007",
-          is_received: false,
-        },
-        {
-          pod_id: "d8",
-          pol_id: "l2",
-          serial_number: "DR-0008",
-          is_received: false,
-        },
-      ],
-    },
-  ];
+  // // Test data in case the RPC call fails
+  // const testProductionJobs = [
+  //   {
+  //     id: "1",
+  //     title: "PO-2024-001",
+  //     supplier: "Supplier A",
+  //     orderDate: "2024-06-01",
+  //     progress: 60,
+  //     status: "in-progress",
+  //     etaDate: "2024-06-10",
+  //     item: "Material X",
+  //     quantity: 5,
+  //     drums: [
+  //       {
+  //         pod_id: "d1",
+  //         pol_id: "l1",
+  //         serial_number: "DR-0001",
+  //         is_received: true,
+  //       },
+  //       {
+  //         pod_id: "d2",
+  //         pol_id: "l1",
+  //         serial_number: "DR-0002",
+  //         is_received: true,
+  //       },
+  //       {
+  //         pod_id: "d3",
+  //         pol_id: "l1",
+  //         serial_number: "DR-0003",
+  //         is_received: true,
+  //       },
+  //       {
+  //         pod_id: "d4",
+  //         pol_id: "l1",
+  //         serial_number: "DR-0004",
+  //         is_received: false,
+  //       },
+  //       {
+  //         pod_id: "d5",
+  //         pol_id: "l1",
+  //         serial_number: "DR-0005",
+  //         is_received: false,
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     id: "2",
+  //     title: "PO-2024-002",
+  //     supplier: "Supplier B",
+  //     orderDate: "2024-06-02",
+  //     progress: 33,
+  //     status: "pending",
+  //     etaDate: "2024-06-15",
+  //     item: "Material Y",
+  //     quantity: 3,
+  //     drums: [
+  //       {
+  //         pod_id: "d6",
+  //         pol_id: "l2",
+  //         serial_number: "DR-0006",
+  //         is_received: true,
+  //       },
+  //       {
+  //         pod_id: "d7",
+  //         pol_id: "l2",
+  //         serial_number: "DR-0007",
+  //         is_received: false,
+  //       },
+  //       {
+  //         pod_id: "d8",
+  //         pol_id: "l2",
+  //         serial_number: "DR-0008",
+  //         is_received: false,
+  //       },
+  //     ],
+  //   },
+  // ];
 
   const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([]);
 
@@ -200,7 +200,7 @@ export function TransportView() {
         if (ordersError) {
           console.error("Error fetching purchase orders:", ordersError);
           // Fallback to test data
-          setProductionJobs(testProductionJobs);
+          setProductionJobs([]);
           return;
         }
 
@@ -264,7 +264,7 @@ export function TransportView() {
       } catch (err) {
         console.error("Unexpected error fetching production jobs:", err);
         // Fallback to test data
-        setProductionJobs(testProductionJobs);
+        setProductionJobs([]);
       } finally {
         setIsLoading(false);
       }
@@ -442,12 +442,9 @@ export function TransportView() {
                   onClick={() => openJobDetail(job)}
                 >
                   <ScanBarcode className="h-4 w-4 mr-2" />
-                  Receive Drums
+                  Scan Drums
                 </Button>
               </CardFooter>
-              <div className="absolute top-1/2 right-2 transform -translate-y-1/2">
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </div>
             </Card>
           ))}
         </div>

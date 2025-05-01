@@ -7,9 +7,8 @@ import {
 } from "react";
 import { ScanHandler } from "@/components/ScanHandler";
 import { ScanTester } from "@/components/ScanTester";
-import { ScanMode } from "@rathburn/types";
 import { createClient } from "@/lib/supabase/client";
-import { toast, useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { Database } from "@/types/supabase";
 import scanService from "@/services/scanner/handle-scan";
 import { createAuthClient } from "@/lib/supabase/client";
@@ -124,6 +123,9 @@ interface ScanProviderProps {
   children: ReactNode;
 }
 
+// Define ScanMode locally as these scanner modes
+type ScanMode = "single" | "bulk";
+
 /**
  * ScanProvider component that manages the state and handling of drum scans.
  *
@@ -146,7 +148,6 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
   // const [isProcessing, setIsProcessing] = useState(false); // Commented out as requested
   const [pendingDrums, setPendingDrums] = useState(0);
   const [processedDrums, setProcessedDrums] = useState(0);
-  const { toast } = useToast(); // Get toast function here, in the component body
 
   // Fetch pending drums count on mount
   useEffect(() => {
@@ -189,12 +190,7 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
     // setIsProcessing(true); // Commented out as requested
 
     // Show initial scanning toast
-    toast({
-      title: "Scanning...",
-      description: `Processing drum: ${barcode}`,
-      variant: "default",
-      duration: 2000,
-    });
+    toast.notify("Scanning...", `Processing drum: ${barcode}`, "info");
 
     try {
       // Get auth token for the scan service
@@ -204,11 +200,11 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
 
       if (sessionError || !sessionData.session?.access_token) {
         console.error("Error getting auth session:", sessionError);
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in to scan drums",
-          variant: "destructive",
-        });
+        toast.notify(
+          "Authentication Error",
+          "Please sign in to scan drums",
+          "error"
+        );
         return;
       }
 
@@ -240,13 +236,13 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
         }
 
         // Show success toast with confirmation the database was updated
-        toast({
-          title: "Drum Received ✅",
-          description: scanResult.updatedInDb
+        toast.notify(
+          "Drum Received ✅",
+          scanResult.updatedInDb
             ? `Successfully received drum ${barcode} and updated database`
             : `Successfully received drum ${barcode}`,
-          variant: "default",
-        });
+          "success"
+        );
 
         // Dispatch custom event for UI update
         window.dispatchEvent(
@@ -257,20 +253,21 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
       } else {
         console.error("ScanContext: Scan failed:", scanResult.error);
 
-        // Show an appropriate error message
-        toast({
-          title: "Scan Failed ❌",
-          description: `Error: ${scanResult.error || "Unknown error occurred"} (${barcode})`,
-          variant: "destructive",
-        });
+        // Show scan failure toast
+        toast.notify(
+          "Scan Failed ❌",
+          `Error: ${scanResult.error || "Unknown error occurred"} (${barcode})`,
+          "error"
+        );
       }
     } catch (err) {
       console.error("Error during drum scan processing:", err);
-      toast({
-        title: "Scan Error ❌",
-        description: `${err instanceof Error ? err.message : "Failed to process scan"} (${barcode})`,
-        variant: "destructive",
-      });
+      // Show unexpected error toast
+      toast.notify(
+        "Scan Error ❌",
+        `${err instanceof Error ? err.message : "Failed to process scan"} (${barcode})`,
+        "error"
+      );
     } finally {
       // setIsProcessing(false); // Commented out as requested
     }
