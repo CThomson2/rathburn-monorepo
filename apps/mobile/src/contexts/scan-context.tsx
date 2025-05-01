@@ -17,77 +17,77 @@ import { createAuthClient } from "@/lib/supabase/client";
 const SHOW_SCAN_TESTER =
   import.meta.env.DEV || import.meta.env.VITE_SHOW_SCAN_TESTER === "true";
 
-// Define interfaces for the tables we're using (based on inventory schema)
-interface Drum {
-  drum_id: string; // uuid
-  batch_id: string; // uuid
-  serial_number: string;
-  current_volume: number;
-  status: string;
-  current_location: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// // Define interfaces for the tables we're using (based on inventory schema)
+// interface Drum {
+//   drum_id: string; // uuid
+//   batch_id: string; // uuid
+//   serial_number: string;
+//   current_volume: number;
+//   status: string;
+//   current_location: string | null;
+//   created_at: string;
+//   updated_at: string;
+// }
 
-interface PurchaseOrderDrum {
-  pod_id: string; // uuid
-  pol_id: string; // uuid
-  serial_number: string;
-  is_received: boolean;
-  is_printed: boolean;
-  drum_id: string | null;
-  created_at: string;
-}
+// interface PurchaseOrderDrum {
+//   pod_id: string; // uuid
+//   pol_id: string; // uuid
+//   serial_number: string;
+//   is_received: boolean;
+//   is_printed: boolean;
+//   drum_id: string | null;
+//   created_at: string;
+// }
 
-interface PurchaseOrderLine {
-  pol_id: string; // uuid
-  po_id: string; // uuid
-  item_id: string; // uuid
-  quantity: number;
-  unit_weight: number | null;
-  cost: number | null;
-}
+// interface PurchaseOrderLine {
+//   pol_id: string; // uuid
+//   po_id: string; // uuid
+//   item_id: string; // uuid
+//   quantity: number;
+//   unit_weight: number | null;
+//   cost: number | null;
+// }
 
-interface PurchaseOrder {
-  po_id: string; // uuid
-  po_number: string;
-  supplier_id: string; // uuid
-  order_date: string;
-  status: string;
-  eta_date: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// interface PurchaseOrder {
+//   po_id: string; // uuid
+//   po_number: string;
+//   supplier_id: string; // uuid
+//   order_date: string;
+//   status: string;
+//   eta_date: string | null;
+//   created_at: string;
+//   updated_at: string;
+// }
 
-interface Batch {
-  batch_id: string; // uuid
-  item_id: string; // uuid
-  batch_type: string;
-  total_volume: number;
-  created_at: string;
-  po_id?: string | null; // uuid
-  updated_at?: string | null;
-}
+// interface Batch {
+//   batch_id: string; // uuid
+//   item_id: string; // uuid
+//   batch_type: string;
+//   total_volume: number;
+//   created_at: string;
+//   po_id?: string | null; // uuid
+//   updated_at?: string | null;
+// }
 
-// Define interfaces for our RPC function results
-interface PendingDrumResult {
-  pod_id: string;
-  pol_id: string;
-  serial_number: string;
-}
+// // Define interfaces for our RPC function results
+// interface PendingDrumResult {
+//   pod_id: string;
+//   pol_id: string;
+//   serial_number: string;
+// }
 
-interface DrumReceivedCheckResult {
-  drum_exists: boolean;
-  is_received: boolean;
-}
+// interface DrumReceivedCheckResult {
+//   drum_exists: boolean;
+//   is_received: boolean;
+// }
 
-interface OrderCompletionResult {
-  line_complete: boolean;
-  order_complete: boolean;
-}
+// interface OrderCompletionResult {
+//   line_complete: boolean;
+//   order_complete: boolean;
+// }
 
 // Create a context for sharing the scanned drums state
-interface ScanContextType {
+export interface ScanContextType {
   scannedDrums: string[];
   setScannedDrums: (drums: string[]) => void;
   handleDrumScan: (barcode: string) => void;
@@ -117,7 +117,7 @@ export const ScanContext = createContext<ScanContextType>({
 });
 
 // Hook for easier context consumption
-export const useScan = () => useContext(ScanContext);
+// export const useScan = () => useContext(ScanContext);
 
 interface ScanProviderProps {
   children: ReactNode;

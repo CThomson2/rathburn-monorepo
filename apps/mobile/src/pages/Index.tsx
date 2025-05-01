@@ -28,7 +28,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ModalProvider, useModal } from "@/contexts/modal-context";
 import { ScanInput } from "@/features/transport/ScanInput";
-import { useScan } from "@/contexts/scan-context";
+import { useScan } from "@/hooks/use-scan";
 import { toast } from "@/components/ui/toaster";
 
 // Import the ScanProvider instead of just the context

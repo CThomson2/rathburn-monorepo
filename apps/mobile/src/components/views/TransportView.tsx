@@ -11,7 +11,7 @@ import {
   ScanBarcode,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useScan } from "@/contexts/scan-context";
+import { useScan } from "@/hooks/use-scan";
 // import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
@@ -37,7 +37,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { ScanMode } from "@rathburn/types";
 
 const statusColors = {
   transport: {
@@ -505,7 +504,7 @@ export function TransportView() {
                     No drums scanned yet
                   </p>
                 ) : (
-                  scannedDrums.map((serial) => (
+                  scannedDrums.map((serial: string) => (
                     <Badge
                       key={`scanned-${serial}`}
                       variant="default"

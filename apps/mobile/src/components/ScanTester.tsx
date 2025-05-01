@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useScan } from "@/contexts/scan-context";
+import { useScan } from "@/hooks/use-scan";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -19,7 +19,6 @@ export function ScanTester() {
     scanMode,
     pendingDrums,
     processedDrums,
-    isProcessing,
   } = useScan();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,8 +38,7 @@ export function ScanTester() {
 
   // Generate a realistic drum barcode
   const generateTestBarcode = () => {
-    const prefix = "DR-";
-    const randomBarcode = `${prefix}${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
+    const randomBarcode = `${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
     setInputValue(randomBarcode);
   };
 
@@ -54,13 +52,7 @@ export function ScanTester() {
     let knownBarcodes: string[] = [];
     if (error) {
       console.error("Error fetching PO drums:", error);
-      knownBarcodes = [
-        "DR-18087",
-        "DR-18088",
-        "DR-18089",
-        "DR-18090",
-        "DR-18091",
-      ];
+      knownBarcodes = ["18087", "18088", "18089", "18090", "18091"];
     } else {
       knownBarcodes = data?.map((drum) => drum.serial_number) || [];
     }
@@ -117,10 +109,10 @@ export function ScanTester() {
                 setInputValue("");
               }
             }}
-            disabled={!inputValue.trim() || isProcessing}
+            disabled={!inputValue.trim()}
             className="bg-blue-500 text-white px-2 py-1 rounded text-sm disabled:bg-gray-400"
           >
-            {isProcessing ? "..." : "Scan"}
+            Scan
           </button>
         </div>
 
