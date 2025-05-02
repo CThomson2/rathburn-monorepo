@@ -79,21 +79,27 @@ export function OrderConfirmation({
    * @returns {Promise<void>} A promise that resolves when the operation is complete or an error occurs.
    */
   const generateBarcodeLabels = async (polId: string): Promise<void> => {
-    // TODO: Consider adding a loading state specific to this button/action
-    // e.g., const [isGenerating, setIsGenerating] = useState(false);
     try {
       console.log("[COMPONENT] Generating barcode labels for polId:", polId);
 
-      // Corrected API endpoint to match the actual route file path
-      // The previous path '/api/scanners/...' was incorrect.
+      // Set loading state to show user something is happening
+      // TODO: Add specific loading state for this button if needed
+      setIsLoading(true);
+
+      // The API now returns the PDF directly instead of a JSON with a file path
+      // So we need to handle it differently
       const response = await fetch(`/api/barcodes/drum-labels/${polId}`);
 
       if (!response.ok) {
-        // Attempt to get more error details from the response body
         let errorDetails = response.statusText;
         try {
-          const errorData = await response.json();
-          errorDetails = errorData.error || errorDetails;
+          // Try to parse error as JSON, but the response might be a PDF
+          if (
+            response.headers.get("Content-Type")?.includes("application/json")
+          ) {
+            const errorData = await response.json();
+            errorDetails = errorData.error || errorDetails;
+          }
         } catch (e) {
           // Ignore if response body is not JSON or empty
         }
@@ -103,29 +109,16 @@ export function OrderConfirmation({
         throw new Error(`API error: ${errorDetails}`);
       }
 
-      const data = await response.json();
+      // Get the response as a blob
+      const pdfBlob = await response.blob();
 
-      // Check if the API call was successful and returned the expected filePath
-      if (!data.success || !data.filePath) {
-        console.error(
-          "[COMPONENT] API response indicates failure or missing filePath:",
-          data
-        );
-        throw new Error(
-          data.error || "Failed to generate PDF: Invalid API response"
-        );
-      }
+      // Create a URL for the blob
+      const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      console.log(
-        "[COMPONENT] PDF generated successfully. Opening path:",
-        data.filePath
-      );
+      console.log("[COMPONENT] PDF received successfully. Opening in new tab");
 
-      // Open the PDF file path in a new tab.
-      // The browser will request this path (e.g., /labels/barcodes-123.pdf),
-      // and the Next.js server will serve the static file from the `public` directory.
-      // The browser then handles displaying or downloading the PDF.
-      const pdfWindow = window.open(data.filePath, "_blank");
+      // Open the PDF blob URL in a new tab
+      const pdfWindow = window.open(pdfUrl, "_blank");
 
       // Check if the new window/tab was blocked by a pop-up blocker
       if (!pdfWindow) {
@@ -135,8 +128,18 @@ export function OrderConfirmation({
         toast.info(
           "Pop-up blocked. Please allow pop-ups for this site to view the PDF."
         );
-        // Optionally, provide a direct link for the user to click manually
-        // e.g., by setting state: setManualPdfLink(data.filePath)
+
+        // Provide a manual download option
+        const link = document.createElement("a");
+        link.href = pdfUrl;
+        link.download = `drum-labels-${polId}.pdf`;
+        link.click();
+
+        // Clean up the blob URL after a delay to ensure the download has started
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+      } else {
+        // Clean up the blob URL when the window is closed
+        pdfWindow.onunload = () => URL.revokeObjectURL(pdfUrl);
       }
     } catch (error) {
       console.error("[COMPONENT] Failed to generate barcode labels:", error);
@@ -145,8 +148,7 @@ export function OrderConfirmation({
         error instanceof Error ? error.message : "An unknown error occurred";
       toast.error(`Failed to generate barcode labels: ${errorMessage}`);
     } finally {
-      // TODO: Reset the loading state if implemented
-      // e.g., setIsGenerating(false);
+      setIsLoading(false);
     }
   };
 

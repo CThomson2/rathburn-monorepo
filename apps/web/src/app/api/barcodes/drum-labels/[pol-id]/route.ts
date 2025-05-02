@@ -32,12 +32,7 @@ export async function GET(
 
     // Fetch drum label data from database
     const drumLabels = await fetchDrumLabelData(polId);
-    // const firstUnitNumber = Math.min(
-    //   ...drumLabels.map((label) => parseInt(label.serialNumber
-    //     .slice(label.serialNumber.indexOf("-") + 1)
-    //   ))
-    // );
-
+    
     if (!drumLabels || drumLabels.length === 0) {
       return NextResponse.json(
         { error: "No drum labels found for this purchase order line" },
@@ -247,28 +242,30 @@ export async function GET(
       });
     }
 
-    // Serialize and save PDF as before
+    // Serialize the PDF
     const pdfBytes = await pdfDoc.save();
 
-    // Save generated PDF to /public folder
-    await mkdir(join(process.cwd(), "public", "labels"), { recursive: true });
-
-    // Generate the file path and URL path
+    // Generate the file name
     const fileName = `barcodes-${polId}.pdf`;
-    const filePath = join(process.cwd(), "public", "labels", fileName);
-    const urlPath = `/labels/${fileName}`;
-
-    // Save the file
-    await writeFile(filePath, pdfBytes);
-
+    
+    // Instead of saving to the local filesystem, we'll serve the PDF directly from memory
+    // This is the most reliable method that works in both development and production
+    
+    // Create the response with the PDF content
+    const response = new NextResponse(pdfBytes, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Cache-Control': 'no-store'
+      }
+    });
+    
     // Mark labels as printed
     await markDrumLabelsAsPrinted(polId);
-
-    // Return the URL path to the generated PDF
-    return NextResponse.json({
-      success: true,
-      filePath: urlPath,
-    });
+    
+    // Return the PDF directly
+    return response;
   } catch (err) {
     console.error(err);
     return NextResponse.json(
