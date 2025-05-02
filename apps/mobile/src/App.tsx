@@ -16,6 +16,7 @@ import { withAuth } from "./lib/auth/route-guard";
 import { ThemeProvider } from "./providers/theme-provider";
 import { ScanProvider } from "@/contexts/scan-context";
 import { ToastContextSetter } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +126,7 @@ const App = () => (
           <BrowserRouter>
             <RouterWithLogging />
           </BrowserRouter>
+          <Toaster />
         </ToastProvider>
       </TooltipProvider>
     </QueryClientProvider>

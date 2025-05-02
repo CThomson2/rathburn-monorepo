@@ -5,12 +5,20 @@ import { handleStockTakeScan, StocktakeScanResponse } from '../services/stockTak
 import { createClient, createAuthClient } from '@/lib/supabase/client'; // Import supabase client
 
 // Define API endpoint for starting a session
-const START_SESSION_ENDPOINT = '/api/stocktake/sessions/start'; // Relative to web app
+const START_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions/start'; // Relative to web app
+const END_SESSION_ENDPOINT_TEMPLATE = '/api/scanner/stocktake/sessions/{sessionId}/end'; // Template for ending
 
 // Interface for the start session API response
 interface StartSessionResponse {
     success: boolean;
     session?: { id: string; name: string; /* other fields if needed */ };
+    error?: string;
+}
+
+// Interface for the end session API response (can be simple)
+interface EndSessionResponse {
+    success: boolean;
+    message?: string;
     error?: string;
 }
 
@@ -134,16 +142,72 @@ export function useStockTake(): UseStockTakeReturn {
 
   }, []); // No dependencies needed as it fetches token fresh each time
 
-  const endStocktakeSession = useCallback(() => {
-     console.log(`[useStockTake] Ending session: ${state.currentSessionId}`);
-     // Potentially call an API endpoint to mark session as completed in DB
-     setState((prevState) => ({
-       ...prevState,
-       currentSessionId: null,
-       lastScanStatus: 'idle', // Reset scan status
-       lastScanMessage: 'Session ended.',
-     }));
-  }, [state.currentSessionId]); 
+  const endStocktakeSession = useCallback(async () => { // Make async
+    const sessionId = state.currentSessionId;
+    if (!sessionId) {
+      console.warn('[useStockTake] endStocktakeSession called without an active session.');
+      return; // No session to end
+    }
+
+    console.log(`[useStockTake] Attempting to end session: ${sessionId}`);
+    // Optionally set a temporary state like 'ending'
+    // setState((prevState) => ({ ...prevState, lastScanMessage: 'Ending session...' }));
+
+    const supabaseAuth = createAuthClient();
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    const token = session?.access_token;
+
+    if (sessionError || !token) {
+      console.error('[useStockTake] Authentication error fetching token for end session:', sessionError);
+      // Update state locally anyway, but show an error message
+      setState((prevState) => ({
+        ...prevState,
+        currentSessionId: null,
+        lastScanStatus: 'error',
+        lastScanMessage: 'Session ended locally, but failed to sync with server (auth error).',
+      }));
+      return;
+    }
+
+    try {
+      const endpoint = END_SESSION_ENDPOINT_TEMPLATE.replace('{sessionId}', sessionId);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+        method: 'PATCH', // Use PATCH as defined in the API route
+        headers: {
+          'Content-Type': 'application/json', // Although no body, Content-Type is good practice
+          'Authorization': `Bearer ${token}`,
+        },
+        // No body needed for this PATCH request
+      });
+
+      const result: EndSessionResponse = await response.json();
+
+      if (response.ok && result.success) {
+        console.log(`[useStockTake] Session ${sessionId} successfully marked as completed on server.`);
+        setState((prevState) => ({
+          ...prevState,
+          currentSessionId: null,
+          lastScanStatus: 'idle',
+          lastScanMessage: result.message || 'Session ended successfully.',
+        }));
+      } else {
+        // Handle API errors (e.g., session not found, server error)
+        throw new Error(result.error || `Failed to end session on server (status: ${response.status})`);
+      }
+
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error ending session on server';
+      console.error('[useStockTake] Error ending session via API:', error);
+      // End the session locally but inform the user about the sync failure
+      setState((prevState) => ({
+        ...prevState,
+        currentSessionId: null, // Still end locally
+        lastScanStatus: 'error',
+        lastScanMessage: `Session ended locally, but failed to sync with server: ${message}`,
+      }));
+    }
+
+  }, [state.currentSessionId]); // Dependency on currentSessionId
 
   const processStocktakeScan = useCallback(async (barcode: string) => {
     if (!state.currentSessionId) {
