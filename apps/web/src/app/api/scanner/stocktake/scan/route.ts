@@ -206,30 +206,30 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Broadcast event (only if insert succeeded and wasn't an ignored unknown)
-    if (insertedScanData && insertedScanData.status === 'success') {
-      try {
-        const eventPayload: StocktakeScanEvent = {
-          type: 'STOCKTAKE_SCAN',
-          payload: {
-            scanId: insertedScanData.id,
-            sessionId: insertedScanData.stocktake_session_id,
-            rawBarcode: insertedScanData.raw_barcode,
-            barcodeType: insertedScanData.barcode_type,
-            materialId: insertedScanData.material_id,
-            supplierId: insertedScanData.supplier_id,
-            status: insertedScanData.status,
-            scannedAt: insertedScanData.scanned_at, // Use DB timestamp
-            userId: insertedScanData.user_id,
-            deviceId: insertedScanData.device_id,
-          },
-        };
-        await broadcastScanEvent(eventPayload);
-        console.log(`[API Stocktake Scan] Broadcasted SSE event for scan ${insertedScanData.id}`);
-      } catch (broadcastError) {
-        console.error('[API Stocktake Scan] Failed to broadcast SSE event:', broadcastError);
-        // Log error but don't fail the request
-      }
-    }
+    // if (insertedScanData && insertedScanData.status === 'success') {
+    //   try {
+    //     const eventPayload: StocktakeScanEvent = {
+    //       type: 'STOCKTAKE_SCAN',
+    //       payload: {
+    //         scanId: insertedScanData.id,
+    //         sessionId: insertedScanData.stocktake_session_id,
+    //         rawBarcode: insertedScanData.raw_barcode,
+    //         barcodeType: insertedScanData.barcode_type,
+    //         materialId: insertedScanData.material_id,
+    //         supplierId: insertedScanData.supplier_id,
+    //         status: insertedScanData.status,
+    //         scannedAt: insertedScanData.scanned_at, // Use DB timestamp
+    //         userId: insertedScanData.user_id,
+    //         deviceId: insertedScanData.device_id,
+    //       },
+    //     };
+    //     await broadcastScanEvent(eventPayload);
+    //     console.log(`[API Stocktake Scan] Broadcasted SSE event for scan ${insertedScanData.id}`);
+    //   } catch (broadcastError) {
+    //     console.error('[API Stocktake Scan] Failed to broadcast SSE event:', broadcastError);
+    //     // Log error but don't fail the request
+    //   }
+    // }
 
     // 6. Return response
     if (insertError) {

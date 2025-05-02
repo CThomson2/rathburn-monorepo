@@ -112,6 +112,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       icon: Package,
       url: "/inventory",
     },
+    {
+      name: "Analytics",
+      icon: BarChart,
+      url: "/analytics",
+    },
   ];
 
   // Custom navigation handler for sidebar items

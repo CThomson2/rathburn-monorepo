@@ -104,7 +104,9 @@ const IndexContent = () => {
 
   const shouldActivateScanInput = useMemo(() => {
     const isActive = !!stockTake.currentSessionId;
-    console.log(`[Index] ScanInput isActive: ${isActive}`);
+    console.log(
+      `[Index] ScanInput isActive: ${isActive}, Session ID: ${stockTake.currentSessionId}`
+    );
     return isActive;
   }, [stockTake.currentSessionId]);
 
@@ -433,8 +435,15 @@ const IndexContent = () => {
             size="icon"
             onClick={() => setIsStockTakeDrawerOpen(true)}
             aria-label="Open Stock Take Session Controls"
+            className="relative"
           >
             <ClipboardList className="h-4 w-4" />
+            {stockTake.currentSessionId && (
+              <span
+                className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800"
+                title="Stocktake session active"
+              />
+            )}
           </Button>,
         ]}
       />
