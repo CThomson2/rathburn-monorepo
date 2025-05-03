@@ -35,6 +35,8 @@ export default defineConfig(({ mode }): UserConfig => {
       alias: {
         '@': path.resolve(__dirname, './src'),
         process: 'process/browser',
+        // Resolve workspace packages
+        '@rathburn/ui': path.resolve(__dirname, '../../packages/ui'),
       },
       dedupe: ['react', 'react-dom'],
     },
@@ -46,12 +48,19 @@ export default defineConfig(({ mode }): UserConfig => {
       target: 'esnext',
       outDir: 'dist',
       assetsDir: 'assets',
+      commonjsOptions: {
+        include: [/node_modules/, /packages\/ui/],
+      },
       rollupOptions: {
         output: {
           manualChunks: {
             react: ['react', 'react-dom', 'react/jsx-runtime'],
           }
-        }
+        },
+        // In production, bundle the UI package
+        external: isProd ? [] : [],
+        // Make sure packages are properly included
+        preserveEntrySignatures: 'strict',
       }
     },
     server: {
@@ -206,7 +215,16 @@ export default defineConfig(({ mode }): UserConfig => {
   // Add the optimizeDeps configuration using type assertion to bypass type checking
   config.optimizeDeps = {
     ...optimizeDepsConfig.esbuildOptions,
-    include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    include: [
+      'react', 
+      'react-dom', 
+      'react/jsx-runtime', 
+      'react/jsx-dev-runtime',
+      // Include workspace packages 
+      '@rathburn/ui'
+    ],
+    // Don't exclude workspace packages
+    exclude: []
   };
 
   return config;

@@ -13,8 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, Trash } from "lucide-react";
+import { Save, Trash, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 /**
  * TransportSettingsView is a component that provides a user interface for configuring
@@ -24,6 +25,8 @@ import { toast } from "sonner";
  * also displays device information including model, screen size, app version, and device ID.
  */
 export function TransportSettingsView() {
+  const { user, signOut } = useAuth();
+
   // Settings state
   const [showBulkWarning, setShowBulkWarning] = useState(true);
   const [defaultEmailAddress, setDefaultEmailAddress] = useState("");
@@ -122,7 +125,7 @@ export function TransportSettingsView() {
             </div>
 
             {/* Default Export Path */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="export-path">CSV Export Location</Label>
               <Input
                 id="export-path"
@@ -134,7 +137,7 @@ export function TransportSettingsView() {
                 Default location for exported CSV files (when supported by
                 device)
               </p>
-            </div>
+            </div> */}
           </CardContent>
 
           <CardFooter className="flex justify-between">
@@ -189,6 +192,9 @@ export function TransportSettingsView() {
             </div>
           </CardContent>
         </Card>
+        <Button variant="ghost" type="submit" onClick={signOut}>
+          <LogOut size={16} />
+        </Button>
       </div>
     </div>
   );

@@ -147,13 +147,12 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
   // const [isProcessing, setIsProcessing] = useState(false); // Commented out as requested
   const [pendingDrums, setPendingDrums] = useState(0);
   const [processedDrums, setProcessedDrums] = useState(0);
+  const supabase = createClient();
 
   // Fetch pending drums count on mount
   useEffect(() => {
     const fetchPendingDrumCount = async () => {
       try {
-        const supabase = createClient();
-
         // Execute raw query to count purchase_order_drums where is_received is false
         const { data, error } = await supabase.rpc("count_pending_drums");
 
@@ -193,7 +192,6 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
 
     try {
       // Get auth token for the scan service
-      const supabase = createClient();
       const { data: sessionData, error: sessionError } =
         await supabase.auth.getSession();
 

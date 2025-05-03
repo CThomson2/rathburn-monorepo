@@ -5,6 +5,10 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "sideEffects": false,
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
@@ -19,6 +23,7 @@
     "@radix-ui/react-alert-dialog": "^1.0.0",
     "@radix-ui/react-aspect-ratio": "^1.0.0",
     "@radix-ui/react-context-menu": "^2.0.0",
+    "@radix-ui/react-slot": "^1.0.0",
     "@radix-ui/react-toast": "^1.0.0",
     "@radix-ui/react-toggle": "^1.0.0",
     "class-variance-authority": "^0.7.0",
