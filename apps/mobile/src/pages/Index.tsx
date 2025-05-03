@@ -419,7 +419,7 @@ const IndexContent = () => {
 
   return (
     <div
-      className="h-screen w-full flex flex-col pt-10 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
+      className="h-screen w-full flex flex-col pt-2 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
       {...handlers}
     >
       <ScanInput onScan={handleGlobalScan} isActive={shouldActivateScanInput} />

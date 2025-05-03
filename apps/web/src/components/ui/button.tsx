@@ -1,7 +1,11 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { type VariantProps } from "class-variance-authority";
-import { Button as BaseButton, webButtonVariants } from "@rathburn/ui";
+// Use the full path to the specific module to avoid resolution issues
+import {
+  createButtonVariants,
+  webButtonVariants,
+} from "../../../../../packages/ui/src/components/button";
 
 import { cn } from "@/lib/utils";
 

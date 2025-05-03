@@ -2,6 +2,18 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "tasks": {
+    "@rathburn/ui#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "@rathburn/mobile#build": {
+      "dependsOn": ["@rathburn/ui#build", "^build"],
+      "outputs": ["dist/**"]
+    },
+    "@rathburn/web#build": {
+      "dependsOn": ["@rathburn/ui#build", "^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "inputs": [
