@@ -14,13 +14,6 @@ export const createClient = () => {
   );
 };
 
-export const createNewClient = () => {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_NEW!
-  );
-}
-
 
 /**
  * Creates a Supabase client with SERVICE_ROLE key for admin-level operations
@@ -28,7 +21,7 @@ export const createNewClient = () => {
  */
 export const createServiceClient = () => {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL_NEW!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
@@ -52,7 +45,7 @@ export type SupabaseOperationCallback<T> = (
 export const withSupabaseClient = async <T>(
   operation: SupabaseOperationCallback<T>,
 ): Promise<T> => {
-  const db = createNewClient();
+  const db = createClient();
   try {
     // Execute the provided operation with the SupabaseClient instance
     return await operation(db);

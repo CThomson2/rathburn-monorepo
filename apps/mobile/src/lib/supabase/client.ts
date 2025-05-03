@@ -38,38 +38,6 @@ export const createClient = () => {
   );
 };
 
-export const createAuthClient = () => {
-  const isDev = import.meta.env.MODE === "development";
-  
-  // Configure client options to prevent CORS issues
-  const options = {
-    auth: {
-      persistSession: true,  
-      autoRefreshToken: true,
-    },
-    global: {
-      fetch: (url: RequestInfo | URL, options: RequestInit = {}) => {
-        // Set specific options for fetch to avoid CORS issues
-        options.credentials = 'omit';
-        return fetch(url, options);
-      }
-    },
-    ...(isDev ? {
-      realtime: {
-        params: {
-              eventsPerSecond: 10,
-            },
-          },
-        }
-      : {}),
-  };
-  return createSupabaseClient(
-    import.meta.env.VITE_SUPABASE_URL_AUTH!,
-    import.meta.env.VITE_SUPABASE_ANON_KEY_AUTH!,
-    options
-  );
-}
-
 /**
  * Type definition for a Supabase operation callback function
  */

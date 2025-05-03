@@ -32,44 +32,51 @@ import {
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
 
+  function toggleTheme() {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
+    <div
+      className={cn(
+        "flex w-16 h-8 p-1 rounded-full cursor-pointer transition-all duration-300",
+        theme === "dark"
+          ? "bg-zinc-950 border border-zinc-800"
+          : "bg-white border border-zinc-200",
+        className
+      )}
+      onClick={toggleTheme}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="flex justify-between items-center w-full">
+        <div
           className={cn(
-            "relative h-9 w-9 bg-background border-border",
-            className
+            "flex justify-center items-center w-6 h-6 rounded-full transition-transform duration-300",
+            theme == "dark"
+              ? "transform translate-x-0 bg-zinc-800"
+              : "transform translate-x-8 bg-gray-200"
           )}
         >
-          <Sun className="h-[1.1rem] w-[1.1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.1rem] w-[1.1rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onClick={() => setTheme("light")}
-          className="cursor-pointer"
+          {theme == "dark" ? (
+            <Moon className="w-4 h-4 text-white" strokeWidth={1.5} />
+          ) : (
+            <Sun className="w-4 h-4 text-gray-700" strokeWidth={1.5} />
+          )}
+        </div>
+        <div
+          className={cn(
+            "flex justify-center items-center w-6 h-6 rounded-full transition-transform duration-300",
+            theme == "dark" ? "bg-transparent" : "transform -translate-x-8"
+          )}
         >
-          <Sun className="mr-2 h-4 w-4" />
-          <span>Light</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => setTheme("dark")}
-          className="cursor-pointer"
-        >
-          <Moon className="mr-2 h-4 w-4" />
-          <span>Dark</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => setTheme("system")}
-          className="cursor-pointer"
-        >
-          <span>System</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {theme == "dark" ? (
+            <Sun className="w-4 h-4 text-gray-500" strokeWidth={1.5} />
+          ) : (
+            <Moon className="w-4 h-4 text-black" strokeWidth={1.5} />
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { createNewClient as createClient } from "@/lib/supabase/server";
+import { createClient as createClient } from "@/lib/supabase/server";
 import { ActionType, BatchType, DrumStatus } from "@/types/models/scan";
 
 /**

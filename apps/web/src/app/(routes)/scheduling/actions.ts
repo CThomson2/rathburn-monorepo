@@ -1,7 +1,7 @@
-import { createNewClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function getAvailableDrums() {
-  const supabase = createNewClient();
+  const supabase = createClient();
   const { data, error } = await supabase
     .from("drums")
     .select("*")
@@ -17,7 +17,7 @@ export async function getAvailableDrums() {
 }
 
 export async function getUpcomingDistillations() {
-  const supabase = createNewClient();
+  const supabase = createClient();
   const { data, error } = await supabase
     .from("distillation_schedule")
     .select("*")
@@ -33,7 +33,7 @@ export async function getUpcomingDistillations() {
 }
 
 export async function getPendingAssignments() {
-  const supabase = createNewClient();
+  const supabase = createClient();
   const { data, error, count } = await supabase
     .from("distillation_pending_assignment")
     .select(

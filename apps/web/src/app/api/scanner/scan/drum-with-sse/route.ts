@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { drumEvents } from "@/lib/events";
 import { z } from "zod";
 import { executeDbOperation } from "@/lib/database";
-import { createNewClient as createClient } from "@/lib/supabase/server";
+import { createClient as createClient } from "@/lib/supabase/server";
 // import { sendOrderCompleteNotification } from "@/lib/email/orderNotifications";
 
 // Force dynamic rendering and no caching for this database-dependent route

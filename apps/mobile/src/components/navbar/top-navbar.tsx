@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { LucideIcon } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface NavItem {
   name: string;
@@ -55,7 +56,10 @@ const TopNavbar = ({
     <div className="flex flex-col items-center w-full px-4 pt-2">
       <div className="flex justify-between items-center w-full mb-1">
         <div className="text-sm font-medium text-foreground/70">{time}</div>
-        <div className="flex items-center space-x-2">{extraActions}</div>
+        <div className="flex items-center space-x-2">
+          <ThemeToggle />
+          {extraActions}
+        </div>
       </div>
       <NavBar
         items={navLinks}

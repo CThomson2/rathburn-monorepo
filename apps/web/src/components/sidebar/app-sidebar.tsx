@@ -21,8 +21,11 @@ import {
   ScanBarcode,
   DatabaseZapIcon,
   GraduationCap,
+  LogOut,
 } from "lucide-react";
 
+import { signOutAction } from "@/app/actions";
+import { Button } from "@/components/ui/button";
 import { NavMain, SidebarItemAction } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
 import { NavUser } from "@/components/sidebar/nav-user";
@@ -173,6 +176,13 @@ const data = {
       name: "Training",
       url: "#",
       icon: GraduationCap,
+    },
+    {
+      name: "Database",
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL
+        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}`
+        : "https://supabase.com/dashboard/project/ppnulxweiiczciuxcypn",
+      icon: DatabaseZapIcon,
     },
   ],
 };

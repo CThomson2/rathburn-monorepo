@@ -25,7 +25,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { createClient, createAuthClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { logout } from "@/services/auth";
 import FloatingNavMenu from "@/components/layout/FloatingNavMenu";
 import TopNavbar from "@/components/navbar/top-navbar";
@@ -231,7 +231,7 @@ const IndexContent = () => {
   // Get user session data for debugging
   useEffect(() => {
     const fetchSession = async () => {
-      const supabase = createAuthClient();
+      const supabase = createClient();
       const { data } = await supabase.auth.getSession();
       console.log("[INDEX] Auth session data:", data);
 

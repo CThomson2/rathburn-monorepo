@@ -6,9 +6,8 @@ import {
   requestPasscodeReset,
   createMobilePasscode,
 } from "@/services/auth";
-import { useAuth } from "@/lib/supabase/client-auth";
+import { useAuth } from "@/hooks/use-auth";
 import React from "react";
-import { createAuthClient } from "@/lib/supabase/client";
 
 /**
  * A login screen component that accepts a username and 4-digit passcode.

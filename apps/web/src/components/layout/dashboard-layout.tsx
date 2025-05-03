@@ -46,6 +46,7 @@ import {
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useNavigationLoading } from "@/hooks/use-navigation-loading";
 import { toast } from "@/components/ui/use-toast";
+import { Button } from "../ui/button";
 
 // TypeScript workaround for React 18 vs React 19 type compatibility issue
 // @ts-ignore
@@ -165,6 +166,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     {/* @ts-ignore - React/TypeScript compatibility issue */}
                     <User size={16} />
                   </div>
+                  <form action={signOutAction}>
+                    <Button variant="ghost" type="submit">
+                      <LogOut size={16} />
+                    </Button>
+                  </form>
                 </div>
               </div>
             </header>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client-auth";
+import { createClient } from "@/lib/supabase/client";
+import { Session } from "@supabase/supabase-js";
 
 /**
  * Page for authenticated users to view and update their profile information.
@@ -12,11 +13,11 @@ import { createClient } from "@/lib/supabase/client-auth";
  *
  * This component is only accessible to authenticated users.
  */
-export default function Account({ session }: { session: any }) {
+export default function Account({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
-  const [username, setUsername] = useState(null);
-  const [website, setWebsite] = useState(null);
-  const [avatar_url, setAvatarUrl] = useState(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [website, setWebsite] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState("/avatars/default.png");
 
   const supabase = createClient();
 
@@ -36,9 +37,9 @@ export default function Account({ session }: { session: any }) {
         if (error) {
           console.warn(error);
         } else if (data) {
-          setUsername(data.username);
-          setWebsite(data.website);
-          setAvatarUrl(data.avatar_url);
+          setUsername(data.username ?? "User");
+          setWebsite(data.website ?? "https://rathburn.co.uk");
+          setAvatarUrl(data.avatar_url ?? "/avatars/default.png");
         }
       }
 
@@ -50,9 +51,12 @@ export default function Account({ session }: { session: any }) {
     return () => {
       ignore = true;
     };
-  }, [session]);
+  }, [session, supabase]);
 
-  async function updateProfile(event, avatarUrl) {
+  async function updateProfile(
+    event: React.FormEvent<HTMLFormElement>,
+    avatarUrl: string
+  ) {
     event.preventDefault();
 
     setLoading(true);
@@ -63,7 +67,7 @@ export default function Account({ session }: { session: any }) {
       username,
       website,
       avatar_url: avatarUrl,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString(),
     };
 
     const { error } = await supabase.from("profiles").upsert(updates);
@@ -77,7 +81,7 @@ export default function Account({ session }: { session: any }) {
   }
 
   return (
-    <form onSubmit={updateProfile} className="form-widget">
+    <form onSubmit={(e) => updateProfile(e, avatarUrl)} className="form-widget">
       <div>
         <label htmlFor="email">Email</label>
         <input id="email" type="text" value={session.user.email} disabled />

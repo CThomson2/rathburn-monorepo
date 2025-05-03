@@ -1,6 +1,6 @@
 // app/api/scanner/scan/route.ts
 import { NextResponse } from "next/server";
-import { createNewClient as createClient } from "@/lib/supabase/server";
+import { createClient as createClient } from "@/lib/supabase/server";
 import { corsHeaders } from "@/lib/api/cors";
 import { z } from "zod";
 import {

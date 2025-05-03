@@ -8,7 +8,7 @@
 import { withSupabaseClient } from "./supabase/client";
 import { Database, Tables } from "@/types/models/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { createNewClient } from "./supabase/server";
+import { createClient } from "./supabase/server";
 import {
   TableType,
   TableInsertType,
@@ -55,7 +55,7 @@ export async function executeDbOperation<T>(
   clientType: ClientType = "browser"
 ): Promise<T> {
   if (clientType === "server") {
-    const supabase = createNewClient();
+    const supabase = createClient();
     return operation(supabase);
   }
   return withSupabaseClient(operation);
