@@ -1,7 +1,7 @@
 // /src/app/api/scanner/scan/single/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 // Revert import: Use existing clients
-import { createNewClient, createServiceClient } from '@/lib/supabase/server'; 
+import { createClient, createServiceClient } from '@/lib/supabase/server'; 
 import { cookies } from 'next/headers';
 
 // Define allowed origins (you can customize this based on your environments)
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       authMethod = 'token';
       console.log('API: Attempting authentication via Bearer token.');
       const token = authHeader.substring(7); // Remove 'Bearer '
-      supabase = createNewClient(); // Use the client suitable for programmatic access
+      supabase = createClient(); // Use the client suitable for programmatic access
       const { data: { user }, error } = await supabase.auth.getUser(token);
 
       if (error) {
@@ -142,9 +142,9 @@ export async function POST(request: NextRequest) {
       // Fallback to cookie-based auth for web clients
       authMethod = 'cookie';
       console.log('API: No Bearer token found, attempting cookie authentication.');
-      // createNewClient might implicitly handle cookies, or you might need a specific server client
-      // Let's stick with createNewClient for now, assuming it can handle cookies if needed, or createServerClient if available/necessary
-      supabase = createNewClient(); 
+      // createClient might implicitly handle cookies, or you might need a specific server client
+      // Let's stick with createClient for now, assuming it can handle cookies if needed, or createServerClient if available/necessary
+      supabase = createClient(); 
       const { data: { session }, error } = await supabase.auth.getSession(); // Standard session check
       
       if (error) {

@@ -11,7 +11,6 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/toaster";
 import { Database } from "@/types/supabase";
 import scanService from "@/services/scanner/handle-scan";
-import { createAuthClient } from "@/lib/supabase/client";
 
 // Determine if we should show the scan tester (typically in development)
 const SHOW_SCAN_TESTER =
@@ -194,7 +193,7 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
 
     try {
       // Get auth token for the scan service
-      const supabase = createAuthClient();
+      const supabase = createClient();
       const { data: sessionData, error: sessionError } =
         await supabase.auth.getSession();
 

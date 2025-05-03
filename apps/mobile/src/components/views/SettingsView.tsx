@@ -15,7 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useModal } from "@/hooks/use-modal";
 import { useState, useEffect } from "react";
-import { createAuthClient as createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { logout } from "@/services/auth";
 import { toast } from "@/components/ui/use-toast";
 

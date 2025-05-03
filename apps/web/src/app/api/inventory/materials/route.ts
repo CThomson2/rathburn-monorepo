@@ -1,6 +1,6 @@
 // app/api/inventory/materials/route.ts
 import { NextResponse } from 'next/server';
-import { createNewClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * GET /api/inventory/materials
@@ -13,7 +13,7 @@ import { createNewClient } from '@/lib/supabase/server';
  */
 export async function GET() {
   try {
-    const supabase = createNewClient();
+    const supabase = createClient();
     
     const { data, error } = await supabase
       .schema("inventory")

@@ -46,6 +46,31 @@ interface StockTakeDrawerProps {
   onEndSession: () => void;
 }
 
+/**
+ * A bottom sheet component that displays a form to start a new stock take
+ * session, or manage an active session. It includes a button to start a new
+ * session, and if a session is active, it displays the session ID and a button
+ * to end the session. It also displays any feedback from the last scan attempt.
+ *
+ * The component expects the following props:
+ * - `open`: Whether the sheet is open or not
+ * - `onOpenChange`: Callback when the sheet is opened or closed
+ * - `currentSessionId`: The ID of the active stock take session
+ * - `isScanning`: Whether a scan is currently being processed
+ * - `lastScanStatus`: The status of the last scan
+ * - `lastScanMessage`: A message associated with the last scan result
+ * - `onStartSession`: Callback when the Start Session button is clicked
+ * - `onEndSession`: Callback when the End Session button is clicked
+ *
+ * The component renders a form with a single input field for the session ID,
+ * and a button to start the session. If the session is active, it renders a
+ * button to end the session. It also renders any feedback from the last scan
+ * attempt.
+ *
+ * The component is used in the `Scanner` component.
+ *
+ * TODO: Improve UI with colour-coded scan log history and state that triggers toasts on parent component routes/views
+ */
 export function StockTakeDrawer({
   open,
   onOpenChange,

@@ -1,8 +1,14 @@
 import { ToastProvider } from "@/providers/toast-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
+import { useEffect, useState, ReactNode } from "react";
 import Index from "./pages/Index";
 import ScanView from "./views/ScanViewSimple";
 import NotFound from "./pages/NotFound";
@@ -10,13 +16,12 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/auth/callback";
 import TransportSettings from "./pages/TransportSettings";
 import { ErrorBoundary } from "react-error-boundary";
-import { supabase } from "@/lib/supabase/client-auth";
-import { Session } from "@supabase/auth-js";
-import { withAuth } from "./lib/auth/route-guard";
 import { ThemeProvider } from "./providers/theme-provider";
 import { ScanProvider } from "@/contexts/scan-context";
 import { ToastContextSetter } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { useMiddleware } from "@/hooks/use-middleware";
+import { publicRoutes } from "@/middleware";
 
 const queryClient = new QueryClient();
 
@@ -43,50 +48,47 @@ const ErrorFallback = ({ error }: { error: Error }) => {
   );
 };
 
-// Wrap our authenticated components with both auth and the ScanProvider
-// This ensures the ScanHandler is available in all authenticated routes
-const withAuthAndScan = <P extends object>(
-  Component: React.ComponentType<P>
-) => {
-  const AuthenticatedComponent = withAuth(Component);
+// Protected route component that uses the middleware hook
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+  const { isLoading, isAuthenticated } = useMiddleware();
+  const location = useLocation();
 
-  return (props: P) => (
-    <ScanProvider>
-      <AuthenticatedComponent {...props} />
-    </ScanProvider>
-  );
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+  // The middleware hook will handle redirections, but we add this as a failsafe
+  if (!isAuthenticated) {
+    return <Navigate to="/sign-in" state={{ from: location }} replace />;
+  }
+
+  return <ScanProvider>{children}</ScanProvider>;
 };
 
-// Apply the withAuthAndScan HOC to protected components
-const ProtectedIndex = withAuthAndScan(Index);
-const ProtectedScanView = withAuthAndScan(ScanView);
-const ProtectedTransportSettings = withAuthAndScan(TransportSettings);
+// Public route component that ensures users are redirected to home if already authenticated
+const PublicRoute = ({ children }: { children: ReactNode }) => {
+  const { isLoading, isAuthenticated } = useMiddleware();
 
-// Router component with console logs for debugging
-const RouterWithLogging = () => {
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+  // The middleware hook will handle redirections
+  return <>{children}</>;
+};
+
+// Router component with middleware integration
+const RouterWithMiddleware = () => {
   const location = useLocation();
-  const [session, setSession] = useState<Session | null>(null);
-  const isAuthPage = location.pathname === "/sign-in";
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    console.log(`Route changed to: ${location.pathname}`);
-  }, [location]);
+  const isAuthPage = publicRoutes.includes(location.pathname);
 
   // Set body class based on route
   useEffect(() => {
@@ -102,14 +104,51 @@ const RouterWithLogging = () => {
     >
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <Routes>
-          <Route path="/sign-in" element={<Auth />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/" element={<ProtectedIndex />} />
-          <Route path="/scan" element={<ProtectedScanView />} />
+          {/* Public routes */}
+          <Route
+            path="/sign-in"
+            element={
+              <PublicRoute>
+                <Auth />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/auth/callback"
+            element={
+              <PublicRoute>
+                <AuthCallback />
+              </PublicRoute>
+            }
+          />
+
+          {/* Protected routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/scan"
+            element={
+              <ProtectedRoute>
+                <ScanView />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/transport-settings"
-            element={<ProtectedTransportSettings />}
+            element={
+              <ProtectedRoute>
+                <TransportSettings />
+              </ProtectedRoute>
+            }
           />
+
+          {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </ErrorBoundary>
@@ -124,7 +163,7 @@ const App = () => (
         <ToastProvider>
           <ToastContextSetter />
           <BrowserRouter>
-            <RouterWithLogging />
+            <RouterWithMiddleware />
           </BrowserRouter>
           <Toaster />
         </ToastProvider>

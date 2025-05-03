@@ -53,7 +53,7 @@
     "@radix-ui/react-tooltip": "^1.2.0",
     "@rathburn/mobile": "workspace:*",
     "@rathburn/types": "workspace:*",
-    "@repo/ui": "workspace:*",
+    "@rathburn/ui": "workspace:*",
     "@sentry/nextjs": "^9.1.0",
     "@storybook/react": "^8.5.8",
     "@supabase/ssr": "^0.6.1",

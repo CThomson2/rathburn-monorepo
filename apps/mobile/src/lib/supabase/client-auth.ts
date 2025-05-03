@@ -1,11 +1,11 @@
-import { createAuthClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useCallback, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { loginWithPasscode, logout, requestPasscodeReset, resetPasscodeWithToken, createMobilePasscode } from "@/services/auth";
 
 // Create a single instance of the Supabase client
-export const supabase = createAuthClient();
+export const supabase = createClient();
 
 /**
  * Debug helper to log session information
@@ -127,7 +127,7 @@ export function useAuth() {
 
   const signInWithMicrosoft = useCallback(async () => {
     console.log("[AUTH] Attempting to sign in with Microsoft");
-    const supabase = createAuthClient();
+    const supabase = createClient();
 
       // Determine the redirect URL based on environment
       const isProduction = window.location.hostname === "rathburn.mobile.app";
@@ -156,7 +156,7 @@ export function useAuth() {
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     console.log("[AUTH] Attempting to sign in with email");
-    const supabase = createAuthClient();
+    const supabase = createClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient as createClient, createClient as createAuthClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 // --- Add CORS Helper Function --- 
 // Define allowed origins 
@@ -50,8 +50,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
   const headers = getCorsHeaders(requestOrigin);
-  const supabaseAuth = createAuthClient();
-  const supabaseService = createClient();
+  const supabase = createClient();
 
   try {
     console.log(`[API Start Session] POST request from origin: ${requestOrigin}`);
@@ -63,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
-        const { data: { user: tokenUser }, error: tokenError } = await supabaseAuth.auth.getUser(token);
+        const { data: { user: tokenUser }, error: tokenError } = await supabase.auth.getUser(token);
         if (tokenError) { authError = tokenError; }
         else if (!tokenUser) { authError = { message: 'Invalid token' }; }
         else { user = tokenUser; }
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[API Start Session] Inserting new session:', sessionRecord);
 
-    const { data: newSession, error: insertError } = await supabaseService
+    const { data: newSession, error: insertError } = await supabase
         .from('stocktake_sessions') // Inserting into public schema table
         .insert(sessionRecord)
         .select('id, name') // Select fields needed by frontend

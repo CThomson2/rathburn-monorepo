@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 // Remove useAuth import as we'll get token directly
 // import { useAuth } from './useAuth'; 
 import { handleStockTakeScan, StocktakeScanResponse } from '../services/stockTakeScan';
-import { createClient, createAuthClient } from '@/lib/supabase/client'; // Import supabase client
+import { createClient } from '@/lib/supabase/client'; // Import supabase client
 
 // Define API endpoint for starting a session
 const START_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions/start'; // Relative to web app
@@ -77,15 +77,14 @@ export function useStockTake(): UseStockTakeReturn {
     lastScanId: null,
   });
 
+  const supabase = createClient();
+
   // Updated startStocktakeSession function
   const startStocktakeSession = useCallback(async () => {
     console.log(`[useStockTake] Attempting to start new session...`);
     setState((prevState) => ({ ...prevState, isScanning: true, lastScanStatus: 'idle' }));
 
-    // const supabase = createClient();
-    const supabaseAuth = createAuthClient();
-  
-    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     const token = session?.access_token;
 
     if (sessionError || !token) {
@@ -153,8 +152,7 @@ export function useStockTake(): UseStockTakeReturn {
     // Optionally set a temporary state like 'ending'
     // setState((prevState) => ({ ...prevState, lastScanMessage: 'Ending session...' }));
 
-    const supabaseAuth = createAuthClient();
-    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     const token = session?.access_token;
 
     if (sessionError || !token) {
@@ -221,8 +219,7 @@ export function useStockTake(): UseStockTakeReturn {
     }
 
     // Get Supabase client and current session token directly
-    const supabaseAuth = createAuthClient();
-    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     const token = session?.access_token;
 
     if (sessionError || !token) { // Check for token directly from session

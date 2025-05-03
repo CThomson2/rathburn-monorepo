@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FileSystemView } from "@/components/layout/file-system-view";
 import { PDFPreview } from "@/components/ui/pdf-preview";
-import { createNewClient as createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 interface Item {

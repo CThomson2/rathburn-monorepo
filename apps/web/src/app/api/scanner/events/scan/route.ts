@@ -1,6 +1,6 @@
 // /src/app/api/events/scan/route.ts
 import { NextRequest } from 'next/server';
-import { createNewClient as createClient } from '@/lib/supabase/server';
+import { createClient as createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 
 // Map of job IDs to arrays of stream writers
