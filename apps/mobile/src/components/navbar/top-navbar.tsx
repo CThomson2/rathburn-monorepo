@@ -54,7 +54,7 @@ const TopNavbar = ({
 
   return (
     <div className="flex flex-col items-center w-full px-4 pt-2">
-      <div className="flex justify-between items-center w-full mb-1">
+      <div className="flex justify-between items-center w-full mb-1 z-50">
         <div className="text-sm font-medium text-foreground/70">{time}</div>
         <div className="flex items-center space-x-2">
           <ThemeToggle />

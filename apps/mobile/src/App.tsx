@@ -10,7 +10,6 @@ import {
 } from "react-router-dom";
 import { useEffect, useState, ReactNode } from "react";
 import Index from "./pages/Index";
-import ScanView from "./views/ScanViewSimple";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/auth/callback";
@@ -128,14 +127,6 @@ const RouterWithMiddleware = () => {
             element={
               <ProtectedRoute>
                 <Index />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/scan"
-            element={
-              <ProtectedRoute>
-                <ScanView />
               </ProtectedRoute>
             }
           />

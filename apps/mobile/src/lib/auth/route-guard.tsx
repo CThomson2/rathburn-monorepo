@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase/client-auth";
+import { supabase } from "@/lib/supabase/client";
 
 // Paths that don't require authentication
 const publicPaths = ["/sign-in", "/auth/callback"];

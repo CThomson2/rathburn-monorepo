@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useScanJob } from "../hooks/useScanJob";
+import { useScanJob } from "../../hooks/use-scan-job";
 
 interface ScanResult {
   barcode: string;

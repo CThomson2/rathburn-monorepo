@@ -3,7 +3,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TransportSettingsView } from "@/components/views/TransportSettingsView";
+import { TransportSettingsView } from "@/views/TransportSettingsView";
 
 /**
  * TransportSettings page component

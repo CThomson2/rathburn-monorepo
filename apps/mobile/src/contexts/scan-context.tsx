@@ -5,16 +5,15 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { ScanHandler } from "@/components/ScanHandler";
-import { ScanTester } from "@/components/ScanTester";
-import { createClient } from "@/lib/supabase/client";
+
+import { supabase } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/toaster";
 import { Database } from "@/types/supabase";
-import scanService from "@/services/scanner/handle-scan";
+import scanService from "@/services/handle-scan";
 
 // Determine if we should show the scan tester (typically in development)
-const SHOW_SCAN_TESTER =
-  import.meta.env.DEV || import.meta.env.VITE_SHOW_SCAN_TESTER === "true";
+const SHOW_SCAN_TESTER = "false";
+// import.meta.env.DEV || import.meta.env.VITE_SHOW_SCAN_TESTER === "true";
 
 // // Define interfaces for the tables we're using (based on inventory schema)
 // interface Drum {
@@ -147,7 +146,7 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
   // const [isProcessing, setIsProcessing] = useState(false); // Commented out as requested
   const [pendingDrums, setPendingDrums] = useState(0);
   const [processedDrums, setProcessedDrums] = useState(0);
-  const supabase = createClient();
+  const [location, setLocation] = useState<"OS" | "NS" | null>(null);
 
   // Fetch pending drums count on mount
   useEffect(() => {
@@ -278,8 +277,6 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
     // Re-fetch the pending count to ensure it's accurate
     const fetchPendingDrumCount = async () => {
       try {
-        const supabase = createClient();
-
         // Execute raw query to count purchase_order_drums where is_received is false
         const { data, error } = await supabase.rpc("count_pending_drums");
 
@@ -321,7 +318,6 @@ export const ScanProvider = ({ children }: ScanProviderProps) => {
           We're removing this component since we're now using ScanInput at the app level instead */}
 
       {/* Show the scan tester in development mode for easier testing */}
-      {SHOW_SCAN_TESTER && <ScanTester />}
     </ScanContext.Provider>
   );
 };

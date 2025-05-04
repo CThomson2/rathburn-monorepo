@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
 interface BarcodeProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;

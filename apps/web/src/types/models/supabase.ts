@@ -910,27 +910,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
-        Row: {
-          created_at: string
-          id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       worker_passcodes: {
         Row: {
           created_at: string | null
@@ -1569,6 +1548,7 @@ export type Database = {
         | "bulk"
       batch_type: "new" | "repro"
       drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
+      location_type: "os_stock" | "os_lab" | "ns_stock" | "ns_lab"
       scan_mode: "single" | "bulk"
     }
     CompositeTypes: {
@@ -2124,26 +2104,26 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          full_name: string | null
+          full_name: string
           id: string
           updated_at: string | null
-          username: string | null
+          username: string
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
-          full_name?: string | null
+          full_name: string
           id: string
           updated_at?: string | null
-          username?: string | null
+          username: string
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
-          full_name?: string | null
+          full_name?: string
           id?: string
           updated_at?: string | null
-          username?: string | null
+          username?: string
           website?: string | null
         }
         Relationships: []
@@ -2181,47 +2161,82 @@ export type Database = {
             referencedRelation: "stocktake_material_counts"
             referencedColumns: ["material_id"]
           },
+          {
+            foreignKeyName: "stock_count_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stock_count_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["supplier_id"]
+          },
         ]
       }
       stocktake_sessions: {
         Row: {
           completed_at: string | null
-          created_at: string | null
           created_by: string
           description: string | null
+          device_id: string | null
+          ended_at: string | null
           id: string
           metadata: Json | null
           name: string
           notes: string | null
           started_at: string | null
           status: string | null
-          updated_at: string | null
         }
         Insert: {
           completed_at?: string | null
-          created_at?: string | null
           created_by: string
           description?: string | null
+          device_id?: string | null
+          ended_at?: string | null
           id?: string
           metadata?: Json | null
           name: string
           notes?: string | null
           started_at?: string | null
           status?: string | null
-          updated_at?: string | null
         }
         Update: {
           completed_at?: string | null
-          created_at?: string | null
           created_by?: string
           description?: string | null
+          device_id?: string | null
+          ended_at?: string | null
           id?: string
           metadata?: Json | null
           name?: string
           notes?: string | null
           started_at?: string | null
           status?: string | null
-          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2241,6 +2256,41 @@ export type Database = {
           session_status: string | null
         }
         Relationships: []
+      }
+      stocktake_scan_details: {
+        Row: {
+          barcode_type: string | null
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          material_id: string | null
+          material_name: string | null
+          raw_barcode: string | null
+          scan_id: string | null
+          scanned_at: string | null
+          status: string | null
+          stocktake_session_id: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          user_id: string | null
+          user_identifier: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_batches: {
         Row: {
@@ -2630,6 +2680,7 @@ export const Constants = {
       ],
       batch_type: ["new", "repro"],
       drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
+      location_type: ["os_stock", "os_lab", "ns_stock", "ns_lab"],
       scan_mode: ["single", "bulk"],
     },
   },
