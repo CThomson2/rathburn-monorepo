@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+
 
 // --- Add CORS Helper Function --- 
 // Define allowed origins 
@@ -50,7 +51,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
   const headers = getCorsHeaders(requestOrigin);
-  const supabase = createClient();
+  const supabase = createServiceClient();
 
   try {
     console.log(`[API Start Session] POST request from origin: ${requestOrigin}`);

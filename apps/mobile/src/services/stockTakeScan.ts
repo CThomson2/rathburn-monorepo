@@ -1,6 +1,3 @@
-// apps/mobile/src/services/stockTakeScan.ts
-import { type ScanResponse as OriginalScanResponse } from './scanner/handle-scan'; // Reuse parts of the interface if suitable
-
 // Define the payload for the stocktake scan API
 export interface StocktakeScanPayload {
   barcode: string;

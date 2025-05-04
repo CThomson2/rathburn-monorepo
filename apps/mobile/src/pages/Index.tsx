@@ -26,20 +26,20 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Database } from "@/types/supabase";
 import { logout } from "@/services/auth";
-import FloatingNavMenu from "@/components/layout/FloatingNavMenu";
+import { FloatingNavGroup } from "@/components/buttons/nav-group";
 import TopNavbar from "@/components/navbar/top-navbar";
-import { TransportView } from "@/components/views/TransportView";
-import { ProductionView } from "@/components/views/ProductionView";
-import { TransportSettingsView } from "@/components/views/TransportSettingsView";
+import { TransportView } from "@/views/TransportView";
+import { ProductionView } from "@/views/ProductionView";
+import { TransportSettingsView } from "@/views/TransportSettingsView";
 // import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ScanInput } from "@/features/transport/ScanInput";
 import { useScan } from "@/hooks/use-scan";
-import { useStockTake } from "@/hooks/useStockTake";
+import { useStockTake } from "@/hooks/use-stock-take";
 import { useToast, type ToastProps } from "@/components/ui/use-toast";
-import { StockTakeDrawer } from "@/components/StockTakeDrawer";
 // import { useModal } from "@/hooks/use-modal";
 // import { ModalProvider } from "@/contexts/modal-context";
 import {
@@ -71,6 +71,8 @@ const statusColors = {
   },
 };
 
+type Location = Database["inventory"]["Enums"]["location_type"];
+
 /**
  * Inventory component that displays a list of production jobs with
  * expandable details. Each job includes information such as name,
@@ -98,9 +100,23 @@ const IndexContent = () => {
   });
   const { toast } = useToast();
   const transportScan = useScan();
-  const stockTake = useStockTake();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  const [isStockTakeDrawerOpen, setIsStockTakeDrawerOpen] = useState(false);
+  const [location, setLocation] = useState<Location | null>(null);
+
+  // Call useStockTake hook without passing the location directly
+  const stockTake = useStockTake();
+
+  // Update stockTake's location when our location state changes
+  useEffect(() => {
+    // Location changes are tracked within the hook internally
+    if (stockTake.currentLocation !== location && stockTake.currentSessionId) {
+      // If we had an API endpoint to update location for an active session, we'd call it here
+      console.log(
+        `[Index] Location changed during active session: ${location}`
+      );
+      // This could trigger a location update API call if needed
+    }
+  }, [location, stockTake.currentLocation, stockTake.currentSessionId]);
 
   const shouldActivateScanInput = useMemo(() => {
     const isActive = !!stockTake.currentSessionId;
@@ -229,21 +245,21 @@ const IndexContent = () => {
   };
 
   // Get user session data for debugging
-  useEffect(() => {
-    const fetchSession = async () => {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      console.log("[INDEX] Auth session data:", data);
+  // useEffect(() => {
+  //   const fetchSession = async () => {
+  //     const supabase = createClient();
+  //     const { data } = await supabase.auth.getSession();
+  //     console.log("[INDEX] Auth session data:", data);
 
-      setUserInfo({
-        userId: data.session?.user?.id || null,
-        userName: data.session?.user?.user_metadata?.name || null,
-        sessionToken: data.session?.access_token || null,
-        email: data.session?.user?.email || null,
-      });
-    };
-    fetchSession();
-  }, []);
+  //     setUserInfo({
+  //       userId: data.session?.user?.id || null,
+  //       userName: data.session?.user?.user_metadata?.name || null,
+  //       sessionToken: data.session?.access_token || null,
+  //       email: data.session?.user?.email || null,
+  //     });
+  //   };
+  //   fetchSession();
+  // }, []);
 
   const startSearchTimeout = () => {
     // Clear any existing timeout
@@ -292,6 +308,21 @@ const IndexContent = () => {
       }
     };
   }, []);
+
+  // Handle location change from the LocationButton
+  const handleLocationChange = (newLocation: Location) => {
+    console.log(`Location change requested: ${newLocation}`);
+    setLocation(newLocation);
+
+    // Show toast notification for location change
+    toast({
+      title: "Location Updated",
+      description: `Current location set to: ${newLocation.replace("_", " ").toUpperCase()}`,
+    });
+
+    // If we have an active stock take session, we could trigger a location update here
+    // or this could be handled internally by the useStockTake hook since we're passing location to it
+  };
 
   const navLinks = [
     { name: "Transport", value: "transport", icon: Forklift },
@@ -428,39 +459,23 @@ const IndexContent = () => {
         navLinks={navLinks}
         activeView={currentView}
         onViewChange={handleViewChange}
-        extraActions={[
-          <Button
-            key="stocktake-toggle"
-            variant="outline"
-            size="icon"
-            onClick={() => setIsStockTakeDrawerOpen(true)}
-            aria-label="Open Stock Take Session Controls"
-            className="relative"
-          >
-            <ClipboardList className="h-4 w-4" />
-            {stockTake.currentSessionId && (
-              <span
-                className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800"
-                title="Stocktake session active"
-              />
-            )}
-          </Button>,
-        ]}
+        extraActions={[]}
       />
 
-      {/* Render the imported StockTakeDrawer component */}
-      <StockTakeDrawer
-        open={isStockTakeDrawerOpen}
-        onOpenChange={setIsStockTakeDrawerOpen}
-        // Pass state from useStockTake hook
-        currentSessionId={stockTake.currentSessionId}
-        isScanning={stockTake.isScanning}
-        lastScanStatus={stockTake.lastScanStatus}
-        lastScanMessage={stockTake.lastScanMessage}
-        // Pass callbacks from useStockTake hook
-        onStartSession={stockTake.startStocktakeSession}
-        onEndSession={stockTake.endStocktakeSession}
-      />
+      {/* Display current location as a badge if set */}
+      {location && (
+        <div className="px-4 py-1">
+          <Badge
+            variant="outline"
+            className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1"
+          >
+            <MapPin size={14} />
+            <span className="capitalize">
+              {location.replace("_", " ").toUpperCase()}
+            </span>
+          </Badge>
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence initial={false} mode="wait" custom={swipeDirection}>
@@ -475,45 +490,20 @@ const IndexContent = () => {
               x: { type: "spring", stiffness: 300, damping: 30 },
               opacity: { duration: 0.2 },
             }}
-            className="w-full h-[100%] overflow-auto pb-20"
+            className="w-full h-[100%] overflow-auto pb-24"
           >
             {renderView()}
           </motion.div>
         </AnimatePresence>
-
-        <AnimatePresence>
-          {isSearchVisible && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-              className="absolute top-0 left-0 right-0 p-4 z-50 bg-gray-800 bg-opacity-90"
-            >
-              <div className="relative flex items-center">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={handleSearchInput}
-                  placeholder="Search raw materials..."
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-gray-100 dark:placeholder-gray-400"
-                />
-                <button
-                  className="absolute right-3 p-1 rounded-full bg-blue-500 text-white"
-                  aria-label="Search"
-                >
-                  <Search size={18} />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      <FloatingNavMenu
-        onNavigate={handleNavigation}
+      {/* Floating Navigation Group - contains both menu and stocktake buttons */}
+      <FloatingNavGroup
+        onMenuNavigate={handleNavigation}
         onMenuToggle={handleMenuToggle}
+        onLocationChange={handleLocationChange}
+        activeLocation={location}
+        isStockTakeActive={Boolean(stockTake.currentSessionId)}
       />
     </div>
   );

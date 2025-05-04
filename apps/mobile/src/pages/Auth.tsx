@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SubmitButton } from "@/components/layout/submit-button";
+import { SubmitButton } from "@/components/buttons/submit-button";
 import MicrosoftSvg from "@/assets/svg/microsoft.svg";
 import {
   loginWithPasscode,

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import scanService from "@/services/scanner/handle-scan";
+import scanService from "@/services/handle-scan";
 
 // Mock data for demonstration
 const MOCK_TRANSPORT_JOBS = [

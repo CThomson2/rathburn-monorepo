@@ -1,8 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 // Remove useAuth import as we'll get token directly
 // import { useAuth } from './useAuth'; 
 import { handleStockTakeScan, StocktakeScanResponse } from '../services/stockTakeScan';
-import { createClient } from '@/lib/supabase/client'; // Import supabase client
+import { supabase } from '@/lib/supabase/client'; // Import the singleton supabase client
+import { Database } from '@/types/supabase';
+
+// Define location type
+type Location = Database["inventory"]["Enums"]["location_type"];
 
 // Define API endpoint for starting a session
 const START_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions/start'; // Relative to web app
@@ -29,13 +33,14 @@ interface UseStockTakeState {
   lastScanStatus: 'success' | 'error' | 'idle';
   lastScanMessage: string | null;
   lastScanId: string | null; // Store the ID of the last successful scan
+  currentLocation: Location | null;
 }
 
 // Define the return type of the hook
 interface UseStockTakeReturn extends UseStockTakeState {
   startStocktakeSession: () => Promise<void>;
   endStocktakeSession: () => void;
-  processStocktakeScan: (barcode: string) => Promise<void>; // Make async for potential awaits
+  processStocktakeScan: (barcode: string) => Promise<StocktakeScanResponse | undefined>; // Updated return type
 }
 
 // Function to get a placeholder or actual device ID
@@ -60,13 +65,12 @@ function getDeviceId(): string {
  * - lastScanStatus: Status of the last scan ('success', 'error', or 'idle').
  * - lastScanMessage: Message associated with the last scan result.
  * - lastScanId: ID of the last successful scan.
- *
- * Returns:
- * - startStocktakeSession: Function to initiate a new stocktake session.
- * - endStocktakeSession: Function to terminate the current stocktake session.
- * - processStocktakeScan: Async function to process a barcode scan.
+ * - currentLocation: Current selected location for the stocktake session.
+ * 
+ * @param location - Optional location parameter to associate with scans
+ * @returns UseStockTakeReturn object containing state and functions
  */
-export function useStockTake(): UseStockTakeReturn {
+export function useStockTake(location: Location | null = null): UseStockTakeReturn {
   // Remove useAuth hook call
   // const { token } = useAuth(); 
   const [state, setState] = useState<UseStockTakeState>({
@@ -75,9 +79,19 @@ export function useStockTake(): UseStockTakeReturn {
     lastScanStatus: 'idle',
     lastScanMessage: null,
     lastScanId: null,
+    currentLocation: location,
   });
 
-  const supabase = createClient();
+  // Update location in state when the prop changes using useEffect
+  useEffect(() => {
+    if (location !== state.currentLocation) {
+      console.log(`[useStockTake] Location updated to: ${location}`);
+      setState(prevState => ({
+        ...prevState,
+        currentLocation: location
+      }));
+    }
+  }, [location, state.currentLocation]);
 
   // Updated startStocktakeSession function
   const startStocktakeSession = useCallback(async () => {
@@ -99,13 +113,16 @@ export function useStockTake(): UseStockTakeReturn {
     }
     
     try {
+        // Add location info to request if available
+        const requestBody = state.currentLocation ? { location: state.currentLocation } : {};
+        
         const response = await fetch(`${import.meta.env.VITE_API_URL}${START_SESSION_ENDPOINT}`, {
             method: 'POST',
             headers: {
                  'Content-Type': 'application/json',
                  'Authorization': `Bearer ${token}`,
             },
-            // No body needed for this simple start request
+            body: JSON.stringify(requestBody), // Include location if available
         });
 
         const result: StartSessionResponse = await response.json();
@@ -139,7 +156,7 @@ export function useStockTake(): UseStockTakeReturn {
         }));
     }
 
-  }, []); // No dependencies needed as it fetches token fresh each time
+  }, [state.currentLocation]); // Add dependency on currentLocation
 
   const endStocktakeSession = useCallback(async () => { // Make async
     const sessionId = state.currentSessionId;
@@ -241,6 +258,8 @@ export function useStockTake(): UseStockTakeReturn {
       barcode,
       sessionId: state.currentSessionId,
       deviceId,
+      // Include location information if available
+      location: state.currentLocation,
     };
 
     const response = await handleStockTakeScan(payload, token); // Pass the fetched token
@@ -249,14 +268,15 @@ export function useStockTake(): UseStockTakeReturn {
       ...prevState,
       isScanning: false,
       lastScanStatus: response.success ? 'success' : 'error',
-      lastScanMessage: response.message || response.error || (response.success ? 'Scan successful' : 'Scan failed'),
-      lastScanId: response.success ? response.scanId || null : prevState.lastScanId,
+      lastScanMessage: response.message || null,
+      lastScanId: response.scanId || prevState.lastScanId,
     }));
-    
-    console.log(`[useStockTake] Scan result:`, response);
 
-  // state.currentSessionId is the only dependency needed now for this callback
-  }, [state.currentSessionId]); 
+    console.log(`[useStockTake] Scan completed with status: ${response.success ? 'success' : 'error'}`);
+    
+    // Return the scan response (could be useful for immediate UI updates)
+    return response;
+  }, [state.currentSessionId, state.currentLocation]); // Add dependency on currentLocation
 
   return {
     ...state,

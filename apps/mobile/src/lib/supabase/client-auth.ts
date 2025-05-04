@@ -1,11 +1,8 @@
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { useCallback, useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
+import { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { loginWithPasscode, logout, requestPasscodeReset, resetPasscodeWithToken, createMobilePasscode } from "@/services/auth";
-
-// Create a single instance of the Supabase client
-export const supabase = createClient();
 
 /**
  * Debug helper to log session information
@@ -99,22 +96,23 @@ export function useAuth() {
     // Subscribe to auth state changes
     // This sets up a real-time listener for authentication state changes
     console.log("[AUTH] Setting up auth state change listener...");
-    const { data: { subscription }} = supabase.auth.onAuthStateChange((_event, session) => {
-      // When auth state changes:
-      console.log("[AUTH] Auth state changed:", { event: _event, hasSession: !!session });
-      // 1. Update the user state with the new user or null if signed out
-      setUser(session?.user ?? null);
-      // 2. Set loading to false since we've received the auth state
-      setLoading(false);
-      
-      // Log detailed session information
-      if (session) {
-        console.log("[AUTH] New session details:", { 
-          expires_at: session.expires_at,
-          token_length: session.access_token?.length || 0,
-          user_id: session.user?.id || 'unknown'
-        });
-      }
+    const { data: { subscription }} = supabase.auth.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        // When auth state changes:
+        console.log("[AUTH] Auth state changed:", { event, hasSession: !!session });
+        // 1. Update the user state with the new user or null if signed out
+        setUser(session?.user ?? null);
+        // 2. Set loading to false since we've received the auth state
+        setLoading(false);
+        
+        // Log detailed session information
+        if (session) {
+          console.log("[AUTH] New session details:", { 
+            expires_at: session.expires_at,
+            token_length: session.access_token?.length || 0,
+            user_id: session.user?.id || 'unknown'
+          });
+        }
     });
 
     // Clean up function that runs when the component unmounts
@@ -127,36 +125,34 @@ export function useAuth() {
 
   const signInWithMicrosoft = useCallback(async () => {
     console.log("[AUTH] Attempting to sign in with Microsoft");
-    const supabase = createClient();
 
-      // Determine the redirect URL based on environment
-      const isProduction = window.location.hostname === "rathburn.mobile.app";
-      const redirectUrl = isProduction
-        ? "https://rathburn.mobile.app/auth/callback"
-        : "http://localhost:4173/auth/callback";
+    // Determine the redirect URL based on environment
+    const isProduction = window.location.hostname === "rathburn.mobile.app";
+    const redirectUrl = isProduction
+      ? "https://rathburn.mobile.app/auth/callback"
+      : "http://localhost:4173/auth/callback";
 
-      console.log("[AUTH] Using redirect URL:", redirectUrl);
+    console.log("[AUTH] Using redirect URL:", redirectUrl);
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "azure",
-        options: {
-          scopes: "offline_access email",
-          redirectTo: redirectUrl,
-        },
-      });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "azure",
+      options: {
+        scopes: "offline_access email",
+        redirectTo: redirectUrl,
+      },
+    });
 
-      if (error) {
-        console.error("[AUTH] Microsoft OAuth error:", error);
-        throw error;
-      }
+    if (error) {
+      console.error("[AUTH] Microsoft OAuth error:", error);
+      throw error;
+    }
 
-      console.log("[AUTH] Redirecting to Microsoft OAuth URL:", data.url);
-      window.location.href = data.url;
+    console.log("[AUTH] Redirecting to Microsoft OAuth URL:", data.url);
+    window.location.href = data.url;
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     console.log("[AUTH] Attempting to sign in with email");
-    const supabase = createClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -303,3 +299,6 @@ export function useAuth() {
     createPasscode
   };
 }
+
+// Export the Supabase client for direct access
+export { supabase };

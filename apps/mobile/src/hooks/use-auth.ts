@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
 /**
@@ -18,7 +18,6 @@ export function useAuth() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const navigate = useNavigate();
-  const supabase = createClient();
 
   // Get initial auth state and set up listeners
   useEffect(() => {
@@ -86,7 +85,7 @@ export function useAuth() {
       console.log("[AUTH] Cleaning up auth state listener");
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   const signInWithMicrosoft = useCallback(async () => {
     console.log("[AUTH] Attempting to sign in with Microsoft");
@@ -114,7 +113,7 @@ export function useAuth() {
 
     console.log("[AUTH] Redirecting to Microsoft OAuth URL:", data.url);
     window.location.href = data.url;
-  }, [supabase]);
+  }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     console.log("[AUTH] Attempting to sign in with email");
@@ -146,7 +145,7 @@ export function useAuth() {
     }
 
     return data;
-  }, [supabase]);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -180,7 +179,7 @@ export function useAuth() {
       console.error("[AUTH] Unexpected error during sign out:", err);
       throw err;
     }
-  }, [supabase, navigate]);
+  }, [navigate]);
 
   return {
     user,

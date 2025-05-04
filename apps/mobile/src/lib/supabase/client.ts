@@ -1,10 +1,19 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/types/supabase";
 
+// Singleton instance of the Supabase client
+let supabaseInstance: ReturnType<typeof createSupabaseClient<Database>> | null = null;
+
 /**
- * Creates and returns a Supabase client for browser usage
+ * Creates and returns a Supabase client singleton for browser usage
+ * This ensures only one instance of the client is created across the application
  */
 export const createClient = () => {
+  // Return existing instance if it exists
+  if (supabaseInstance !== null) {
+    return supabaseInstance;
+  }
+
   // Check if we're in development mode
   const isDev = import.meta.env.MODE === "development";
 
@@ -24,24 +33,26 @@ export const createClient = () => {
     ...(isDev ? {
       realtime: {
         params: {
-              eventsPerSecond: 10,
-            },
-          },
-        }
-      : {}),
+          eventsPerSecond: 10,
+        },
+      },
+    } : {}),
   };
   
-  return createSupabaseClient<Database>(
+  // Create a new instance and store it
+  supabaseInstance = createSupabaseClient<Database>(
     import.meta.env.VITE_SUPABASE_URL!,
     import.meta.env.VITE_SUPABASE_ANON_KEY!,
     options
   );
+  
+  return supabaseInstance;
 };
 
 /**
  * Type definition for a Supabase operation callback function
  */
-export type SupabaseOperationCallback<T> = (
+type SupabaseOperationCallback<T> = (
   db: ReturnType<typeof createClient>
 ) => Promise<T>;
 
@@ -66,3 +77,12 @@ export const withSupabaseClient = async <T>(
     throw error;
   }
 };
+
+/**
+ * Get the singleton instance of the Supabase client
+ * This is the preferred way to access the client
+ */
+export const supabase = createClient();
+
+// Default export for backward compatibility
+export default createClient;
