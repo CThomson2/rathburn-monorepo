@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from "@/lib/supabase/server";
 import { Database } from '@/types/models/supabase'; // Adjust path if needed
-import { validateAuth } from '@/lib/api/auth'; // <-- Import validateAuth
+import { validateAuth, createAuthenticatedClient } from '@/lib/api/auth'; // <-- Import validateAuth and createAuthenticatedClient
 import { getCorsHeaders, handleOptionsRequest } from '@/lib/api/utils/cors'; // <-- Import CORS utils
 // Import the specific type for cookie options expected by Next.js cookies().set
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const requestOrigin = request.headers.get('origin');
   // Use the shared CORS header generator
   const headers = getCorsHeaders(requestOrigin, 'GET, POST, OPTIONS');
-  const supabase = createClient();
+  let supabase = createClient(); // Default client, will be replaced if auth successful
 
   try {
     console.log(`[API Sessions GET] Request from origin: ${requestOrigin}`);
@@ -26,9 +26,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const authHeader = request.headers.get('authorization');
     let user = null;
     let authError = null;
+    let token = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-        user = await validateAuth(authHeader);
+        const authResult = await validateAuth(authHeader);
+        user = authResult.user;
+        token = authResult.token;
         if (!user) {
             authError = { message: 'Invalid token provided' };
         }
@@ -41,6 +44,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers });
     }
     // --- End Authentication ---
+
+    // Create an authenticated client that will pass the token with each request
+    if (token) {
+        const authClient = createAuthenticatedClient(token);
+        if (authClient) {
+            supabase = authClient; // Replace the default client with the authenticated one
+            console.log('[API Sessions GET] Using authenticated Supabase client');
+        } else {
+            console.warn('[API Sessions GET] Failed to create authenticated client, using default');
+        }
+    }
 
     // Get device ID - Prefer header, fall back to hardcoded for dev
     // TODO: Remove hardcoded fallback eventually
@@ -82,7 +96,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const requestOrigin = request.headers.get('origin');
   // Use the shared CORS header generator
   const headers = getCorsHeaders(requestOrigin, 'GET, POST, OPTIONS');
-  const supabase = createClient();
+  let supabase = createClient(); // Default client, will be replaced if auth successful
 
   try {
     console.log(`[API Sessions POST] Request from origin: ${requestOrigin}`);
@@ -91,9 +105,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const authHeader = request.headers.get('authorization');
     let user = null;
     let authError = null;
+    let token = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-        user = await validateAuth(authHeader);
+        const authResult = await validateAuth(authHeader);
+        user = authResult.user;
+        token = authResult.token;
         if (!user) {
             authError = { message: 'Invalid token provided' };
         }
@@ -102,12 +119,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (authError || !user) {
-       console.error('[API Sessions POST] Auth error:', authError?.message || 'No user found');
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401, headers });
+        console.error('[API Sessions POST] Auth error:', authError?.message || 'No user found');
+        return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401, headers });
     }
     const userId = user.id; // Use user.id from validateAuth result
     console.log(`[API Sessions POST] User authenticated: ${userId}`);
     // --- End Authentication ---
+
+    // Create an authenticated client that will pass the token with each request
+    if (token) {
+        const authClient = createAuthenticatedClient(token);
+        if (authClient) {
+            supabase = authClient; // Replace the default client with the authenticated one
+            console.log('[API Sessions POST] Using authenticated Supabase client');
+        } else {
+            console.warn('[API Sessions POST] Failed to create authenticated client, using default');
+        }
+    }
 
     // --- Device ID Handling ---
     // TODO: Link device ID to user properly in the future

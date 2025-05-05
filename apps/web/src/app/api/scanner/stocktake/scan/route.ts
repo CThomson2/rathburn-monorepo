@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient as createClient } from '@/lib/supabase/server'; // Use server client for auth & RLS
 import { cookies } from 'next/headers';
 import { StocktakeScanEvent, broadcastScanEvent } from '@/lib/events/sse';
-import { validateAuth } from '@/lib/api/auth'; // <-- Import validateAuth
+import { validateAuth, createAuthenticatedClient } from '@/lib/api/auth'; // Import both functions
 import { getCorsHeaders, handleOptionsRequest } from '@/lib/api/utils/cors'; // <-- Import CORS utils
 
 // Removed allowedOrigins and local getCorsHeaders function
@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
   // We might not need createAuthClient anymore if validateAuth handles it
   // const supabaseAuth = createAuthClient(); 
   const supabaseService = createClient(); // Service client for DB ops (might bypass RLS)
+  let supabase = null; // Will be set to authenticated client if auth succeeds
 
   try {
     console.log(`[API Stocktake Scan] POST request from origin: ${requestOrigin}`);
@@ -34,9 +35,12 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     let user = null;
     let authError = null;
+    let token = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-        user = await validateAuth(authHeader);
+        const authResult = await validateAuth(authHeader);
+        user = authResult.user;
+        token = authResult.token;
         if (!user) {
             authError = { message: 'Invalid token provided' };
         }
@@ -52,6 +56,18 @@ export async function POST(request: NextRequest) {
     }
     // User is authenticated, proceed...
     console.log(`[API Stocktake Scan] User authenticated: ${user.id}`);
+
+    // Create an authenticated client that will pass the token with each request
+    if (token) {
+        const authClient = createAuthenticatedClient(token);
+        if (authClient) {
+            supabase = authClient; // Set the authenticated client
+            console.log('[API Stocktake Scan] Using authenticated Supabase client');
+        } else {
+            console.warn('[API Stocktake Scan] Failed to create authenticated client, falling back to service client');
+            // Continue with supabaseService (this should still work since it bypasses RLS)
+        }
+    }
 
     // 2. Parse request body
     const body = await request.json();
@@ -138,7 +154,10 @@ export async function POST(request: NextRequest) {
     console.log('[API Stocktake Scan] Scan record:', scanRecord);
 
     try {
-        const { data, error } = await supabaseService
+        // Use the authenticated client if available, otherwise fall back to service client
+        const clientToUse = supabase || supabaseService;
+        
+        const { data, error } = await clientToUse
           .schema('logs')
           .from('stocktake_scans') // Assuming RLS allows user inserts or using service client
             .insert(scanRecord)

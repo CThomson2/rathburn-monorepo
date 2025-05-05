@@ -119,6 +119,9 @@ const IndexContent = () => {
   }, [location, stockTake.currentLocation, stockTake.currentSessionId]);
 
   const shouldActivateScanInput = useMemo(() => {
+    console.log(
+      `[Index] shouldActivateScanInput CALLED with stockTake.currentSessionId: ${stockTake.currentSessionId}`
+    );
     const isActive = !!stockTake.currentSessionId;
     console.log(
       `[Index] ScanInput isActive: ${isActive}, Session ID: ${stockTake.currentSessionId}`

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
-import { validateAuth } from '@/lib/api/auth';
+import { validateAuth, createAuthenticatedClient } from '@/lib/api/auth';
 import { getCorsHeaders, handleOptionsRequest } from '@/lib/api/utils/cors'; // <-- Import CORS utils
 
 // Removed allowedOrigins and local getCorsHeaders function
@@ -22,7 +22,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { sessio
   const requestOrigin = request.headers.get('origin');
   // Use the shared CORS header generator
   const headers = getCorsHeaders(requestOrigin, 'PATCH, OPTIONS');
-  const supabaseService = createServiceClient(); // Use service client to ensure update permission
+  const supabaseService = createServiceClient(); // Service client as fallback
+  let supabase = null; // Will be set to authenticated client if auth succeeds
   const { sessionId } = params;
 
   try {
@@ -32,9 +33,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { sessio
     const authHeader = request.headers.get('authorization');
     let user = null;
     let authError = null;
+    let token = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-        user = await validateAuth(authHeader); // validateAuth handles null check internally now
+        const authResult = await validateAuth(authHeader);
+        user = authResult.user;
+        token = authResult.token;
         if (!user) {
             authError = { message: 'Invalid token provided' };
         }
@@ -48,6 +52,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { sessio
     }
     console.log(`[API Stocktake Session End] User authenticated: ${user.id}`);
 
+    // Create an authenticated client that will pass the token with each request
+    if (token) {
+        const authClient = createAuthenticatedClient(token);
+        if (authClient) {
+            supabase = authClient; // Set the authenticated client
+            console.log('[API Stocktake Session End] Using authenticated Supabase client');
+        } else {
+            console.warn('[API Stocktake Session End] Failed to create authenticated client, falling back to service client');
+            // Continue with supabaseService (this should still work since it bypasses RLS)
+        }
+    }
+
     // 2. Validate sessionId
     if (!sessionId) {
       console.log('[API Stocktake Session End] Missing sessionId parameter');
@@ -56,7 +72,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { sessio
 
     // 3. Update the session status in the database
     console.log(`[API Stocktake Session End] Attempting to update session ${sessionId} status to 'completed'`);
-    const { data, error } = await supabaseService
+    
+    // Use the authenticated client if available, otherwise fall back to service client
+    const clientToUse = supabase || supabaseService;
+    
+    const { data, error } = await clientToUse
       .from('stocktake_sessions')
       .update({
         status: 'completed',
