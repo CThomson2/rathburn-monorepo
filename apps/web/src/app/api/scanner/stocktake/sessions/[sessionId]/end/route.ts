@@ -1,56 +1,18 @@
 // apps/web/src/app/api/stocktake/sessions/[sessionId]/end/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient, createClient as createAuthClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import { validateAuth } from '@/lib/api/auth';
+import { getCorsHeaders, handleOptionsRequest } from '@/lib/api/utils/cors'; // <-- Import CORS utils
 
-// Define allowed origins (centralize this later)
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:4173',
-  'http://192.168.9.47:8080',
-  'http://192.168.9.47:4173',
-  'http://localhost:8080', 
-  'http://localhost:5173',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:4173',
-  'http://127.0.0.1:8080',
-  'http://127.0.0.1:5173',
-  'https://mobile.rathburn.app', 
-];
-
-// Helper function for CORS headers (centralize this later)
-function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'PATCH, OPTIONS', // Use PATCH to update
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '86400',
-  };
-  
-  let allowedOrigin = '';
-  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
-    allowedOrigin = requestOrigin;
-  } else {
-    // Fallback or default logic if needed
-    allowedOrigin = allowedOrigins.find(origin => origin.includes('localhost:8080')) || allowedOrigins[0] || ''; 
-  }
-  if (allowedOrigin) {
-    headers['Access-Control-Allow-Origin'] = allowedOrigin;
-  }
-  return headers;
-}
+// Removed allowedOrigins and local getCorsHeaders function
 
 /**
  * Handle CORS preflight requests for ending a stocktake session
  */
 export async function OPTIONS(request: NextRequest) {
-  const requestOrigin = request.headers.get('origin');
-  console.log(`[API Stocktake Session End] OPTIONS request from origin: ${requestOrigin}`);
-  const headers = getCorsHeaders(requestOrigin);
-  return new Response(null, {
-    status: 204,
-    headers: headers
-  });
+  // Use the shared OPTIONS handler
+  return handleOptionsRequest(request, 'PATCH, OPTIONS'); // Specify allowed methods for this endpoint
 }
 
 /**
@@ -58,27 +20,26 @@ export async function OPTIONS(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest, { params }: { params: { sessionId: string } }) {
   const requestOrigin = request.headers.get('origin');
-  const headers = getCorsHeaders(requestOrigin);
-  const supabaseAuth = createAuthClient();
+  // Use the shared CORS header generator
+  const headers = getCorsHeaders(requestOrigin, 'PATCH, OPTIONS');
   const supabaseService = createServiceClient(); // Use service client to ensure update permission
   const { sessionId } = params;
 
   try {
     console.log(`[API Stocktake Session End] PATCH request for session: ${sessionId} from origin: ${requestOrigin}`);
 
-    // 1. Authenticate user
+    // 1. Authenticate user using validateAuth utility
     const authHeader = request.headers.get('authorization');
     let user = null;
-    let authError: any = null;
+    let authError = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const { data: { user: tokenUser }, error: tokenError } = await supabaseAuth.auth.getUser(token);
-      if (tokenError) { authError = tokenError; }
-      else if (!tokenUser) { authError = { message: 'Invalid token' }; }
-      else { user = tokenUser; }
+        user = await validateAuth(authHeader); // validateAuth handles null check internally now
+        if (!user) {
+            authError = { message: 'Invalid token provided' };
+        }
     } else {
-      authError = { message: 'Authorization header missing or invalid' };
+        authError = { message: 'Authorization header missing or invalid' };
     }
 
     if (authError || !user) {

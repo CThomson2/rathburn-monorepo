@@ -81,53 +81,6 @@ describe("ScanInput", () => {
     expect(mockOnScan).not.toHaveBeenCalled();
   });
 
-  it("triggers the global keydown handler for keyboard-wedge scanner input", () => {
-    render(<ScanInput onScan={mockOnScan} isActive={true} />);
-
-    // Simulate rapid key presses from a barcode scanner
-    const barcode = "BARCODE123";
-
-    // First simulate rapid keypresses (less than 100ms apart)
-    act(() => {
-      for (let i = 0; i < barcode.length; i++) {
-        // Dispatch keydown event to window to simulate scanner
-        const keyEvent = new KeyboardEvent("keydown", { key: barcode[i] });
-        window.dispatchEvent(keyEvent);
-        // Advance timer slightly between keypresses (30ms)
-        vi.advanceTimersByTime(30);
-      }
-
-      // Finish with Enter key
-      const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
-      window.dispatchEvent(enterEvent);
-    });
-
-    expect(mockOnScan).toHaveBeenCalledWith(barcode);
-  });
-
-  it("ignores slow keydown events as they are likely manual typing", () => {
-    render(<ScanInput onScan={mockOnScan} isActive={true} />);
-
-    // Simulate slow key presses (likely manual typing, not a scanner)
-    const barcode = "SLOW123";
-
-    act(() => {
-      for (let i = 0; i < barcode.length; i++) {
-        const keyEvent = new KeyboardEvent("keydown", { key: barcode[i] });
-        window.dispatchEvent(keyEvent);
-        // Advance timer by more than 100ms between keypresses
-        vi.advanceTimersByTime(150);
-      }
-
-      const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
-      window.dispatchEvent(enterEvent);
-    });
-
-    // Since the keypresses were too slow, buffer should have been reset
-    // and the final scan should not contain the full barcode
-    expect(mockOnScan).not.toHaveBeenCalledWith(barcode);
-  });
-
   it("automatically refocuses input when it loses focus", async () => {
     render(<ScanInput onScan={mockOnScan} isActive={true} />);
 

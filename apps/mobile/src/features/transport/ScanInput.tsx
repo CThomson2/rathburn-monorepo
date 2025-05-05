@@ -9,9 +9,10 @@ interface ScanInputProps {
  * A hidden input element that captures barcode scans and passes them to the
  * `onScan` callback.
  *
- * This component automatically focuses the input element on mount and
- * re-focuses it whenever the window regains focus. It also attempts to prevent
- * the virtual keyboard from appearing on mobile devices.
+ * This component automatically focuses the input element when `isActive` is true
+ * and attempts to maintain focus. It uses direct input events (`onChange`, `onKeyDown`)
+ * to capture scans when active. It also includes a timeout fallback for devices
+ * that don't send an "Enter" key event.
  *
  * @prop {function} onScan - called with the scanned barcode string
  * @prop {boolean} isActive - determines if the input should maintain focus (default: true)
@@ -23,41 +24,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [barcode, setBarcode] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-
-  // Buffer and timing refs for global barcode scanner detection
-  const bufferRef = useRef<string>("");
-  const lastTimeRef = useRef<number>(0);
-
-  // Global keydown listener to capture keyboard-wedge barcode scanner input
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Only process keys if the component is active
-      if (!isActive) return;
-
-      const now = Date.now();
-      // Reset buffer if pause between keys is too long
-      if (lastTimeRef.current && now - lastTimeRef.current > 100) {
-        bufferRef.current = "";
-      }
-      lastTimeRef.current = now;
-
-      // On Enter, treat buffer as full scan
-      if (e.key === "Enter") {
-        const code = bufferRef.current.trim();
-        bufferRef.current = "";
-        if (code.length >= 3) {
-          console.log("Global scan detected:", code);
-          onScan(code);
-        }
-      } else if (e.key.length === 1) {
-        // Append character to buffer
-        bufferRef.current += e.key;
-      }
-    };
-    window.addEventListener("keydown", handleGlobalKeyDown, true);
-    return () =>
-      window.removeEventListener("keydown", handleGlobalKeyDown, true);
-  }, [onScan, isActive]);
 
   // Auto-send the barcode after a delay of inactivity
   useEffect(() => {
@@ -95,7 +61,7 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
       } else if (
         !isActive &&
         inputRef.current &&
-        inputRef.current === document.activeElement
+        document.activeElement === inputRef.current
       ) {
         console.log(`[ScanInput] Blurring input element`);
         inputRef.current.blur();
@@ -141,25 +107,50 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
 
   // Handle keypress events for barcode scanning
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isActive) return;
+    // Ignore if not active
+    if (!isActive) {
+      // console.log("[ScanInput] KeyDown ignored: Not active"); // Optional: Log inactive state
+      return;
+    }
 
-    console.log("Key pressed:", e.key, "Current barcode:", barcode);
+    console.log(
+      "[ScanInput] KeyDown event FIRED:",
+      e.key,
+      "Current value:",
+      inputRef.current?.value
+    );
 
-    // If Enter key is pressed, process the barcode
-    if (e.key === "Enter" && barcode.trim()) {
-      console.log("Enter key pressed, processing barcode:", barcode);
-      onScan(barcode.trim());
-      setBarcode("");
-      e.preventDefault();
+    // If Enter key is pressed, process the barcode stored in state
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent form submission or other default actions
+      const currentBarcode = barcode.trim();
+      if (currentBarcode.length >= 3) {
+        console.log(
+          "[ScanInput] Enter key pressed, processing barcode:",
+          currentBarcode
+        );
+        onScan(currentBarcode);
+        setBarcode(""); // Clear the state after processing
+      } else {
+        console.log(
+          "[ScanInput] Enter key pressed, but barcode is too short:",
+          currentBarcode
+        );
+      }
     }
   };
 
-  // Capture input changes
+  // Capture input changes (typing, pasting)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isActive) return;
+    // Ignore if not active
+    if (!isActive) {
+      // console.log("[ScanInput] Change ignored: Not active"); // Optional: Log inactive state
+      return;
+    }
 
-    setBarcode(e.target.value);
-    console.log("Barcode input changed:", e.target.value);
+    const newValue = e.target.value;
+    setBarcode(newValue);
+    console.log("[ScanInput] Input changed (handleChange) FIRED:", newValue);
   };
 
   // Handle blur events - only refocus if still active
@@ -201,8 +192,11 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       onFocus={() => {
-        console.log("[ScanInput] Input focused directly");
-        setIsFocused(true);
+        if (isActive) {
+          // Only set focused state if supposed to be active
+          console.log("[ScanInput] Input focused directly");
+          setIsFocused(true);
+        }
       }}
       onBlur={handleBlur}
       style={{

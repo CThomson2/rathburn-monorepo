@@ -1,56 +1,19 @@
 // app/api/scanner/stocktake/scan/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient as createClient, createClient as createAuthClient } from '@/lib/supabase/server'; // Use server client for auth & RLS
+import { createServiceClient as createClient } from '@/lib/supabase/server'; // Use server client for auth & RLS
 import { cookies } from 'next/headers';
 import { StocktakeScanEvent, broadcastScanEvent } from '@/lib/events/sse';
+import { validateAuth } from '@/lib/api/auth'; // <-- Import validateAuth
+import { getCorsHeaders, handleOptionsRequest } from '@/lib/api/utils/cors'; // <-- Import CORS utils
 
-// Define allowed origins (copy from single scan route or centralize)
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:4173',
-  'http://192.168.9.47:8080',
-  'http://192.168.9.47:4173',
-  'http://localhost:8080', 
-  'http://localhost:5173',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:4173',
-  'http://127.0.0.1:8080',
-  'http://127.0.0.1:5173',
-  'https://mobile.rathburn.app', 
-];
-
-// Helper function to generate dynamic CORS headers (consider centralizing this)
-function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'POST, OPTIONS', // Ensure POST is here
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With', // Ensure all needed headers are here
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '86400', // 24 hours
-  };
-  
-  let allowedOrigin = '';
-  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
-    allowedOrigin = requestOrigin;
-  } else {
-    allowedOrigin = allowedOrigins.find(origin => origin.includes('localhost:8080')) || allowedOrigins[0] || ''; 
-  }
-  if (allowedOrigin) {
-    headers['Access-Control-Allow-Origin'] = allowedOrigin;
-  }
-  return headers;
-}
+// Removed allowedOrigins and local getCorsHeaders function
 
 /**
  * Handle CORS preflight requests for the stocktake scan endpoint
  */
 export async function OPTIONS(request: NextRequest) {
-  const requestOrigin = request.headers.get('origin');
-  console.log(`[API Stocktake Scan] OPTIONS request from origin: ${requestOrigin}`);
-  const headers = getCorsHeaders(requestOrigin);
-  return new Response(null, {
-    status: 204,
-    headers: headers
-  });
+  // Use the shared OPTIONS handler
+  return handleOptionsRequest(request, 'POST, OPTIONS'); // Specify allowed methods
 }
 
 /**
@@ -58,40 +21,29 @@ export async function OPTIONS(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
-  const headers = getCorsHeaders(requestOrigin);
-  const supabaseAuth = createAuthClient(); // Client for auth operations
+  // Use the shared CORS header generator
+  const headers = getCorsHeaders(requestOrigin, 'POST, OPTIONS');
+  // We might not need createAuthClient anymore if validateAuth handles it
+  // const supabaseAuth = createAuthClient(); 
   const supabaseService = createClient(); // Service client for DB ops (might bypass RLS)
 
   try {
     console.log(`[API Stocktake Scan] POST request from origin: ${requestOrigin}`);
     
-    // 1. Authenticate user via Bearer token from Authorization header
+    // 1. Authenticate user via validateAuth utility
     const authHeader = request.headers.get('authorization');
     let user = null;
-    let authError: any = null; // Use any for flexibility or define a specific error type
+    let authError = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-        console.log('[API Stocktake Scan] Attempting authentication with Bearer token.');
-        
-        // Validate the token using the auth client
-        const { data: { user: tokenUser }, error: tokenError } = await supabaseAuth.auth.getUser(token);
-        
-        if (tokenError) {
-            console.error('[API Stocktake Scan] Error validating token:', tokenError);
-            authError = tokenError;
-        } else if (!tokenUser) {
-             console.warn('[API Stocktake Scan] Token provided but no user found.');
-             authError = { message: 'Invalid token provided' };
-        } else {
-            console.log(`[API Stocktake Scan] User authenticated via token: ${tokenUser.id}`);
-            user = tokenUser; // Assign the validated user object
+        user = await validateAuth(authHeader);
+        if (!user) {
+            authError = { message: 'Invalid token provided' };
         }
     } else {
-        console.warn('[API Stocktake Scan] No Authorization Bearer token found in request headers.');
         authError = { message: 'Authorization header missing or invalid' };
     }
-    
+
     // --- Check authentication result ---
     if (authError || !user) {
       console.error('[API Stocktake Scan] Authentication failed:', authError?.message || 'No user found');

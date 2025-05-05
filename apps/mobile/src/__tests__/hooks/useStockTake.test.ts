@@ -1,8 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { useStockTake } from '@/hooks/use-stock-take';
 import { handleStockTakeScan } from '@/services/stockTakeScan';
 import { supabase } from '@/lib/supabase/client';
+
+// Define the hardcoded device ID used in the hook
+const hardcodedDeviceId = '4f096e70-33fd-4913-9df1-8e1fae9591bc';
 
 // Mock external dependencies
 vi.mock('@/services/stockTakeScan', () => ({
@@ -44,14 +47,11 @@ describe('useStockTake', () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, session: { id: sessionId, name: 'Test Session' } }),
+      status: 200,
     });
     
     // Default scan handler mock
-    (handleStockTakeScan as any).mockResolvedValue({
-      success: true,
-      scanId: 'test-scan-id',
-      message: 'Scan recorded successfully',
-    });
+    (handleStockTakeScan as any).mockResolvedValue({ success: true, scanId: 'scan-123', message: 'Scan OK' });
   });
   
   afterAll(() => {
@@ -131,37 +131,41 @@ describe('useStockTake', () => {
   });
 
   it('should end a stocktake session successfully', async () => {
-    // Initialize with active session
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, session: { id: sessionId, name: 'Test Session' } }),
-    });
-    
+    // Setup mocks
     const { result } = renderHook(() => useStockTake());
-    
-    // Start session first
+
+    // Mock fetch responses sequence for this test
+    mockFetch
+      // 1. Check active session (return specific session to end)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, session: { id: sessionId, name: 'Test Session', location: null } }),
+      })
+      // 2. End session API call
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, message: 'Session ended successfully.' }),
+      });
+
+    // Wait for initialization to finish and session to be active
+    await waitFor(() => expect(result.current.currentSessionId).toBe(sessionId));
+
+    // End the session
     await act(async () => {
-      await result.current.startStocktakeSession();
+      result.current.endStocktakeSession();
     });
-    
-    // Mock successful end session response
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, message: 'Session ended' }),
+
+    // Wait for the state update after ending session
+    await waitFor(() => {
+        expect(result.current.currentSessionId).toBeNull();
+        expect(result.current.lastScanStatus).toBe('idle');
+        // Ensure the message is not null before checking content
+        expect(result.current.lastScanMessage).not.toBeNull();
+        expect(result.current.lastScanMessage).toContain('ended successfully');
     });
-    
-    // End session
-    await act(async () => {
-      await result.current.endStocktakeSession();
-    });
-    
-    // Check state updates
-    expect(result.current.currentSessionId).toBeNull();
-    expect(result.current.lastScanStatus).toBe('idle');
-    expect(result.current.lastScanMessage).toContain('ended successfully');
-    
+
     // Verify API call
-    expect(mockFetch).toHaveBeenLastCalledWith(
+    expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining(`/api/scanner/stocktake/sessions/${sessionId}/end`),
       expect.objectContaining({
         method: 'PATCH',
@@ -200,19 +204,33 @@ describe('useStockTake', () => {
     expect(handleStockTakeScan).toHaveBeenCalledWith(
       {
         barcode,
-        sessionId,
-        deviceId: expect.any(String),
+        sessionId: 'test-session-id',
+        deviceId: hardcodedDeviceId,
+        location: null,
       },
-      mockToken
+      'test-token'
     );
   });
 
   it('should not process scans when no session is active', async () => {
+    // **Override** the default fetch mock for the active session check for THIS test
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, session: null }), // Ensure no active session for this test
+    });
+
     const { result } = renderHook(() => useStockTake());
-    
+
+    // Wait for initialization to complete (and confirm no session was found)
+    await waitFor(() => {
+        expect(result.current.isInitializing).toBe(false);
+        expect(result.current.currentSessionId).toBeNull();
+    });
+
+    const barcode = 'SCAN001';
     // Try to process a scan without an active session
     await act(async () => {
-      await result.current.processStocktakeScan('TEST123456');
+      await result.current.processStocktakeScan(barcode);
     });
     
     // Should update state with error
@@ -222,32 +240,38 @@ describe('useStockTake', () => {
   });
 
   it('should handle scan processing failures', async () => {
-    // Initialize with active session
+    const scanError = 'Invalid barcode';
+    // Mock check active session (none)
     mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, session: { id: sessionId, name: 'Test Session' } }),
+        ok: true,
+        json: async () => ({ success: true, session: null }),
     });
-    
+    // Mock start session success
+    mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, session: { id: 'fail-session', name: 'Fail Session' } }),
+    });
+
     const { result } = renderHook(() => useStockTake());
-    
-    // Start session first
+
+    // Wait for init and start session
+    await waitFor(() => expect(result.current.isInitializing).toBe(false));
     await act(async () => {
       await result.current.startStocktakeSession();
     });
-    
-    // Mock scan failure
+    await waitFor(() => expect(result.current.currentSessionId).toBe('fail-session'));
+
+    // Mock failed scan response
     (handleStockTakeScan as any).mockResolvedValueOnce({
       success: false,
-      error: 'Failed to process scan',
+      message: scanError,
     });
-    
-    // Process a scan
+
     await act(async () => {
-      await result.current.processStocktakeScan('TEST123456');
+      await result.current.processStocktakeScan('BADSCAN');
     });
-    
-    // Check state updates
-    expect(result.current.isScanning).toBe(false);
+
     expect(result.current.lastScanStatus).toBe('error');
+    expect(result.current.lastScanMessage).toBe(scanError);
   });
 }); 

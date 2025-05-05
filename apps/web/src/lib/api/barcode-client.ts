@@ -2,7 +2,7 @@
 // Client-side API utility for interacting with the barcode scanning API
 // NOT IN USE
 
-import { BarcodeData, ApiResponse, StoredScanData } from '@rathburn/types';
+import { ApiResponse } from '@rathburn/types';
 
 /**
  * API client configuration
@@ -34,7 +34,7 @@ export class BarcodeClient {
    * @param scanData - The scan data to process
    * @returns API response
    */
-  async processScan(scanData: BarcodeData): Promise<ApiResponse<StoredScanData>> {
+  async processScan(scanData: any): Promise<ApiResponse> {
     const response = await fetch(`${this.config.baseUrl}/barcode`, {
       method: 'POST',
       headers: {
@@ -52,9 +52,9 @@ export class BarcodeClient {
    * @param scans - Array of scan data to process
    * @returns API response
    */
-  async processBatchScans(scans: BarcodeData[]): Promise<ApiResponse<{
-    processed: StoredScanData[];
-    failed: { data: BarcodeData; error: string }[];
+  async processBatchScans(scans: any[]): Promise<ApiResponse<{
+    processed: any[];
+    failed: { data: any; error: string }[];
     totalProcessed: number;
     totalFailed: number;
     totalSubmitted: number;
@@ -76,7 +76,7 @@ export class BarcodeClient {
    * @param scanId - The scan_id to look up
    * @returns API response
    */
-  async lookupScan(scanId: string): Promise<ApiResponse<StoredScanData>> {
+  async lookupScan(scanId: string): Promise<ApiResponse> {
     const response = await fetch(
       `${this.config.baseUrl}/barcode/lookup?scan_id=${encodeURIComponent(scanId)}`,
       {

@@ -1,7 +1,6 @@
 // lib/services/notificationService.ts
 // Service for sending notifications related to barcode scans
 
-import { BarcodeData, StoredScanData } from '@rathburn/types';
 import { createLogger } from '@/lib/api/utils/logger';
 
 const logger = createLogger('services/notificationService');
@@ -47,7 +46,7 @@ export class NotificationService {
    * Send a notification about a successful scan
    * @param scanData - The processed scan data
    */
-  async notifyScanReceived(scanData: StoredScanData): Promise<void> {
+  async notifyScanReceived(scanData: any): Promise<void> {
     logger.info('Sending scan received notification', {
       scanId: scanData.scan_id,
       scannerId: scanData.scanner_id,
@@ -83,8 +82,8 @@ export class NotificationService {
    * @param results - Batch processing results
    */
   async notifyBatchComplete(results: {
-    processed: StoredScanData[];
-    failed: { data: BarcodeData; error: string }[];
+    processed: any[];
+    failed: { data: any; error: string }[];
     totalProcessed: number;
     totalFailed: number;
     totalSubmitted: number;
@@ -208,7 +207,7 @@ export class NotificationService {
    * @param scanData - The scan data
    * @returns Notification template
    */
-  private getScanReceivedTemplate(scanData: StoredScanData): NotificationTemplate {
+  private getScanReceivedTemplate(scanData: any): NotificationTemplate {
     const scanDate = new Date(scanData.scan_timestamp).toLocaleString();
     
     return {
@@ -236,8 +235,8 @@ This is an automated notification from the Barcode Scanning System.
    * @returns Notification template
    */
   private getBatchCompleteTemplate(results: {
-    processed: StoredScanData[];
-    failed: { data: BarcodeData; error: string }[];
+    processed: any[];
+    failed: { data: any; error: string }[];
     totalProcessed: number;
     totalFailed: number;
     totalSubmitted: number;

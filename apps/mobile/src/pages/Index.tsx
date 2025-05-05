@@ -174,6 +174,9 @@ const IndexContent = () => {
 
   const handleGlobalScan = useCallback(
     (barcode: string) => {
+      console.log(
+        `[IndexPage] handleGlobalScan CALLED with barcode: ${barcode}`
+      );
       try {
         console.log(
           `[IndexPage] Global scan received: ${barcode}, Current View: ${currentView}`

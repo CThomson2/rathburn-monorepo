@@ -1,7 +1,7 @@
 // app/api/scanner/scan/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createClient } from "@/lib/supabase/server";
-import { corsHeaders } from "@/lib/api/cors";
+import { getCorsHeaders, handleOptionsRequest } from "@/lib/api/utils/cors"; // <-- Import CORS utils
 import { z } from "zod";
 import {
   detectActionType,
@@ -32,12 +32,8 @@ const scanSchema = z.object({
   scannedAt: z.string().datetime().optional(),
 });
 
-export async function OPTIONS(req: Request) {
-  const origin = req.headers.get("origin");
-  return new NextResponse(null, {
-    status: 204,
-    headers: corsHeaders(origin),
-  });
+export async function OPTIONS(request: NextRequest) {
+  return handleOptionsRequest(request, 'POST, OPTIONS');
 }
 
 /**
@@ -49,13 +45,13 @@ export async function OPTIONS(req: Request) {
  *
  * @route POST /api/scanner/scan
  *
- * @param {NextRequest} req - The request object containing:
- *   @param {Object} req.body - Request body
- *   @param {string} req.body.rawBarcode - The scanned barcode data
- *   @param {string} req.body.scannedAt - Optional timestamp of the scan
- *   @param {string} req.body.deviceId - Optional device identifier
- *   @param {string} req.body.actionType - Optional type of scan (drum, pallet, location, other)
- *   @param {Object} req.body.metadata - Optional additional metadata
+ * @param {NextRequest} request - The request object containing:
+ *   @param {Object} request.body - Request body
+ *   @param {string} request.body.rawBarcode - The scanned barcode data
+ *   @param {string} request.body.scannedAt - Optional timestamp of the scan
+ *   @param {string} request.body.deviceId - Optional device identifier
+ *   @param {string} request.body.actionType - Optional type of scan (drum, pallet, location, other)
+ *   @param {Object} request.body.metadata - Optional additional metadata
  *
  * @returns {Promise<NextResponse>} Response object with:
  *   - 200: Successfully processed scan

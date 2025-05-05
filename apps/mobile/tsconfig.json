@@ -4,7 +4,7 @@
     { "path": "./tsconfig.node.json" }
   ],
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "strict": true,
     "esModuleInterop": true,
     "jsx": "preserve",

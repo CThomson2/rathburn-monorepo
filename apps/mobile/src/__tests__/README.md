@@ -134,6 +134,73 @@ For testing database functionality, you should:
 3. Test the API endpoints that interact with the database
 4. Mock the Supabase client in your tests
 
+## Integration Testing
+
+Integration tests verify that multiple components work together correctly. They focus on testing the interactions between components and ensuring the entire feature works as expected.
+
+### Naming Convention
+
+Integration tests should be named with the `.integration.test.tsx` extension to distinguish them from unit tests. For example:
+- `Index.integration.test.tsx` - Tests the complete functionality of the Index page
+
+### Example Usage
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
+import { Index } from "@/pages/Index";
+import { ScanContextProvider } from "@/contexts/scan-context";
+
+// Mock the hooks and services that would be used in the Index page
+vi.mock("@/hooks/use-stock-take", () => ({
+  useStockTake: () => ({
+    startStockTake: vi.fn().mockResolvedValue({ id: "test-session-id" }),
+    isActive: true,
+    sessionId: "test-session-id"
+  })
+}));
+
+vi.mock("@/services/handle-scan", () => ({
+  handleScan: vi.fn().mockResolvedValue({ success: true })
+}));
+
+describe("Index Page Integration", () => {
+  it("should handle complete scan workflow", async () => {
+    const user = userEvent.setup();
+    
+    render(
+      <ScanContextProvider>
+        <Index />
+      </ScanContextProvider>
+    );
+    
+    // Find and interact with the scan input
+    const scanInput = screen.getByPlaceholderText("Scan barcode...");
+    await user.type(scanInput, "ITEM001{Enter}");
+    
+    // Verify the scan was processed and UI updated appropriately
+    await waitFor(() => {
+      expect(screen.getByText("Scan successful")).toBeInTheDocument();
+    });
+    
+    // Verify other components have updated accordingly
+    expect(screen.getByText("Recent scans")).toBeInTheDocument();
+    expect(screen.getByText("ITEM001")).toBeInTheDocument();
+  });
+});
+```
+
+### Best Practices for Integration Tests
+
+1. **Test complete workflows** - Follow user journeys from start to finish
+2. **Mock external dependencies** - Mock API calls, databases, and other external services
+3. **Minimize mocking of internal components** - The goal is to test real interactions between components
+4. **Focus on user interactions** - Test from the user's perspective using userEvent for interactions
+5. **Verify the correct state changes** - Check that components update their state correctly
+6. **Test error handling** - Verify that errors are handled gracefully
+7. **Keep tests independent** - Each test should be able to run independently of others
+
 ## Common Issues and Solutions
 
 - **Authentication Issues**: Make sure your tests properly mock the authentication flow

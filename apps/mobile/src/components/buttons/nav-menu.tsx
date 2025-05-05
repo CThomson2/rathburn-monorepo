@@ -163,7 +163,6 @@ const FloatingNavMenu = ({
         onClick={toggleMenu}
         isActive={isOpen}
         rotateOnActive={true}
-        activeColor="bg-red-500"
         baseColor="bg-blue-600"
         aria-label={isOpen ? "Close menu" : "Open menu"}
       >
