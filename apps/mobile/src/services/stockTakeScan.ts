@@ -15,8 +15,11 @@ export interface StocktakeScanResponse {
 }
 
 // Get the base API URL from environment - Ensure this points to your Next.js app
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'https://rathburn.app'; // Adjust if your API isn't at the root
-const STOCKTAKE_SCAN_ENDPOINT = `${API_BASE_URL}/api/scanner/stocktake/scan`;
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'https://rathburn.app/api'; // Keep /api here in base
+// Define just the path part of the endpoint
+const STOCKTAKE_SCAN_ENDPOINT_PATH = '/scanner/stocktake/scan'; 
+// Construct the full URL
+const STOCKTAKE_SCAN_ENDPOINT = `${API_BASE_URL}${STOCKTAKE_SCAN_ENDPOINT_PATH}`;
 
 /**
  * Sends a stocktake scan to the backend API.

@@ -9,9 +9,9 @@ import { Database } from '@/types/supabase';
 type Location = Database["inventory"]["Enums"]["location_type"];
 
 // Define API endpoints
-const START_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Consolidated POST endpoint
-const END_SESSION_ENDPOINT_TEMPLATE = '/api/scanner/stocktake/sessions/{sessionId}/end';
-const CHECK_ACTIVE_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Re-added for initial state sync
+const START_SESSION_ENDPOINT = '/scanner/stocktake/sessions'; // Consolidated POST endpoint
+const END_SESSION_ENDPOINT_TEMPLATE = '/scanner/stocktake/sessions/{sessionId}/end';
+const CHECK_ACTIVE_SESSION_ENDPOINT = '/scanner/stocktake/sessions'; // Re-added for initial state sync
 // CHECK_ACTIVE_SESSION_ENDPOINT is no longer needed by the hook
 // const CHECK_ACTIVE_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Consolidated GET endpoint
 
