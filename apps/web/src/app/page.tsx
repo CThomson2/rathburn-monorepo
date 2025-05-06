@@ -15,7 +15,7 @@ async function fetchDashboardData() {
 
     // Fetch inventory data directly from the view
     const { data: rawInventoryData, error } = await client
-      .from("vw_drum_inventory")
+      .from("drum_inventory")
       .select("*");
 
     if (error) throw error;
@@ -23,16 +23,38 @@ async function fetchDashboardData() {
       throw new Error("No data returned from the database");
 
     // Transform data for dashboard and pre-calculate colors
-    const transformedData = rawInventoryData.map((item: any) => ({
-      id: item.code || "",
-      code: item.code,
-      name: item.value,
-      newStock: item.raw_drums || 0,
-      reproStock: item.repro_drums || 0,
-      category: item.ch_group,
-      threshold: item.threshold || 10,
-      total: (item.raw_drums || 0) + (item.repro_drums || 0),
-    }));
+    // Group by code to combine raw and repro rows for each material
+    const materialMap = new Map();
+
+    // First pass: create entries in the map for each unique material code
+    rawInventoryData.forEach((item: any) => {
+      if (!materialMap.has(item.code)) {
+        materialMap.set(item.code, {
+          id: item.code || "",
+          code: item.code,
+          name: item.name,
+          rawStock: 0,
+          reproStock: 0,
+          category: item.category,
+          threshold: item.threshold || 10,
+          total: 0,
+        });
+      }
+
+      // Update the appropriate stock value based on type
+      const material = materialMap.get(item.code);
+      if (item.type === "raw") {
+        material.rawStock = item.stock;
+      } else if (item.type === "repro") {
+        material.reproStock = item.stock;
+      }
+
+      // Update total (sum of raw and repro)
+      material.total = material.rawStock + material.reproStock;
+    });
+
+    // Convert map to array for the final transformed data
+    const transformedData = Array.from(materialMap.values());
 
     return { drumInventoryData: transformedData };
   } catch (error) {

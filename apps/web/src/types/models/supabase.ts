@@ -1682,62 +1682,6 @@ export type Database = {
           },
         ]
       }
-      stocktake_scans: {
-        Row: {
-          barcode_type: string
-          created_at: string | null
-          device_id: string | null
-          error_message: string | null
-          id: string
-          material_id: string | null
-          metadata: Json | null
-          raw_barcode: string
-          scanned_at: string
-          status: string
-          stocktake_session_id: string
-          supplier_id: string | null
-          user_id: string
-        }
-        Insert: {
-          barcode_type: string
-          created_at?: string | null
-          device_id?: string | null
-          error_message?: string | null
-          id?: string
-          material_id?: string | null
-          metadata?: Json | null
-          raw_barcode: string
-          scanned_at?: string
-          status?: string
-          stocktake_session_id: string
-          supplier_id?: string | null
-          user_id: string
-        }
-        Update: {
-          barcode_type?: string
-          created_at?: string | null
-          device_id?: string | null
-          error_message?: string | null
-          id?: string
-          material_id?: string | null
-          metadata?: Json | null
-          raw_barcode?: string
-          scanned_at?: string
-          status?: string
-          stocktake_session_id?: string
-          supplier_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "stocktake_scans_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
       temp_scan_log: {
         Row: {
           barcode_scanned: string
@@ -2177,6 +2121,90 @@ export type Database = {
           },
         ]
       }
+      stocktake_scans: {
+        Row: {
+          barcode_type: string
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          id: string
+          material_id: string | null
+          metadata: Json | null
+          raw_barcode: string
+          scanned_at: string
+          status: string
+          stocktake_session_id: string
+          supplier_id: string | null
+          user_id: string
+        }
+        Insert: {
+          barcode_type: string
+          created_at?: string | null
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          metadata?: Json | null
+          raw_barcode: string
+          scanned_at?: string
+          status?: string
+          stocktake_session_id: string
+          supplier_id?: string | null
+          user_id: string
+        }
+        Update: {
+          barcode_type?: string
+          created_at?: string | null
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          metadata?: Json | null
+          raw_barcode?: string
+          scanned_at?: string
+          status?: string
+          stocktake_session_id?: string
+          supplier_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
       stocktake_sessions: {
         Row: {
           completed_at: string | null
@@ -2459,6 +2487,21 @@ export type Database = {
       increment_stock_count: {
         Args: { p_supplier_id: string; p_material_id: string }
         Returns: number
+      }
+      insert_stocktake_scan: {
+        Args: {
+          p_stocktake_session_id: string
+          p_user_id: string
+          p_device_id: string
+          p_raw_barcode: string
+          p_barcode_type: string
+          p_material_id?: string
+          p_supplier_id?: string
+          p_status?: string
+          p_error_message?: string
+          p_metadata?: Json
+        }
+        Returns: Json
       }
       insert_temp_scan_log: {
         Args: {

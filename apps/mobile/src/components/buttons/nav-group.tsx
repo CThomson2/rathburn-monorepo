@@ -4,6 +4,7 @@ import { StocktakeButton } from "./scan-button";
 import FloatingNavMenu from "./nav-menu";
 import { LocationButton } from "./location";
 import { Database } from "@/types/supabase";
+import { Gauge } from "@/components/ui/gauge";
 
 type Location = Database["inventory"]["Enums"]["location_type"];
 
@@ -13,6 +14,15 @@ interface FloatingNavGroupProps {
   onLocationChange?: (location: Location) => void;
   activeLocation?: Location | null;
   isStockTakeActive: boolean;
+  scanCount?: number;
+}
+
+function GaugeCounter({ scanCount }: { scanCount: number }) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <Gauge size={56} primary={"info"} value={scanCount} />
+    </div>
+  );
 }
 
 /**
@@ -31,6 +41,7 @@ export function FloatingNavGroup({
   onLocationChange,
   activeLocation = null,
   isStockTakeActive,
+  scanCount = 0,
 }: FloatingNavGroupProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
@@ -61,29 +72,37 @@ export function FloatingNavGroup({
       {/* Button container */}
       <div className="fixed bottom-3 left-0 right-0 z-30 flex justify-between items-center px-6">
         {/* Left position - Menu button */}
-        <div className="flex-1 flex justify-start">
+        <div className="flex-2 flex justify-start">
           <FloatingNavMenu
             onNavigate={onMenuNavigate}
             onMenuToggle={handleMenuToggle}
           />
         </div>
 
-        {/* Center position - Stocktake button with transition */}
-        <div className="flex-1 flex">
-          <div
-            className={cn(
-              "transition-all duration-500 ease-in-out transform",
-              isStockTakeActive
-                ? "translate-x-1/2 ml-auto mr-0"
-                : "translate-x-0 mx-auto"
-            )}
-          >
-            <StocktakeButton />
-          </div>
+        {/* Center position - Content depends on stocktake status */}
+        <div className="flex-[0.5] flex justify-center relative">
+          {isStockTakeActive ? (
+            <div className="w-full flex justify-between">
+              {/* Gauge on the left when session is active */}
+              <div className="transform -translate-x-1/2">
+                <GaugeCounter scanCount={scanCount} />
+              </div>
+
+              {/* Scan button moves to the right when session is active */}
+              <div className="transform translate-x-1/2">
+                <StocktakeButton />
+              </div>
+            </div>
+          ) : (
+            /* Scan button centered when session is not active */
+            <div className="mx-auto">
+              <StocktakeButton />
+            </div>
+          )}
         </div>
 
         {/* Right position - Location toggle button */}
-        <div className="flex-1 flex justify-end">
+        <div className="flex-2 flex justify-end">
           <LocationButton
             onToggle={handleLocationToggle}
             onLocationChange={onLocationChange}

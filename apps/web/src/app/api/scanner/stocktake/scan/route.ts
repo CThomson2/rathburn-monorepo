@@ -1,6 +1,6 @@
 // app/api/scanner/stocktake/scan/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient as createClient } from '@/lib/supabase/server'; // Use server client for auth & RLS
+import { createClient } from '@/lib/supabase/server'; // Use server client for auth & RLS
 import { cookies } from 'next/headers';
 import { StocktakeScanEvent, broadcastScanEvent } from '@/lib/events/sse';
 import { validateAuth, createAuthenticatedClient } from '@/lib/api/auth'; // Import both functions
@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
   const headers = getCorsHeaders(requestOrigin, 'POST, OPTIONS');
   // We might not need createAuthClient anymore if validateAuth handles it
   // const supabaseAuth = createAuthClient(); 
-  const supabaseService = createClient(); // Service client for DB ops (might bypass RLS)
-  let supabase = null; // Will be set to authenticated client if auth succeeds
+  let supabase = createClient(); // Service client for DB ops (might bypass RLS)
+  // let supabase = null; // Will be set to authenticated client if auth succeeds
 
   try {
     console.log(`[API Stocktake Scan] POST request from origin: ${requestOrigin}`);
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     try {
       console.log(`[API Stocktake Scan] Calling RPC find_item_by_barcode_prefix with prefix: ${barcode}`);
-      const { data: rpcData, error: rpcError } = await supabaseService.rpc(
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
         'find_item_by_barcode_prefix',
         { p_barcode_prefix: barcode } // Pass the barcode as the argument
       );
@@ -125,15 +125,7 @@ export async function POST(request: NextRequest) {
       barcodeType = 'error'; 
     }
     
-    // 4a. Insert session into logs.stocktake_sessions
-    
-
-    const sessionRecord = {
-        session_id: sessionId,
-        user_id: user.id,
-    };
-
-    // 4b. Insert scan record into logs.stocktake_scans
+    // 4. Insert scan record into stocktake_scans
     let insertedScanData: any = null;
     let insertError: any = null;
 
@@ -154,21 +146,36 @@ export async function POST(request: NextRequest) {
     console.log('[API Stocktake Scan] Scan record:', scanRecord);
 
     try {
-        // Use the authenticated client if available, otherwise fall back to service client
-        const clientToUse = supabase || supabaseService;
-        
-        const { data, error } = await clientToUse
-          .schema('logs')
-          .from('stocktake_scans') // Assuming RLS allows user inserts or using service client
-            .insert(scanRecord)
-            .select() // Return the inserted row
-            .single(); // Expecting a single row back
+        // Use the SQL function instead of direct table access
+        const { data, error } = await supabase
+            // .from('stocktake_scans') // Assuming RLS allows user inserts or using service client
+            // .insert(scanRecord)
+            // .select() // Return the inserted row
+            // .single(); // Expecting a single row back
+            .rpc('insert_stocktake_scan', {
+                p_stocktake_session_id: sessionId,
+                p_user_id: user.id,
+                p_device_id: deviceId || null,
+                p_raw_barcode: barcode,
+                p_barcode_type: identificationError ? 'error' : barcodeType,
+                p_material_id: materialId,
+                p_supplier_id: supplierId,
+                p_status: identificationError ? 'error' : (barcodeType === 'unknown' ? 'ignored' : 'success'),
+                p_error_message: identificationError,
+                p_metadata: identificationError ? { lookupError: identificationError } : null,
+            });
 
         if (error) {
             throw error;
         }
-        insertedScanData = data;
-        console.log(`[API Stocktake Scan] Successfully inserted scan record: ${insertedScanData.id}`);
+        
+        // The function returns {success: true, id: UUID}
+        if (data && data.success) {
+            insertedScanData = { id: data.id, ...scanRecord };
+            console.log(`[API Stocktake Scan] Successfully inserted scan record: ${data.id}`);
+        } else {
+            throw new Error(data?.error || 'Unknown error inserting scan record');
+        }
 
     } catch (error: any) {
         insertError = error;

@@ -102,6 +102,7 @@ const IndexContent = () => {
   const transportScan = useScan();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [location, setLocation] = useState<Location | null>(null);
+  const [scanCount, setScanCount] = useState(0);
 
   // Call useStockTake hook without passing the location directly
   const stockTake = useStockTake();
@@ -117,6 +118,13 @@ const IndexContent = () => {
       // This could trigger a location update API call if needed
     }
   }, [location, stockTake.currentLocation, stockTake.currentSessionId]);
+
+  // Use effect to reset scan count when a session ends
+  useEffect(() => {
+    if (!stockTake.currentSessionId) {
+      setScanCount(0);
+    }
+  }, [stockTake.currentSessionId]);
 
   const shouldActivateScanInput = useMemo(() => {
     console.log(
@@ -192,14 +200,24 @@ const IndexContent = () => {
           console.log(
             "[IndexPage] Routing scan to useStockTake (Session Active)"
           );
-          stockTake.processStocktakeScan(barcode).catch((err) => {
-            console.error("[IndexPage] Error processing stocktake scan:", err);
-            toast({
-              title: "Scan Error",
-              description: "Failed to process stocktake scan",
-              variant: "destructive",
+          stockTake
+            .processStocktakeScan(barcode)
+            .then((response) => {
+              if (response?.success) {
+                setScanCount((prevCount) => prevCount + 1);
+              }
+            })
+            .catch((err) => {
+              console.error(
+                "[IndexPage] Error processing stocktake scan:",
+                err
+              );
+              toast({
+                title: "Scan Error",
+                description: "Failed to process stocktake scan",
+                variant: "destructive",
+              });
             });
-          });
         } else if (currentView === "transport") {
           console.log(
             "[IndexPage] Routing scan to useScan (Transport, No Stocktake Session)"
@@ -510,6 +528,7 @@ const IndexContent = () => {
         onLocationChange={handleLocationChange}
         activeLocation={location}
         isStockTakeActive={Boolean(stockTake.currentSessionId)}
+        scanCount={scanCount}
       />
     </div>
   );

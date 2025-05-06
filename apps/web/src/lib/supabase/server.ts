@@ -4,7 +4,7 @@ import { createClient as createBrowserClient } from "@supabase/supabase-js";
 
 // This function creates a Supabase client that works in both server components
 // and during static build/generation
-export const createClient = () => {
+export const createClient = (schema: string = "public") => {
   // Check if we're in a browser-like environment without cookies
   // This is needed for static site generation and standalone builds
   let isBuildTime = false;
@@ -68,7 +68,10 @@ export const createClient = () => {
           }
         },
       },
-    }
+      db: {
+        schema: schema
+      }
+    },
   );
 };
 

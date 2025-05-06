@@ -3,7 +3,7 @@ import { Session } from "@supabase/supabase-js";
 import { NavigateFunction, Location } from "react-router-dom";
 
 // Define public routes that don't require authentication
-export const publicRoutes = ["/sign-in", "/auth/callback"];
+export const publicRoutes = ["/sign-in", "/auth/callback", "/sign-out"];
 
 // Define the result type for checkAuth
 interface AuthCheckResult {
@@ -30,10 +30,22 @@ export async function checkAuth(pathname: string): Promise<AuthCheckResult> {
     pathname === route || pathname.startsWith(route)
   );
   
+  // Special path for sign-out - always let user go to sign-in from here
+  if (pathname === "/sign-out") {
+    console.log('[MIDDLEWARE] Sign-out path detected - redirecting to sign-in');
+    return { authenticated: false, redirectTo: "/sign-in", session: null };
+  }
+  
   try {
     // Get Supabase session
     const supabase = createClient();
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
+    
+    // Log any session retrieval errors
+    if (error) {
+      console.error("[MIDDLEWARE] Session retrieval error:", error.message);
+    }
+    
     const session = data.session;
     
     // Check localStorage as a fallback (for custom mobile auth)
@@ -63,6 +75,12 @@ export async function checkAuth(pathname: string): Promise<AuthCheckResult> {
     
   } catch (error) {
     console.error("[MIDDLEWARE] Auth check error:", error);
+    
+    // Safety check: If this is already sign-in page, don't create a redirect loop
+    if (pathname === "/sign-in") {
+      return { authenticated: false, redirectTo: null, session: null };
+    }
+    
     // On error, assume user is not authenticated and redirect to login
     return { authenticated: false, redirectTo: "/sign-in", session: null };
   }
@@ -77,6 +95,13 @@ export function executeMiddleware(
   navigate: NavigateFunction,
   location: Location
 ): Promise<void> {
+  // For critical auth pages, bypass full middleware check
+  if (pathname === "/sign-in" || pathname === "/sign-out") {
+    // If user is trying to sign out or sign in, let them do so without impediment
+    console.log(`[MIDDLEWARE] Fast-path for auth route: ${pathname}`);
+    return Promise.resolve();
+  }
+  
   return checkAuth(pathname).then(({ redirectTo }) => {
     if (redirectTo) {
       // Save the current location to redirect back after authentication if needed
