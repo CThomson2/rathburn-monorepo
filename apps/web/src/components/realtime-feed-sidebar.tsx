@@ -313,7 +313,7 @@ export function RealtimeFeedSidebar({
                         className="text-xs text-gray-500 dark:text-gray-400 block truncate"
                         title={scan.user_email}
                       >
-                        {scan.user_email}
+                        {scan.user_email.slice(0, scan.user_email.indexOf("@"))}
                       </span>
                     )}
                   </div>
@@ -330,7 +330,7 @@ export function RealtimeFeedSidebar({
                 >
                   {scan.barcode_type === "material" && scan.material_name ? (
                     <>
-                      <span className="font-semibold">Material:</span>{" "}
+                      <span className="font-semibold">[M]</span>{" "}
                       {scan.material_name}
                       {scan.associated_supplier_name_for_material && (
                         <span className="text-muted-foreground text-xs block mt-0.5">
@@ -341,7 +341,7 @@ export function RealtimeFeedSidebar({
                     </>
                   ) : scan.barcode_type === "supplier" && scan.supplier_name ? (
                     <>
-                      <span className="font-semibold">Supplier:</span>{" "}
+                      <span className="font-semibold">[S]</span>{" "}
                       {scan.supplier_name}
                     </>
                   ) : (

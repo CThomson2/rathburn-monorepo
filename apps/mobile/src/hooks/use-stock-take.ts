@@ -358,6 +358,7 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
 
     const response = await handleStockTakeScan(payload, token); // Pass the fetched token
 
+    // Update state with scan result
     setState((prevState) => ({
       ...prevState,
       isScanning: false,
@@ -368,8 +369,17 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
 
     console.log(`[useStockTake] Scan completed with status: ${response.success ? 'success' : 'error'}`);
     
-    // Return the scan response (could be useful for immediate UI updates)
-    return response;
+    // Enhance the response with additional information that might be useful for UI indicators
+    const enhancedResponse = {
+      ...response,
+      timestamp: new Date().toISOString(),
+      sessionId: state.currentSessionId,
+      location: state.currentLocation,
+      barcode
+    };
+    
+    // Return the enhanced scan response for immediate UI updates
+    return enhancedResponse;
   }, [state.currentSessionId, state.currentLocation]); // Add dependency on currentLocation
 
   return {

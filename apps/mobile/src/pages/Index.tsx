@@ -56,6 +56,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { ScanSuccessIndicator } from "@/components/scan-success-indicator";
 
 const statusColors = {
   transport: {
@@ -104,6 +105,10 @@ const IndexContent = () => {
   const [location, setLocation] = useState<Location | null>(null);
   const [scanCount, setScanCount] = useState(0);
 
+  // Add state for showing the successful scan indicator
+  const [successfulScan, setSuccessfulScan] = useState<string | null>(null);
+  const successTimeoutRef = useRef<number | null>(null);
+
   // Call useStockTake hook without passing the location directly
   const stockTake = useStockTake();
 
@@ -125,6 +130,15 @@ const IndexContent = () => {
       setScanCount(0);
     }
   }, [stockTake.currentSessionId]);
+
+  // Clean up the success indicator timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        window.clearTimeout(successTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const shouldActivateScanInput = useMemo(() => {
     console.log(
@@ -204,7 +218,24 @@ const IndexContent = () => {
             .processStocktakeScan(barcode)
             .then((response) => {
               if (response?.success) {
+                // Increment scan counter
                 setScanCount((prevCount) => prevCount + 1);
+
+                // Show success indicator with the scanned barcode
+                // We're just using the barcode here, but the response might contain
+                // additional metadata that could be displayed in the future
+                setSuccessfulScan(barcode);
+
+                // Clear any existing timeout
+                if (successTimeoutRef.current) {
+                  window.clearTimeout(successTimeoutRef.current);
+                }
+
+                // Set timeout to clear the indicator after 2.5 seconds
+                successTimeoutRef.current = window.setTimeout(() => {
+                  setSuccessfulScan(null);
+                  successTimeoutRef.current = null;
+                }, 2500);
               }
             })
             .catch((err) => {
@@ -520,6 +551,11 @@ const IndexContent = () => {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Success Indicator - Appears when a successful scan happens */}
+      <AnimatePresence>
+        {successfulScan && <ScanSuccessIndicator barcode={successfulScan} />}
+      </AnimatePresence>
 
       {/* Floating Navigation Group - contains both menu and stocktake buttons */}
       <FloatingNavGroup
