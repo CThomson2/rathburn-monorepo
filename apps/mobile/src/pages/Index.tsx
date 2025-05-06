@@ -57,6 +57,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ScanSuccessIndicator } from "@/components/scan-success-indicator";
+// import { StocktakeButton } from "@/components/buttons/scan-button";
 
 const statusColors = {
   transport: {
@@ -109,8 +110,7 @@ const IndexContent = () => {
   const [successfulScan, setSuccessfulScan] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
 
-  // Call useStockTake hook without passing the location directly
-  const stockTake = useStockTake();
+  const stockTake = useStockTake(location);
 
   // Update stockTake's location when our location state changes
   useEffect(() => {
@@ -141,26 +141,17 @@ const IndexContent = () => {
   }, []);
 
   const shouldActivateScanInput = useMemo(() => {
-    console.log(
-      `[Index] shouldActivateScanInput CALLED with stockTake.currentSessionId: ${stockTake.currentSessionId}`
-    );
     const isActive = !!stockTake.currentSessionId;
     console.log(
-      `[Index] ScanInput isActive: ${isActive}, Session ID: ${stockTake.currentSessionId}`
+      `[Index] ScanInput active: ${isActive} (Session ID: ${stockTake.currentSessionId}, IsScanning: ${stockTake.isScanning})`
     );
     return isActive;
-  }, [stockTake.currentSessionId]);
+  }, [stockTake.currentSessionId, stockTake.isScanning]);
 
   useEffect(() => {
     if (shouldActivateScanInput) {
-      console.log(
-        "[Index] ScanInput should be active, triggering focus events"
-      );
-
-      // First attempt - simulate a click to trigger focus handlers
       const triggerFocus = () => {
         try {
-          // Dispatch both click and focus events to maximize chances of focus
           document.dispatchEvent(
             new MouseEvent("click", {
               view: window,
@@ -168,8 +159,6 @@ const IndexContent = () => {
               cancelable: true,
             })
           );
-
-          // Also dispatch a focus event on window
           window.dispatchEvent(
             new FocusEvent("focus", {
               bubbles: true,
@@ -180,18 +169,13 @@ const IndexContent = () => {
           console.error("[Index] Error dispatching focus events:", err);
         }
       };
-
-      // Call immediately and then set up repeated attempts
       triggerFocus();
-
-      // Try a series of focus attempts at increasing intervals
       const timeoutIds: number[] = [];
       [100, 300, 600, 1000].forEach((delay) => {
         const id = window.setTimeout(triggerFocus, delay);
         timeoutIds.push(id);
       });
       return () => {
-        // Clean up all timeouts
         timeoutIds.forEach((id) => window.clearTimeout(id));
       };
     }

@@ -22,20 +22,18 @@ interface StocktakeButtonProps {
 export function StocktakeButton({ className }: StocktakeButtonProps) {
   const stockTake = useStockTake();
   const { toast } = useToast();
-  const isActive = !!stockTake.currentSessionId;
+  const isVisuallyActive = !!stockTake.currentSessionId;
 
   const handleToggle = async () => {
     console.log("[StocktakeButton] Toggling stock take session");
     try {
-      if (isActive) {
-        // End existing session
-        stockTake.endStocktakeSession();
+      if (isVisuallyActive) {
+        await stockTake.endStocktakeSession();
         toast({
           title: "Stock Take Ended",
           description: "Your stock take session has been ended",
         });
       } else {
-        // Start new session
         await stockTake.startStocktakeSession();
         toast({
           title: "Stock Take Started",
@@ -43,10 +41,14 @@ export function StocktakeButton({ className }: StocktakeButtonProps) {
         });
       }
     } catch (error) {
-      console.error("[StocktakeButton] Error toggling session:", error);
+      console.error(
+        "[StocktakeButton] Error toggling session (handled in hook)"
+      );
       toast({
         title: "Error",
-        description: `Failed to ${isActive ? "end" : "start"} stock take session`,
+        description:
+          stockTake.lastScanMessage ||
+          `Failed to ${isVisuallyActive ? "end" : "start"} stock take session`,
         variant: "destructive",
       });
     }
@@ -55,20 +57,20 @@ export function StocktakeButton({ className }: StocktakeButtonProps) {
   return (
     <FloatingNavBase
       onClick={handleToggle}
-      isActive={isActive}
+      isActive={isVisuallyActive}
       baseColor="bg-red-600"
       className={cn(
-        isActive && "rounded-2xl border-2 border-red-700",
-        !isActive && "border-2 border-red-700",
+        isVisuallyActive && "rounded-2xl border-2 border-red-700",
+        !isVisuallyActive && "border-2 border-red-700",
         stockTake.isScanning && "animate-pulse",
         className
       )}
       aria-label={
-        isActive ? "End stock take session" : "Start stock take session"
+        isVisuallyActive ? "End stock take session" : "Start stock take session"
       }
     >
       <div className="flex flex-col items-center justify-center">
-        {isActive ? (
+        {isVisuallyActive ? (
           <StopCircle className="h-7 w-7" />
         ) : (
           <Scan className="h-7 w-7" />

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 // Remove useAuth import as we'll get token directly
 // import { useAuth } from './useAuth'; 
 import { handleStockTakeScan, StocktakeScanResponse } from '../services/stockTakeScan';
@@ -11,7 +11,9 @@ type Location = Database["inventory"]["Enums"]["location_type"];
 // Define API endpoints
 const START_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Consolidated POST endpoint
 const END_SESSION_ENDPOINT_TEMPLATE = '/api/scanner/stocktake/sessions/{sessionId}/end';
-const CHECK_ACTIVE_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Consolidated GET endpoint
+const CHECK_ACTIVE_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Re-added for initial state sync
+// CHECK_ACTIVE_SESSION_ENDPOINT is no longer needed by the hook
+// const CHECK_ACTIVE_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Consolidated GET endpoint
 
 // Interface for the start session API response
 interface StartSessionResponse {
@@ -27,10 +29,10 @@ interface EndSessionResponse {
     error?: string;
 }
 
-// Interface for the active session check API response
+// Re-added for initial state sync
 interface CheckActiveSessionResponse {
     success: boolean;
-    session?: { id: string; location: Location | null }; // Expect id and location
+    session?: { id: string; location: Location | null }; 
     error?: string;
 }
 
@@ -42,14 +44,16 @@ interface UseStockTakeState {
   lastScanMessage: string | null;
   lastScanId: string | null; // Store the ID of the last successful scan
   currentLocation: Location | null;
-  isInitializing: boolean; // Add initializing state
+  isInitializing: boolean; // Re-added to prevent UI flicker during initial check
+  // isInitializing, showConflictDialog, conflictingSessionId are removed
 }
 
 // Define the return type of the hook
 interface UseStockTakeReturn extends UseStockTakeState {
   startStocktakeSession: () => Promise<void>;
-  endStocktakeSession: () => void;
-  processStocktakeScan: (barcode: string) => Promise<StocktakeScanResponse | undefined>; // Updated return type
+  endStocktakeSession: () => Promise<void>; // No longer needs optional param
+  processStocktakeScan: (barcode: string) => Promise<StocktakeScanResponse | undefined>;
+  // forceEndAndRestartSession, cancelConflictDialog are removed
 }
 
 // Function to get a placeholder or actual device ID
@@ -77,6 +81,8 @@ function getDeviceId(): string {
  * - lastScanId: ID of the last successful scan.
  * - currentLocation: Current selected location for the stocktake session.
  * - isInitializing: Indicates if the hook is checking for an active session on mount.
+ * - showConflictDialog: Indicates whether the conflict dialog should be shown.
+ * - conflictingSessionId: ID of the conflicting session, if any.
  * 
  * @param initialLocation - Optional initial location parameter
  * @returns UseStockTakeReturn object containing state and functions
@@ -88,287 +94,207 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
     currentSessionId: null,
     isScanning: false,
     lastScanStatus: 'idle',
-    lastScanMessage: null,
+    lastScanMessage: 'Initializing...', // Initial message
     lastScanId: null,
-    currentLocation: initialLocation, // Use the prop for initial state
+    currentLocation: initialLocation,
     isInitializing: true, // Start in initializing state
+    // Removed initial state for isInitializing, showConflictDialog, conflictingSessionId
   });
 
-  // Effect to check for active session on mount
+  // Re-added Effect to check for active session on mount just for state sync
   useEffect(() => {
-    const checkForActiveSession = async () => {
-      console.log("[useStockTake] Checking for active session on mount...");
-      setState(prevState => ({ ...prevState, isInitializing: true, currentLocation: null }));
+    const syncSessionStateOnMount = async () => {
+      console.log("[useStockTake] Syncing session state on mount...");
+      // Keep initializing true until check is complete
+      setState(prevState => ({ ...prevState, isInitializing: true })); 
 
       const { data: { session: authTokenSession }, error: sessionError } = await supabase.auth.getSession();
       const token = authTokenSession?.access_token;
 
       if (sessionError || !token) {
-        console.error('[useStockTake] Auth error fetching token for active session check:', sessionError);
+        console.error('[useStockTake] Auth error syncing state on mount:', sessionError);
         setState(prevState => ({
           ...prevState,
-          isInitializing: false,
-          lastScanStatus: 'error',
-          lastScanMessage: 'Auth error checking session status. Ready for new session.',
-          currentSessionId: null, // Ensure no session is active in UI
+          isInitializing: false, // Finished check
+          lastScanStatus: 'idle',
+          lastScanMessage: 'Auth error. Ready for new session.',
+          currentSessionId: null,
+          currentLocation: null, // Reset location if no session
         }));
         return;
       }
-
-      const deviceId = getDeviceId();
 
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}${CHECK_ACTIVE_SESSION_ENDPOINT}`, {
           method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            // 'X-Device-ID': deviceId, // Already handled by GET endpoint logic if needed
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
         });
-
         const result: CheckActiveSessionResponse = await response.json();
 
-        if (response.ok && result.success) {
-          if (result.session && result.session.id) {
-            const activeSessionIdToClose = result.session.id;
-            console.log(`[useStockTake] Active session ${activeSessionIdToClose} found on mount. Attempting to end it programmatically.`);
-
-            const endEndpoint = END_SESSION_ENDPOINT_TEMPLATE.replace('{sessionId}', activeSessionIdToClose);
-            try {
-              const endResponse = await fetch(`${import.meta.env.VITE_API_URL}${endEndpoint}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`,
-                },
-              });
-              const endResult: EndSessionResponse = await endResponse.json();
-              if (endResponse.ok && endResult.success) {
-                console.log(`[useStockTake] Programmatically ended old session ${activeSessionIdToClose}.`);
-                setState(prevState => ({
-                  ...prevState,
-                  currentSessionId: null,
-                  isInitializing: false,
-                  lastScanMessage: 'Cleaned up old session. Ready for new session.',
-                  currentLocation: null, // Reset location as well
-                }));
-              } else {
-                // Log error but still treat as no active session for UI consistency
-                console.error(`[useStockTake] Failed to programmatically end session ${activeSessionIdToClose}:`, endResult.error || `Status ${endResponse.status}`);
-                setState(prevState => ({
-                  ...prevState,
-                  currentSessionId: null,
-                  isInitializing: false,
-                  lastScanStatus: 'error',
-                  lastScanMessage: `Failed to clean up old session: ${endResult.error || 'Unknown error'}. Ready for new session.`,
-                  currentLocation: null,
-                }));
-              }
-            } catch (programmaticEndError: unknown) {
-              console.error('[useStockTake] Error during programmatic session end:', programmaticEndError instanceof Error ? programmaticEndError.message : String(programmaticEndError));
-              setState(prevState => ({
-                ...prevState,
-                currentSessionId: null,
-                isInitializing: false,
-                lastScanStatus: 'error',
-                lastScanMessage: `Error cleaning up old session: ${programmaticEndError instanceof Error ? programmaticEndError.message : String(programmaticEndError)}. Ready for new session.`,
-                currentLocation: null,
-              }));
-            }
-          } else {
-            console.log("[useStockTake] No active session found on mount. Ready for new session.");
-            setState(prevState => ({ 
-              ...prevState, 
-              isInitializing: false, 
-              currentSessionId: null, 
-              currentLocation: null, // Ensure location is reset if no session
-              lastScanMessage: 'No active session found. Ready to start.'
-            }));
-          }
-        } else {
-          // If checking for active session fails, assume no active session for UI consistency
-          console.error('[useStockTake] Failed to check for active session:', result.error || `Status ${response.status}`);
+        if (response.ok && result.success && result.session && typeof result.session.id === 'string') {
+          const activeSession = result.session; // Assign to variable for type narrowing
+          console.log(`[useStockTake] Active session ${activeSession.id} found on mount. Syncing state.`);
           setState(prevState => ({
             ...prevState,
             isInitializing: false,
-            lastScanStatus: 'error',
-            lastScanMessage: `Error checking session status: ${result.error || 'Unknown error'}. Ready for new session.`,
+            currentSessionId: activeSession.id, 
+            // Safely access location, defaulting to previous state's location if null/undefined
+            currentLocation: activeSession.location ?? prevState.currentLocation, 
+            lastScanMessage: 'Resumed active session.'
+          }));
+        } else {
+          // No active session found or error checking
+          console.log("[useStockTake] No active session found on mount. Initializing as ready.");
+          setState(prevState => ({
+            ...prevState,
+            isInitializing: false,
             currentSessionId: null,
-            currentLocation: null,
+            currentLocation: null, // Reset location if no session
+            lastScanMessage: 'Ready to start new session.'
           }));
         }
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error checking session';
-        console.error('[useStockTake] Error checking for active session:', error);
+        console.error('[useStockTake] Error during initial session state sync:', error);
         setState(prevState => ({
           ...prevState,
           isInitializing: false,
-          lastScanStatus: 'error',
-          lastScanMessage: message,
           currentSessionId: null,
           currentLocation: null,
+          lastScanStatus: 'error',
+          lastScanMessage: 'Error checking session status. Ready to start.'
         }));
       }
     };
-
-    checkForActiveSession();
+    syncSessionStateOnMount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Run only once on mount
 
-  // Update location in state when the prop changes using useEffect
+  // Update location prop if it changes externally
   useEffect(() => {
-    // Only update if not initializing and location prop differs from state
-    if (!state.isInitializing && initialLocation !== state.currentLocation) {
-      console.log(`[useStockTake] Location prop updated to: ${initialLocation}`);
-      setState(prevState => ({
-        ...prevState,
-        currentLocation: initialLocation
-      }));
-      // TODO: If an API call is needed to update the *active session's* location,
-      //       it should be triggered here if state.currentSessionId exists.
+    // Don't update location from prop if we are initializing or already have a session ID
+    // Let the initial sync handle the location if a session exists
+    if (!state.isInitializing && !state.currentSessionId && initialLocation !== state.currentLocation) {
+      console.log(`[useStockTake] Location prop updated externally to: ${initialLocation}`);
+      setState(prevState => ({ ...prevState, currentLocation: initialLocation }));
     }
-  }, [initialLocation, state.currentLocation, state.isInitializing]);
+  }, [initialLocation, state.currentLocation, state.isInitializing, state.currentSessionId]);
 
   // Updated startStocktakeSession function
   const startStocktakeSession = useCallback(async () => {
     console.log(`[useStockTake] Attempting to start new session...`);
-    setState((prevState) => ({ ...prevState, isScanning: true, lastScanStatus: 'idle' }));
+    // Set scanning state for UI feedback
+    setState((prevState) => ({ ...prevState, isScanning: true, lastScanStatus: 'idle', lastScanMessage: 'Starting session...' }));
 
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    const { data: { session: authTokenSession }, error: sessionError } = await supabase.auth.getSession();
+    const token = authTokenSession?.access_token;
 
     if (sessionError || !token) {
-        console.error('[useStockTake] Authentication error fetching token for start session:', sessionError);
-        setState((prevState) => ({
-            ...prevState,
-            isScanning: false,
-            lastScanStatus: 'error',
-            lastScanMessage: 'Authentication error. Cannot start session.',
-        }));
-        return;
+      console.error('[useStockTake] Auth error starting session:', sessionError);
+      setState((prevState) => ({ ...prevState, isScanning: false, lastScanStatus: 'error', lastScanMessage: 'Auth error. Failed to start.' }));
+      return;
     }
     
     try {
-        // Add location info to request if available
-        const requestBody = state.currentLocation ? { location: state.currentLocation } : {};
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}${START_SESSION_ENDPOINT}`, {
-            method: 'POST',
-            headers: {
-                 'Content-Type': 'application/json',
-                 'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(requestBody), // Include location if available
-        });
+      const requestBody = state.currentLocation ? { location: state.currentLocation } : {};
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${START_SESSION_ENDPOINT}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(requestBody),
+      });
 
-        const result: StartSessionResponse = await response.json();
+      // Removed 409 conflict check - handled by DB trigger
 
-        if (response.ok && result.success && result.session) {
-             // Assign to a new variable to help TypeScript narrow the type
-             const sessionData = result.session;
-             if (!sessionData) { // Check the new variable
-                 throw new Error('API returned success but session data is missing');
-             }
-             console.log(`[useStockTake] Session started successfully: ${sessionData.id}`);
-             setState((prevState) => ({
-                 ...prevState,
-                 isScanning: false,
-                 currentSessionId: sessionData.id, // Use the new variable
-                 lastScanStatus: 'idle',
-                 lastScanMessage: `Session '${sessionData.name}' started. Ready to scan.`,
-             }));
-        } else {
-             throw new Error(result.error || 'Failed to start session');
-        }
-
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error starting session';
-        console.error('[useStockTake] Error starting session:', error);
+      const result: StartSessionResponse = await response.json();
+      if (response.ok && result.success && result.session) {
+        console.log(`[useStockTake] Session started successfully: ${result.session.id}`);
         setState((prevState) => ({
-            ...prevState,
-            isScanning: false,
-            lastScanStatus: 'error',
-            lastScanMessage: message,
+          ...prevState,
+          isScanning: false,
+          currentSessionId: result.session!.id,
+          lastScanStatus: 'idle',
+          lastScanMessage: `Session '${result.session!.name}' started.`,
         }));
+      } else {
+        // Handle other errors (e.g., 500, 400, 401)
+        console.error('[useStockTake] Failed to start session:', result.error || `Status ${response.status}`);
+        throw new Error(result.error || `Failed to start session (Status: ${response.status})`);
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error starting session';
+      console.error('[useStockTake] Error in startStocktakeSession:', message);
+      setState((prevState) => ({ 
+        ...prevState, 
+        isScanning: false, 
+        lastScanStatus: 'error', 
+        lastScanMessage: message,
+        currentSessionId: null // Ensure session ID is null on failure
+      }));
     }
+  }, [state.currentLocation]); // Depends on location for the request body
 
-  }, [state.currentLocation]); // Add dependency on currentLocation
-
-  const endStocktakeSession = useCallback(async () => { // Make async
+  // Only ends the session currently active in the hook's state
+  const endStocktakeSession = useCallback(async (): Promise<void> => {
     const sessionId = state.currentSessionId;
     if (!sessionId) {
-      console.warn('[useStockTake] endStocktakeSession called without an active session.');
-      return; // No session to end
+      console.warn('[useStockTake] endStocktakeSession called without an active session ID in state.');
+      setState(prevState => ({ ...prevState, lastScanMessage: 'No active session to end.'}));
+      return;
     }
 
     console.log(`[useStockTake] Attempting to end session: ${sessionId}`);
-    // Optionally set a temporary state like 'ending'
-    // setState((prevState) => ({ ...prevState, lastScanMessage: 'Ending session...' }));
-
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    setState(prevState => ({ ...prevState, isScanning: true, lastScanMessage: 'Ending session...' })); 
+    
+    const { data: { session: authTokenSession }, error: sessionError } = await supabase.auth.getSession();
+    const token = authTokenSession?.access_token;
 
     if (sessionError || !token) {
-      console.error('[useStockTake] Authentication error fetching token for end session:', sessionError);
-      // Update state locally anyway, but show an error message
-      setState((prevState) => ({
-        ...prevState,
-        currentSessionId: null,
-        lastScanStatus: 'error',
-        lastScanMessage: 'Session ended locally, but failed to sync with server (auth error).',
-      }));
+      console.error('[useStockTake] Auth error ending session:', sessionError);
+      // End locally, but indicate sync failure
+      setState(prevState => ({ ...prevState, isScanning: false, currentSessionId: null, lastScanStatus: 'error', lastScanMessage: 'Auth error. Ended locally.' }));
       return;
     }
 
     try {
       const endpoint = END_SESSION_ENDPOINT_TEMPLATE.replace('{sessionId}', sessionId);
       const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
-        method: 'PATCH', // Use PATCH as defined in the API route
-        headers: {
-          'Content-Type': 'application/json', // Although no body, Content-Type is good practice
-          'Authorization': `Bearer ${token}`,
-        },
-        // No body needed for this PATCH request
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       });
-
       const result: EndSessionResponse = await response.json();
 
       if (response.ok && result.success) {
-        console.log(`[useStockTake] Session ${sessionId} successfully marked as completed on server.`);
-        setState((prevState) => ({
+        console.log(`[useStockTake] Session ${sessionId} ended successfully on server.`);
+        setState(prevState => ({
           ...prevState,
+          isScanning: false,
           currentSessionId: null,
           lastScanStatus: 'idle',
           lastScanMessage: result.message || 'Session ended successfully.',
         }));
       } else {
-        // Handle API errors (e.g., session not found, server error)
-        throw new Error(result.error || `Failed to end session on server (status: ${response.status})`);
+         console.error(`[useStockTake] Failed to end session ${sessionId} on server:`, result.error || `Status ${response.status}`);
+        // Even if server fails, end locally for UI consistency
+        throw new Error(result.error || `Failed to end session on server (Status: ${response.status})`);
       }
-
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error ending session on server';
-      console.error('[useStockTake] Error ending session via API:', error);
-      // End the session locally but inform the user about the sync failure
-      setState((prevState) => ({
-        ...prevState,
-        currentSessionId: null, // Still end locally
-        lastScanStatus: 'error',
-        lastScanMessage: `Session ended locally, but failed to sync with server: ${message}`,
+      const message = error instanceof Error ? error.message : 'Unknown error ending session';
+      console.error('[useStockTake] Error in endStocktakeSession:', message);
+      // End locally but show error
+      setState(prevState => ({ 
+        ...prevState, 
+        isScanning: false, 
+        currentSessionId: null, // End locally regardless of server error
+        lastScanStatus: 'error', 
+        lastScanMessage: `Ended locally. Server error: ${message}` 
       }));
     }
+  }, [state.currentSessionId]); // Depends only on currentSessionId from state
 
-  }, [state.currentSessionId]); // Dependency on currentSessionId
-
-  const processStocktakeScan = useCallback(async (barcode: string) => {
+  const processStocktakeScan = useCallback(async (barcode: string): Promise<StocktakeScanResponse | undefined> => {
     if (!state.currentSessionId) {
       console.warn('[useStockTake] Scan processed called without active session.');
-      setState((prevState) => ({
-        ...prevState,
-        lastScanStatus: 'error',
-        lastScanMessage: 'No active stocktake session.',
-      }));
-      return;
+      setState((prevState) => ({ ...prevState, lastScanStatus: 'error', lastScanMessage: 'No active stocktake session.' }));
+      return undefined;
     }
 
     // Get Supabase client and current session token directly
@@ -383,7 +309,7 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
             lastScanStatus: 'error',
             lastScanMessage: 'Authentication error. Please ensure you are logged in.',
         }));
-        return;
+        return undefined;
     }
 
     console.log(`[useStockTake] Processing scan for session ${state.currentSessionId}: ${barcode}`);
@@ -398,22 +324,22 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
       location: state.currentLocation,
     };
 
-    const response = await handleStockTakeScan(payload, token); // Pass the fetched token
+    const scanResponseData = await handleStockTakeScan(payload, token); // Pass the fetched token
 
     // Update state with scan result
     setState((prevState) => ({
       ...prevState,
       isScanning: false,
-      lastScanStatus: response.success ? 'success' : 'error',
-      lastScanMessage: response.message || null,
-      lastScanId: response.scanId || prevState.lastScanId,
+      lastScanStatus: scanResponseData.success ? 'success' : 'error',
+      lastScanMessage: scanResponseData.message || null,
+      lastScanId: scanResponseData.scanId || prevState.lastScanId,
     }));
 
-    console.log(`[useStockTake] Scan completed with status: ${response.success ? 'success' : 'error'}`);
+    console.log(`[useStockTake] Scan completed with status: ${scanResponseData.success ? 'success' : 'error'}`);
     
     // Enhance the response with additional information that might be useful for UI indicators
     const enhancedResponse = {
-      ...response,
+      ...scanResponseData,
       timestamp: new Date().toISOString(),
       sessionId: state.currentSessionId,
       location: state.currentLocation,
