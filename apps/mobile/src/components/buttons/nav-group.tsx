@@ -105,7 +105,7 @@ export function FloatingNavGroup({
         <div className="flex-2 flex justify-end">
           <LocationButton
             onToggle={handleLocationToggle}
-            onLocationChange={onLocationChange}
+            // onLocationChange={onLocationChange}
             activeLocation={activeLocation}
           />
         </div>

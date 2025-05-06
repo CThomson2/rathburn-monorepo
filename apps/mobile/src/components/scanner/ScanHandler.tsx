@@ -6,10 +6,12 @@ import { handleScan } from "@/services/handle-scan";
 import { Badge } from "@/components/ui/badge";
 import Barcode from "./Barcode";
 import { useScanJob } from "@/hooks/use-scan-job";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import { useScan } from "@/hooks/use-scan";
 
 /**
+ * NOT IN USE
+ *
  * ScanHandler component
  * Handles barcode scanning through manual entry or scanner device
  */

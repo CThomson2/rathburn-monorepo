@@ -18,6 +18,22 @@ interface JobCardProps {
   priority?: "low" | "medium" | "high";
 }
 
+/**
+ * NOT IN USE
+ *
+ * A single job card component that shows the job title, supplier, status, progress, and quantity.
+ * It also shows the scheduled date and priority if provided.
+ * The component is expandable to show more details.
+ *
+ * @param {object} props
+ * @param {string} props.title - The title of the job.
+ * @param {string} props.supplier - The supplier of the job.
+ * @param {JobStatus} props.status - The status of the job.
+ * @param {number} props.progress - The progress of the job in percentage.
+ * @param {number} props.quantity - The quantity of the job.
+ * @param {string} [props.scheduledDate] - The scheduled date of the job.
+ * @param {'low' | 'medium' | 'high'} [props.priority] - The priority of the job.
+ */
 const JobCard: React.FC<JobCardProps> = ({
   title,
   supplier,

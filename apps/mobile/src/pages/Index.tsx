@@ -103,26 +103,30 @@ const IndexContent = () => {
   const { toast } = useToast();
   const transportScan = useScan();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  const [location, setLocation] = useState<Location | null>(null);
+  // const [location, setLocation] = useState<Location | null>(null);
   const [scanCount, setScanCount] = useState(0);
 
   // Add state for showing the successful scan indicator
   const [successfulScan, setSuccessfulScan] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
 
-  const stockTake = useStockTake(location);
+  // Buffer and timing refs for global barcode scanner detection (re-added here)
+  const barcodeBufferRef = useRef<string>("");
+  const lastKeyTimeRef = useRef<number>(0);
+
+  const stockTake = useStockTake();
 
   // Update stockTake's location when our location state changes
-  useEffect(() => {
-    // Location changes are tracked within the hook internally
-    if (stockTake.currentLocation !== location && stockTake.currentSessionId) {
-      // If we had an API endpoint to update location for an active session, we'd call it here
-      console.log(
-        `[Index] Location changed during active session: ${location}`
-      );
-      // This could trigger a location update API call if needed
-    }
-  }, [location, stockTake.currentLocation, stockTake.currentSessionId]);
+  // useEffect(() => {
+  //   // Location changes are tracked within the hook internally
+  //   if (stockTake.currentLocation !== location && stockTake.currentSessionId) {
+  //     // If we had an API endpoint to update location for an active session, we'd call it here
+  //     console.log(
+  //       `[Index] Location changed during active session: ${location}`
+  //     );
+  //     // This could trigger a location update API call if needed
+  //   }
+  // }, [location, stockTake.currentLocation, stockTake.currentSessionId]);
 
   // Use effect to reset scan count when a session ends
   useEffect(() => {
@@ -181,6 +185,7 @@ const IndexContent = () => {
     }
   }, [shouldActivateScanInput]);
 
+  // Moved handleGlobalScan definition earlier to resolve linter error
   const handleGlobalScan = useCallback(
     (barcode: string) => {
       console.log(
@@ -206,8 +211,6 @@ const IndexContent = () => {
                 setScanCount((prevCount) => prevCount + 1);
 
                 // Show success indicator with the scanned barcode
-                // We're just using the barcode here, but the response might contain
-                // additional metadata that could be displayed in the future
                 setSuccessfulScan(barcode);
 
                 // Clear any existing timeout
@@ -254,6 +257,73 @@ const IndexContent = () => {
     },
     [currentView, stockTake, transportScan, toast]
   );
+
+  // Global keydown listener for barcode scanner
+  useEffect(() => {
+    if (!shouldActivateScanInput) {
+      barcodeBufferRef.current = ""; // Clear buffer when not active
+      return;
+    }
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // If an input field, textarea, or select is focused, don't interfere
+      // Allows normal typing in other potential input fields on the page.
+      const targetElement = e.target as HTMLElement;
+      if (
+        targetElement.tagName === "INPUT" ||
+        targetElement.tagName === "TEXTAREA" ||
+        targetElement.tagName === "SELECT"
+      ) {
+        // Exception: allow our own hidden scan input to still be "typed into" by the global handler
+        // if it somehow did get focus, though it's unlikely and not the primary mechanism.
+        // The main goal here is to NOT interfere with visible, user-typable inputs.
+        if (targetElement.getAttribute("data-testid") !== "barcode-input") {
+          return;
+        }
+      }
+
+      const now = Date.now();
+      // Reset buffer if pause between keys is too long (e.g., > 100ms)
+      // Adjust timeout as needed for your scanner's speed
+      if (lastKeyTimeRef.current && now - lastKeyTimeRef.current > 100) {
+        barcodeBufferRef.current = "";
+      }
+      lastKeyTimeRef.current = now;
+
+      if (e.key === "Enter") {
+        const code = barcodeBufferRef.current.trim();
+        barcodeBufferRef.current = ""; // Reset buffer
+        if (code.length >= 3) {
+          console.log(
+            "[IndexPage] Global KeyDown 'Enter' detected, processing code:",
+            code
+          );
+          handleGlobalScan(code);
+        } else if (code.length > 0) {
+          console.warn(
+            "[IndexPage] Global KeyDown 'Enter', but code too short:",
+            code
+          );
+        }
+        e.preventDefault(); // Prevent default action for Enter if it was a scan
+      } else if (e.key.length === 1) {
+        // Append single characters
+        barcodeBufferRef.current += e.key;
+      }
+      // console.log(`[IndexPage] Global KeyDown: key='${e.key}', buffer='${barcodeBufferRef.current}'`); // Verbose log
+    };
+
+    console.log("[IndexPage] Adding global keydown listener (scan active)");
+    window.addEventListener("keydown", handleGlobalKeyDown, true); // Use capture phase
+
+    return () => {
+      console.log(
+        "[IndexPage] Removing global keydown listener (scan inactive or component unmount)"
+      );
+      window.removeEventListener("keydown", handleGlobalKeyDown, true);
+      barcodeBufferRef.current = ""; // Clear buffer on cleanup
+    };
+  }, [shouldActivateScanInput, handleGlobalScan]); // Dependency: handleGlobalScan
 
   const handleNavigation = (itemId: string) => {
     console.log(`Navigation action: ${itemId}`);
@@ -348,20 +418,14 @@ const IndexContent = () => {
     };
   }, []);
 
-  // Handle location change from the LocationButton
-  const handleLocationChange = (newLocation: Location) => {
-    console.log(`Location change requested: ${newLocation}`);
-    setLocation(newLocation);
-
-    // Show toast notification for location change
-    toast({
-      title: "Location Updated",
-      description: `Current location set to: ${newLocation.replace("_", " ").toUpperCase()}`,
-    });
-
-    // If we have an active stock take session, we could trigger a location update here
-    // or this could be handled internally by the useStockTake hook since we're passing location to it
-  };
+  // const handleLocationChange = (newLocation: Location) => {
+  //   console.log(`Location change requested: ${newLocation}`);
+  //   // setLocation(newLocation); // setLocation was removed
+  //   toast({
+  //     title: "Location Updated",
+  //     description: `Current location set to: ${newLocation.replace("_", " ").toUpperCase()}`,
+  //   });
+  // };
 
   const navLinks = [
     { name: "Transport", value: "transport", icon: Forklift },
@@ -382,14 +446,10 @@ const IndexContent = () => {
   // Handle view changes from the top navbar
   const handleViewChange = (viewName: string) => {
     console.log(`View change requested: ${viewName}`);
-
-    // Skip view change if it's just opening settings
     if (viewName.toLowerCase() === "settings") {
       console.log("Opening settings modal instead of changing view");
       return;
     }
-
-    // Find the matching nav item and use its value
     const navItem = navLinks.find((item) => item.name === viewName);
     if (navItem) {
       console.log(`Setting current view to: ${navItem.value}`);
@@ -398,38 +458,27 @@ const IndexContent = () => {
       console.log(`Setting current view directly to: ${viewName}`);
       setCurrentView(viewName.toLowerCase().replace(/\s+/g, ""));
     }
-
-    if (isMenuOpen) {
-      handleMenuToggle(false);
-    }
+    if (isMenuOpen) handleMenuToggle(false);
     setSearchQuery("");
   };
 
-  // State to track the swipe direction
   const [swipeDirection, setSwipeDirection] = useState(0);
-
   const handlers = useSwipeable({
     onSwipedLeft: () => {
       const currentIndex = navLinks.findIndex(
         (link) => link.value === currentView
       );
       const nextIndex = (currentIndex + 1) % navLinks.length;
-      const nextView = navLinks[nextIndex].value;
-
-      // Set direction for left swipe (positive - move right)
       setSwipeDirection(1);
-      setCurrentView(nextView);
+      setCurrentView(navLinks[nextIndex].value);
     },
     onSwipedRight: () => {
       const currentIndex = navLinks.findIndex(
         (link) => link.value === currentView
       );
       const nextIndex = (currentIndex - 1 + navLinks.length) % navLinks.length;
-      const nextView = navLinks[nextIndex].value;
-
-      // Set direction for right swipe (negative - move left)
       setSwipeDirection(-1);
-      setCurrentView(nextView);
+      setCurrentView(navLinks[nextIndex].value);
     },
   });
 
@@ -438,25 +487,13 @@ const IndexContent = () => {
       x: direction > 0 ? 1000 : -1000,
       opacity: 0,
     }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
+    center: { x: 0, opacity: 1 },
     exit: (direction: number) => ({
       x: direction < 0 ? 1000 : -1000,
       opacity: 0,
     }),
   };
 
-  /**
-   * Renders the currently active view.
-   *
-   * Uses AnimatePresence and motion.div to animate the view transitions.
-   * The direction of the swipe is determined by the old and new view index,
-   * and is passed to the custom property of the AnimatePresence component.
-   *
-   * @returns {JSX.Element}
-   */
   const renderView = () => {
     console.log(`Rendering view: ${currentView}`);
     switch (currentView) {
@@ -474,7 +511,6 @@ const IndexContent = () => {
     }
   };
 
-  // Use a callback to safely show toast notifications - Add correct type
   const showToast = useCallback(
     (props: ToastProps) => {
       try {
@@ -485,7 +521,7 @@ const IndexContent = () => {
       }
     },
     [toast]
-  ); // Add toast as dependency
+  );
 
   return (
     <div
@@ -501,8 +537,15 @@ const IndexContent = () => {
         extraActions={[]}
       />
 
+      <h1>
+        {stockTake.currentSessionId
+          ? "Stocktake Session Active: " +
+            stockTake.currentSessionId.slice(0, 8)
+          : "No Stocktake Session Active"}
+      </h1>
+
       {/* Display current location as a badge if set */}
-      {location && (
+      {/* {location && (
         <div className="px-4 py-1">
           <Badge
             variant="outline"
@@ -514,7 +557,7 @@ const IndexContent = () => {
             </span>
           </Badge>
         </div>
-      )}
+      )} */}
 
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence initial={false} mode="wait" custom={swipeDirection}>
@@ -536,17 +579,15 @@ const IndexContent = () => {
         </AnimatePresence>
       </div>
 
-      {/* Success Indicator - Appears when a successful scan happens */}
       <AnimatePresence>
         {successfulScan && <ScanSuccessIndicator barcode={successfulScan} />}
       </AnimatePresence>
 
-      {/* Floating Navigation Group - contains both menu and stocktake buttons */}
       <FloatingNavGroup
         onMenuNavigate={handleNavigation}
         onMenuToggle={handleMenuToggle}
-        onLocationChange={handleLocationChange}
-        activeLocation={location}
+        // onLocationChange={handleLocationChange} // Removed
+        // activeLocation={location} // Removed
         isStockTakeActive={Boolean(stockTake.currentSessionId)}
         scanCount={scanCount}
       />

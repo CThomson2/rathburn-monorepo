@@ -13,6 +13,7 @@ interface ScannerProps {
 }
 
 /**
+ * NOT IN USE
  * A React component for scanning barcodes.
  *
  * When the component is mounted, it will display a "Ready to scan" message.

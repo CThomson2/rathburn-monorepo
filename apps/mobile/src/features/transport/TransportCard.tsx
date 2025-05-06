@@ -43,6 +43,8 @@ interface TransportCardProps {
 }
 
 /**
+ * NOT IN USE
+ *
  * A transport job card that displays job details and drum IDs.
  *
  * @param {TransportJob} job - The transport job to display.

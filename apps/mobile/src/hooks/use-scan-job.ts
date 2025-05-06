@@ -7,6 +7,8 @@ interface ScanResult {
 }
 
 /**
+ * NOT IN USE
+ * 
  * Hook for managing scan job state
  */
 export function useScanJob() {

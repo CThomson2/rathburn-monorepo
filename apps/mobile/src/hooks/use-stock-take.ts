@@ -230,7 +230,7 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
         currentSessionId: null // Ensure session ID is null on failure
       }));
     }
-  }, [state.currentLocation]); // Depends on location for the request body
+  }, []); // REMOVE state.currentLocation from dependency array
 
   // Only ends the session currently active in the hook's state
   const endStocktakeSession = useCallback(async (): Promise<void> => {

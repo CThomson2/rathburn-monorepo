@@ -29,7 +29,7 @@ export interface ScanEvent {
 }
 
 // Get the base API URL from environment
-const API_URL = import.meta.env.VITE_API_URL ?? 'https://rathburn.app/api/scanner';
+const API_URL = import.meta.env.VITE_API_URL ?? 'https://rathburn.app';
 
 /**
  * Create base fetch options with CORS settings
@@ -99,11 +99,11 @@ export async function handleScan({
     };
     
     // Log the request details
-    console.log(`[SCAN-API] Sending scan to ${API_URL}/scan/single:`, payload);
+    console.log(`[SCAN-API] Sending scan to ${API_URL}/scan:`, payload);
     
     // Make the API request
     const response = await fetch(
-      `${API_URL}/scan/single`, 
+      `${API_URL}/scan`, 
       createFetchOptions('POST', authToken, payload)
     );
     

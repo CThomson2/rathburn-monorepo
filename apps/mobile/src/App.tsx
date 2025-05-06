@@ -8,7 +8,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { useEffect, useState, ReactNode } from "react";
+import { useEffect, ReactNode } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
