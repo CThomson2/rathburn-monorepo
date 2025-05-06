@@ -1,27 +1,6 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { SupabaseClient } from "@supabase/supabase-js";
 import ChemicalInventoryDashboard from "@/features/dashboard";
-import { RealtimeFeed } from "@/components/realtime-feed";
-
-// Define the type for the view data used in the page
-// This should match the interface in RealtimeFeed
-interface StocktakeScanFeedDetail {
-  id: string;
-  stocktake_session_id: string;
-  scanned_at: string;
-  created_at: string;
-  raw_barcode: string;
-  barcode_type: "material" | "supplier" | "unknown" | "error";
-  status: "success" | "error" | "ignored";
-  error_message?: string | null;
-  user_id: string;
-  device_id?: string | null;
-  material_id?: string | null;
-  material_name?: string | null;
-  supplier_id?: string | null;
-  supplier_name?: string | null;
-  associated_supplier_name_for_material?: string | null;
-}
 
 /**
  * Server-side function to fetch dashboard data with pre-calculated colors
@@ -84,52 +63,12 @@ async function fetchDashboardData() {
   }
 }
 
-/**
- * Fetch initial scan data for the realtime feed FROM THE VIEW
- */
-async function fetchInitialScans(): Promise<StocktakeScanFeedDetail[]> {
-  try {
-    // Use service client to bypass RLS
-    const supabase = createServiceClient();
-
-    // Fetch the latest scans from the VIEW
-    const { data, error } = await supabase
-      .from("stocktake_scans_feed_details")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    if (error) {
-      console.error("Error fetching initial scans from view:", error);
-      return [];
-    }
-
-    // Cast the data to the expected type
-    return (data as StocktakeScanFeedDetail[]) || [];
-  } catch (error) {
-    console.error("Error in fetchInitialScans:", error);
-    return [];
-  }
-}
-
 export default async function InventoryDashboardPage() {
-  // Server-side data fetching
+  // Server-side data fetching for this page only
   const { drumInventoryData } = await fetchDashboardData();
-  const initialScans = await fetchInitialScans();
-
-  // Get the Supabase URL and anon key for client-side usage
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
   return (
     <div className="p-4 md:p-6">
-      {/* Realtime Stocktake Feed - props type matches fetched data */}
-      <RealtimeFeed
-        apiUrl={supabaseUrl}
-        apiKey={supabaseAnonKey}
-        initialScans={initialScans}
-      />
-
       {/* Chemical Inventory Dashboard with pre-fetched data */}
       <ChemicalInventoryDashboard initialData={drumInventoryData} />
     </div>
