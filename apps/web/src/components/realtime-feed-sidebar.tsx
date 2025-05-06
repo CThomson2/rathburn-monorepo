@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +9,7 @@ import {
   RealtimeChannel,
   RealtimePostgresChangesPayload,
   createClient,
+  SupabaseClient,
 } from "@supabase/supabase-js";
 
 // Interface for the view data (should be consistent across components)
@@ -77,62 +78,69 @@ export function RealtimeFeedSidebar({
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  useEffect(() => {
+  // Memoize the Supabase client creation
+  const supabase = useMemo(() => {
     if (!apiUrl || !apiKey) {
+      console.error(
+        "RealtimeFeedSidebar: Missing apiUrl or apiKey for client creation."
+      );
       setError("Configuration error: Missing Supabase URL or API Key.");
-      setIsConnected(false);
-      console.error("RealtimeFeedSidebar: Missing apiUrl or apiKey.");
+      setIsConnected(false); // Explicitly set connected to false
+      return null;
+    }
+    console.log("Realtime Sidebar: Creating Supabase client with:", apiUrl);
+    return createClient(apiUrl, apiKey, {
+      realtime: { params: { eventsPerSecond: 10 } },
+    });
+  }, [apiUrl, apiKey]);
+
+  useEffect(() => {
+    // If the client isn't created (e.g., missing env vars), don't proceed.
+    if (!supabase) {
+      // Error state should already be set by useMemo if apiUrl/apiKey are missing
       return;
     }
 
-    const supabase = createClient(apiUrl, apiKey, {
-      realtime: { params: { eventsPerSecond: 10 } },
-    });
+    console.log("Realtime Sidebar (subscription useEffect): Using client.");
 
-    console.log(
-      "Realtime Sidebar (useEffect): Setting up client with:",
-      apiUrl
-    );
-
-    // Clear previous channel if exists, to prevent multiple subscriptions on prop change (if any)
+    // Clear previous channel if exists, to prevent multiple subscriptions if supabase client instance changes
+    // This is a double safety, primary cleanup is in the return function.
     if (channelRef.current) {
       console.log(
-        "Realtime Sidebar: Removing existing channel before re-subscribing."
+        "Realtime Sidebar: Removing existing channel before re-subscribing (pre-check)."
       );
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
-    console.log("Realtime Sidebar: Attempting to subscribe to view changes...");
+    console.log(
+      "Realtime Sidebar: Attempting to subscribe to base table changes..."
+    );
 
+    const channelName = `stocktake_scans_sidebar_feed_${Date.now()}`;
     const channel = supabase
-      .channel(`stocktake_scans_sidebar_feed_${Date.now()}`)
-      .on<StocktakeScanFeedDetail>(
+      .channel(channelName)
+      .on<any>( // Using `any` for base table payload, then casting/fetching enriched
         "postgres_changes",
         {
-          event: "*", // Listen to all events
+          event: "*",
           schema: "public",
-          // IMPORTANT: Subscribe to the BASE TABLE, not the view, for reliable realtime.
-          // The view will be used for the *initial* fetch and if you manually re-fetch,
-          // but realtime works best on tables.
-          table: "stocktake_scans", // CHANGED TO BASE TABLE
+          table: "stocktake_scans",
         },
         (payload: RealtimePostgresChangesPayload<any>) => {
-          // Use `any` then cast if needed, or type for base table
           console.log(
-            "Realtime Sidebar (base table): Received payload:",
+            `Realtime Sidebar (${channelName}): Received payload from base table:`,
             payload
           );
           if (payload.errors) {
             console.error(
-              "Realtime Sidebar error (base table):",
+              `Realtime Sidebar (${channelName}) error (base table):`,
               payload.errors
             );
             setError(`Realtime error: ${payload.errors[0]}`);
             return;
           }
-          // When listening to the base table, the payload.new will be of StocktakeScan (base table structure)
-          // We need to then fetch the enriched data from the view for this ID.
+
           if (
             (payload.eventType === "INSERT" ||
               payload.eventType === "UPDATE") &&
@@ -140,10 +148,9 @@ export function RealtimeFeedSidebar({
             payload.new.id
           ) {
             const changedScanId = payload.new.id;
-            console.log("New/Updated scan ID from base table:", changedScanId);
+            console.log(`New/Updated scan ID (${channelName}):`, changedScanId);
 
-            // Fetch the full enriched data for this scan ID from the view
-            supabase
+            supabase // Use the memoized client here
               .from("stocktake_scans_feed_details")
               .select("*")
               .eq("id", changedScanId)
@@ -151,15 +158,16 @@ export function RealtimeFeedSidebar({
               .then(({ data: enrichedScan, error: fetchError }) => {
                 if (fetchError) {
                   console.error(
-                    "Error fetching enriched scan data:",
+                    `Error fetching enriched scan data (${channelName}):`,
                     fetchError
                   );
-                  // Optionally set an error state specific to this scan item
                   return;
                 }
                 if (enrichedScan) {
-                  console.log("Fetched enriched scan data:", enrichedScan);
-                  // Update the scans array. If it's an UPDATE, replace existing.
+                  console.log(
+                    `Fetched enriched scan data (${channelName}):`,
+                    enrichedScan
+                  );
                   setScans((prevScans) => {
                     const existingIndex = prevScans.findIndex(
                       (s) => s.id === enrichedScan.id
@@ -177,12 +185,7 @@ export function RealtimeFeedSidebar({
                     }
                     return updatedScans.slice(0, 50);
                   });
-                  setError(null); // Clear general error if this succeeds
-                } else {
-                  console.warn(
-                    "Enriched scan data not found for ID:",
-                    changedScanId
-                  );
+                  setError(null);
                 }
               });
           } else if (
@@ -191,7 +194,7 @@ export function RealtimeFeedSidebar({
             payload.old.id
           ) {
             const deletedScanId = payload.old.id;
-            console.log("Scan deleted from base table:", deletedScanId);
+            console.log(`Scan deleted (${channelName}):`, deletedScanId);
             setScans((prevScans) =>
               prevScans.filter((s) => s.id !== deletedScanId)
             );
@@ -200,14 +203,14 @@ export function RealtimeFeedSidebar({
       )
       .subscribe((status, err) => {
         console.log(
-          `Realtime Sidebar subscription status (base table): ${status}`
+          `Realtime Sidebar subscription status (${channelName}): ${status}`
         );
         if (status === "SUBSCRIBED") {
           setIsConnected(true);
           setError(null);
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           console.error(
-            "Realtime Sidebar subscription error (base table):",
+            `Realtime Sidebar subscription error (${channelName}):`,
             err
           );
           setError(`Subscription error: ${err?.message || "Unknown issue"}`);
@@ -215,34 +218,39 @@ export function RealtimeFeedSidebar({
         } else if (status === "CLOSED") {
           setIsConnected(false);
         } else {
-          setIsConnected(false); // Default to not connected for other states
+          // For other statuses like 'CONNECTING', 'RECONNECTING', etc. can keep isConnected as is or false
+          // setIsConnected(false); // Or set to false for any non-subscribed state
         }
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log("Cleaning up Realtime Sidebar subscription (base table)");
-      if (channelRef.current) {
+      console.log(`Cleaning up Realtime Sidebar subscription (${channelName})`);
+      if (channelRef.current && supabase) {
+        // Ensure supabase client exists for cleanup
         supabase
           .removeChannel(channelRef.current)
-          .then(
-            (
-              removeStatus // Corrected variable name
-            ) => console.log("Sidebar channel removed, status:", removeStatus)
+          .then((removeStatus) =>
+            console.log(
+              `Sidebar channel ${channelName} removed, status:`,
+              removeStatus
+            )
           )
-          .catch(
-            (
-              removeError // Corrected variable name
-            ) => console.error("Error removing sidebar channel:", removeError)
+          .catch((removeError) =>
+            console.error(
+              `Error removing sidebar channel ${channelName}:`,
+              removeError
+            )
           );
         channelRef.current = null;
       }
     };
-    // Re-run effect if apiUrl or apiKey changes. This is crucial.
-  }, [apiUrl, apiKey]);
+    // This useEffect now depends on the memoized `supabase` client instance.
+    // It will re-run if `supabase` itself changes (i.e., if apiUrl/apiKey change).
+  }, [supabase]);
 
-  // Update state if initialScans prop changes externally (e.g., layout re-fetch)
+  // Update state if initialScans prop changes externally
   useEffect(() => {
     setScans(initialScans);
   }, [initialScans]);
