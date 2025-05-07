@@ -354,13 +354,17 @@ export async function createOrder(formData: FormData): Promise<{success: boolean
           message: `Failed to create order: ${orderError.message}`
         };
       }
+
       
       // Insert order lines
       const orderLines = items.map(item => ({
         po_id: orderData.po_id,
         item_id: item.itemId,
-        quantity: item.quantity
+        quantity: item.quantity,
+        unit_weight: item.weight
       }));
+      
+      console.log("Order lines:", orderLines);
       
       const { error: linesError } = await supabase
         .schema('inventory')

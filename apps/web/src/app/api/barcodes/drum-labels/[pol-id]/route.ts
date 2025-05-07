@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   fetchDrumLabelData,
   markDrumLabelsAsPrinted,
+  findExistingDrumLabelPdf,
 } from "@/app/actions/label-generation";
 import bwipjs from "bwip-js";
 import { toBuffer } from "qrcode";
@@ -9,7 +10,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fs from "fs";
 // For convenience, helper to convert inches to PDF points (72pt = 1in)
 import { inchesToPoints } from "@/lib/utils";
-import { join } from "path";
+import path, { join } from "path";
 import { mkdir, writeFile } from "fs/promises";
 
 // Force dynamic rendering and no caching for this database-dependent route
@@ -32,12 +33,23 @@ export async function GET(
 
     // Fetch drum label data from database
     const drumLabels = await fetchDrumLabelData(polId);
-    
+
+    console.log("[LABEL] Found", drumLabels.length, "Drum labels");
+    // If no unprinted labels found, check if we already have a PDF file
     if (!drumLabels || drumLabels.length === 0) {
-      return NextResponse.json(
-        { error: "No drum labels found for this purchase order line" },
-        { status: 404 }
-      );
+      // Use the server action to find existing PDF file
+      const existingPdf = await findExistingDrumLabelPdf(polId);
+      
+      if (existingPdf) {
+        // Return the existing file
+        return new NextResponse(existingPdf.buffer, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename="${existingPdf.filename}"`,
+          },
+        });
+      }
     }
 
     // Generate a QR code for the purchase order line endpoint (using polId)
@@ -192,6 +204,9 @@ export async function GET(
       const rightData = [
         { label: "Unit :", value: `${unitNumber}/${totalUnits}` },
       ];
+      if (drum.unitWeight) {
+        rightData.push({ label: "Weight :", value: `${drum.unitWeight} kg` });
+      }
       rightData.forEach(({ label, value }) => {
         page.drawText(label, { x: PAGE_WIDTH / 2, y: yPos, size: 12, font });
         page.drawText(value, {
@@ -212,17 +227,17 @@ export async function GET(
         scale: 3,
         height: 15,
       });
-      
+
       const barcodeImg = await pdfDoc.embedPng(new Uint8Array(barcodeBuf));
       const bDim = barcodeImg.scale(1);
       const bW = Math.min(PAGE_WIDTH * 0.6, bDim.width);
       const bH = 50;
       const bX = (PAGE_WIDTH - bW) / 2; // Center horizontally
       const bY = 40; // Moved up from 20 to 40
-      
+
       // Draw the barcode without border
       page.drawImage(barcodeImg, { x: bX, y: bY, width: bW, height: bH });
-      
+
       // Draw the serial number text clearly below the barcode
       const serialText = drum.serialNumber;
       const serialTextWidth = boldFont.widthOfTextAtSize(serialText, 14);
@@ -232,7 +247,7 @@ export async function GET(
         size: 14,
         font: boldFont,
       });
-      
+
       // Draw unit info to the right
       page.drawText(`Unit ${unitNumber}/${totalUnits}`, {
         x: PAGE_WIDTH - 100,
@@ -246,24 +261,30 @@ export async function GET(
     const pdfBytes = await pdfDoc.save();
 
     // Generate the file name
-    const fileName = `barcodes-${polId}.pdf`;
-    
+    const labelCount = drumLabels.length;
+    // @ts-expect-error - drumLabels must have items to reach this point
+    const fileName = `DR_${drumLabels[0].serialNumber}-${drumLabels[labelCount - 1].serialNumber.slice(-2)}.pdf`;
+
     // Instead of saving to the local filesystem, we'll serve the PDF directly from memory
     // This is the most reliable method that works in both development and production
-    
+
+    // Let's also save the PDF to the local filesystem for future reference
+    const pdfPath = path.join(process.cwd(), "public", "labels", fileName);
+    await writeFile(pdfPath, pdfBytes);
+
     // Create the response with the PDF content
     const response = new NextResponse(pdfBytes, {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-        'Cache-Control': 'no-store'
-      }
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Cache-Control": "no-store",
+      },
     });
-    
+
     // Mark labels as printed
     await markDrumLabelsAsPrinted(polId);
-    
+
     // Return the PDF directly
     return response;
   } catch (err) {

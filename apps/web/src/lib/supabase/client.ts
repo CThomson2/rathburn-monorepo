@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "@/types/models/supabase";
+import { Database } from "@/types/supabase";
 
 type SchemaName = "auth_ext" | "config" | "logs" | "production" | "public" | "inventory";
 
