@@ -17,7 +17,11 @@ export interface StocktakeScanResponse {
 // Get the base API URL from environment - Ensure this points to your Next.js app
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'https://rathburn.app'; // Keep /api here in base
 // Define just the path part of the endpoint
+<<<<<<< HEAD:apps/mobile/src/features/scanner/services/stocktake-scan.ts
 const STOCKTAKE_SCAN_ENDPOINT_PATH = '/api/scanner/stocktake/scan'; 
+=======
+const STOCKTAKE_SCAN_ENDPOINT_PATH = 'api/scanner/stocktake/scan'; 
+>>>>>>> 665c246 ((FEAT) Add PWA Debugging Summary and Update API Endpoints):apps/mobile/src/services/stockTakeScan.ts
 // Construct the full URL
 const STOCKTAKE_SCAN_ENDPOINT = `${API_BASE_URL}${STOCKTAKE_SCAN_ENDPOINT_PATH}`;
 
