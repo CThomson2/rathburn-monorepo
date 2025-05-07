@@ -47,7 +47,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useNavigationLoading } from "@/hooks/use-navigation-loading";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "../ui/button";
-import { RealtimeFeedSidebar } from "../realtime-feed-sidebar";
+import { RealtimeFeedSidebar } from "../realtime/sidebar-feed";
 
 // TypeScript workaround for React 18 vs React 19 type compatibility issue
 // @ts-ignore
@@ -172,13 +172,13 @@ const DashboardLayout = ({
           </div>
 
           {/* Right Realtime Feed Sidebar */}
-          <div className="hidden md:flex h-full">
+          {/* <div className="hidden md:flex h-full">
             <RealtimeFeedSidebar
               apiUrl={apiUrl}
               apiKey={apiKey}
               initialScans={initialScans}
             />
-          </div>
+          </div> */}
         </div>
       </SidebarProvider>
     </div>

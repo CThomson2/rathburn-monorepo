@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { StocktakeButton } from "./scan-button";
+import { StocktakeButton } from "../../features/scanner/components/scan-button";
 import FloatingNavMenu from "./nav-menu";
 import { LocationButton } from "./location";
 import { Database } from "@/types/supabase";

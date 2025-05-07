@@ -13,7 +13,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/auth/callback";
-import TransportSettings from "./pages/TransportSettings";
+import TransportSettings from "./pages/Settings";
 import { ErrorBoundary } from "react-error-boundary";
 import { ThemeProvider } from "./providers/theme-provider";
 import { ScanProvider } from "@/contexts/scan-context";

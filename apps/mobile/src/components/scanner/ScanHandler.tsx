@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { handleScan } from "@/services/handle-scan";
+import { handleScan } from "@/features/scanner/services/handle-scan";
 import { Badge } from "@/components/ui/badge";
 import Barcode from "./Barcode";
 import { useScanJob } from "@/hooks/use-scan-job";

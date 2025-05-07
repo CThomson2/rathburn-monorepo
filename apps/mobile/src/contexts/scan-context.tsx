@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/toaster";
 import { Database } from "@/types/supabase";
-import scanService from "@/services/handle-scan";
+import scanService from "@/features/scanner/services/handle-scan";
 
 // Determine if we should show the scan tester (typically in development)
 const SHOW_SCAN_TESTER = "false";

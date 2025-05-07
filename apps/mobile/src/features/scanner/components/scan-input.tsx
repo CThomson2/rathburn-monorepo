@@ -254,7 +254,7 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
         disabled={!isActive}
       />
       {/* Visual logger */}
-      <ul
+      {/* <ul
         style={{
           position: "fixed",
           top: "80px",
@@ -286,7 +286,7 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
             {msg}
           </li>
         ))}
-      </ul>
+      </ul> */}
     </>
   );
 }

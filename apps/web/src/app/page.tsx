@@ -1,6 +1,6 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { Lamp } from "@/components/lamp-view";
-import { RealtimeFeedCentered } from "@/components/realtime-feed-centered";
+import { Lamp } from "@/components/layout/lamp-view";
+import { RealtimeFeedCentered } from "@/components/realtime/centered-feed";
 
 // Interface for the view data
 interface StocktakeScanFeedDetail {

@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { handleStockTakeScan, type StocktakeScanPayload } from '@/services/stockTakeScan';
+import { handleStockTakeScan, type StocktakeScanPayload } from '@/features/scanner/services/stocktake-scan';
 
 describe('stockTakeScan', () => {
   const originalFetch = global.fetch;

@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom"; // Need router context
 import Index from "@/pages/Index";
-import { useStockTake } from "@/hooks/use-stock-take"; // To mock
+import { useStockTake } from "@/features/scanner/hooks/use-stocktake"; // To mock
 import { useScan } from "@/hooks/use-scan"; // To mock (if needed)
 import { vi, Mock } from "vitest";
 
