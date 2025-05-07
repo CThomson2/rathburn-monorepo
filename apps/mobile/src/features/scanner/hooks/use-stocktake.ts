@@ -8,10 +8,21 @@ import { Database } from '@/types/supabase';
 // Define location type
 type Location = Database["inventory"]["Enums"]["location_type"];
 
+// Interface for the data to be displayed in the session report dialog
+interface SessionReportData {
+  duration: string;
+  scanCount: number;
+  scannedBarcodes: Array<{ id: string; raw_barcode: string }>; // Ensures compatibility with SessionReportDialog
+  xpStart: number;
+  xpEnd: number;
+  currentLevel: number;
+  sessionName?: string;
+}
+
 // Define API endpoints
-const START_SESSION_ENDPOINT = '/scanner/stocktake/sessions'; // Consolidated POST endpoint
-const END_SESSION_ENDPOINT_TEMPLATE = '/scanner/stocktake/sessions/{sessionId}/end';
-const CHECK_ACTIVE_SESSION_ENDPOINT = '/scanner/stocktake/sessions'; // Re-added for initial state sync
+const START_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Consolidated POST endpoint
+const END_SESSION_ENDPOINT_TEMPLATE = '/api/scanner/stocktake/sessions/{sessionId}/end';
+const CHECK_ACTIVE_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Re-added for initial state sync
 // CHECK_ACTIVE_SESSION_ENDPOINT is no longer needed by the hook
 // const CHECK_ACTIVE_SESSION_ENDPOINT = '/api/scanner/stocktake/sessions'; // Consolidated GET endpoint
 
@@ -39,13 +50,16 @@ interface CheckActiveSessionResponse {
 // Define the state structure for the hook
 interface UseStockTakeState {
   currentSessionId: string | null;
+  currentSessionName: string | null; // To store the name of the session
   isScanning: boolean;
   lastScanStatus: 'success' | 'error' | 'idle';
   lastScanMessage: string | null;
   lastScanId: string | null; // Store the ID of the last successful scan
   currentLocation: Location | null;
   isInitializing: boolean; // Re-added to prevent UI flicker during initial check
-  // isInitializing, showConflictDialog, conflictingSessionId are removed
+  sessionStartTime: Date | null; // To calculate session duration
+  showSessionReport: boolean; // To control visibility of the report dialog
+  sessionReportData: SessionReportData | null; // Data for the report dialog
 }
 
 // Define the return type of the hook
@@ -53,7 +67,7 @@ interface UseStockTakeReturn extends UseStockTakeState {
   startStocktakeSession: () => Promise<void>;
   endStocktakeSession: () => Promise<void>; // No longer needs optional param
   processStocktakeScan: (barcode: string) => Promise<StocktakeScanResponse | undefined>;
-  // forceEndAndRestartSession, cancelConflictDialog are removed
+  closeSessionReport: () => void; // Function to close the report dialog
 }
 
 // Function to get a placeholder or actual device ID
@@ -92,13 +106,16 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
   // const { token } = useAuth(); 
   const [state, setState] = useState<UseStockTakeState>({
     currentSessionId: null,
+    currentSessionName: null,
     isScanning: false,
     lastScanStatus: 'idle',
     lastScanMessage: 'Initializing...', // Initial message
     lastScanId: null,
     currentLocation: initialLocation,
     isInitializing: true, // Start in initializing state
-    // Removed initial state for isInitializing, showConflictDialog, conflictingSessionId
+    sessionStartTime: null,
+    showSessionReport: false,
+    sessionReportData: null,
   });
 
   // Re-added Effect to check for active session on mount just for state sync
@@ -183,7 +200,14 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
   const startStocktakeSession = useCallback(async () => {
     console.log(`[useStockTake] Attempting to start new session...`);
     // Set scanning state for UI feedback
-    setState((prevState) => ({ ...prevState, isScanning: true, lastScanStatus: 'idle', lastScanMessage: 'Starting session...' }));
+    setState((prevState) => ({
+      ...prevState,
+      isScanning: true,
+      lastScanStatus: 'idle',
+      lastScanMessage: 'Starting session...',
+      showSessionReport: false, // Ensure report is hidden
+      sessionReportData: null,   // Clear previous report data
+    }));
 
     const { data: { session: authTokenSession }, error: sessionError } = await supabase.auth.getSession();
     const token = authTokenSession?.access_token;
@@ -211,6 +235,8 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
           ...prevState,
           isScanning: false,
           currentSessionId: result.session!.id,
+          currentSessionName: result.session!.name, // Store session name
+          sessionStartTime: new Date(), // Record start time
           lastScanStatus: 'idle',
           lastScanMessage: `Session '${result.session!.name}' started.`,
         }));
@@ -235,6 +261,9 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
   // Only ends the session currently active in the hook's state
   const endStocktakeSession = useCallback(async (): Promise<void> => {
     const sessionId = state.currentSessionId;
+    const sessionName = state.currentSessionName;
+    const startTime = state.sessionStartTime;
+
     if (!sessionId) {
       console.warn('[useStockTake] endStocktakeSession called without an active session ID in state.');
       setState(prevState => ({ ...prevState, lastScanMessage: 'No active session to end.'}));
@@ -242,8 +271,8 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
     }
 
     console.log(`[useStockTake] Attempting to end session: ${sessionId}`);
-    setState(prevState => ({ ...prevState, isScanning: true, lastScanMessage: 'Ending session...' })); 
-    
+    setState(prevState => ({ ...prevState, isScanning: true, lastScanMessage: 'Ending session...' }));
+
     const { data: { session: authTokenSession }, error: sessionError } = await supabase.auth.getSession();
     const token = authTokenSession?.access_token;
 
@@ -264,12 +293,84 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
 
       if (response.ok && result.success) {
         console.log(`[useStockTake] Session ${sessionId} ended successfully on server.`);
+
+        const endTime = new Date();
+        let durationString = 'N/A';
+        if (startTime) {
+          const durationMs = endTime.getTime() - startTime.getTime();
+          const minutes = Math.floor(durationMs / 60000);
+          const seconds = Math.floor((durationMs % 60000) / 1000);
+          durationString = `${minutes}m ${seconds}s`;
+        }
+
+        let scannedItems: Array<{ id: string; raw_barcode: string }> = [];
+        let scanCount = 0;
+
+        try {
+          console.log(`[useStockTake] Fetching scans for session ${sessionId}...`);
+          // Ensure we are selecting the columns expected by SessionReportData
+          const { data: scans, error: scansError } = await supabase
+            .from('stocktake_scans')
+            .select('id, raw_barcode') // Corrected to match SessionReportData
+            .eq('stocktake_session_id', sessionId);
+
+          if (scansError) {
+            console.error('[useStockTake] Error fetching stocktake scans:', scansError);
+            // Proceed with report, but indicate scans couldn't be fetched (scannedItems will be empty)
+          } else if (scans) {
+            scannedItems = scans; // scans should already be Array<{ id: string; raw_barcode: string }>
+            scanCount = scans.length;
+            console.log(`[useStockTake] Fetched ${scanCount} scans.`);
+          }
+        } catch (fetchError) {
+          console.error('[useStockTake] Exception fetching stocktake scans:', fetchError);
+        }
+
+        // Simple XP and level logic (as per PROJECT.md - basic for now)
+        // For MVP, we can use arbitrary values or simple calculations.
+        // Example: 10 XP per scan. Level up every 100 XP.
+        const xpPerScan = 10;
+        const xpGainedThisSession = scanCount * xpPerScan;
+        
+        // For demonstration, let's assume user starts at Level 1, 0 XP for the purpose of this report.
+        // In a real app, currentLevel and currentXPBeforeSession would come from user profile/state.
+        const currentLevelBeforeSession = 1; // Placeholder
+        const currentXPBeforeSession = 0;   // Placeholder
+
+        const totalXPAfterSession = currentXPBeforeSession + xpGainedThisSession;
+        const newLevel = Math.floor(totalXPAfterSession / 100) + currentLevelBeforeSession; // Simplistic level up
+        
+        // For progress bar: show progress within the current level, or from 0 to gained if leveling up significantly
+        const xpForNextLevel = 100; // XP needed for one level up
+        const xpStartForProgressBar = (currentXPBeforeSession % xpForNextLevel);
+        let xpEndForProgressBar = (totalXPAfterSession % xpForNextLevel);
+        if (newLevel > currentLevelBeforeSession && xpGainedThisSession > 0) { // If leveled up and gained XP
+             xpEndForProgressBar = xpEndForProgressBar === 0 ? 100 : xpEndForProgressBar; // Show 100% if new level and XP is a multiple of 100
+        } else if (xpGainedThisSession === 0) {
+            xpEndForProgressBar = xpStartForProgressBar; // No change if no XP gained
+        }
+
+
+        const reportData: SessionReportData = {
+          duration: durationString,
+          scanCount: scanCount,
+          scannedBarcodes: scannedItems,
+          xpStart: xpStartForProgressBar, 
+          xpEnd: xpEndForProgressBar, 
+          currentLevel: newLevel,
+          sessionName: sessionName || undefined,
+        };
+
         setState(prevState => ({
           ...prevState,
           isScanning: false,
           currentSessionId: null,
+          currentSessionName: null,
+          sessionStartTime: null,
           lastScanStatus: 'idle',
           lastScanMessage: result.message || 'Session ended successfully.',
+          showSessionReport: true,
+          sessionReportData: reportData,
         }));
       } else {
          console.error(`[useStockTake] Failed to end session ${sessionId} on server:`, result.error || `Status ${response.status}`);
@@ -288,7 +389,7 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
         lastScanMessage: `Ended locally. Server error: ${message}` 
       }));
     }
-  }, [state.currentSessionId]); // Depends only on currentSessionId from state
+  }, [state.currentSessionId, state.currentSessionName, state.sessionStartTime]); // Added currentSessionName and sessionStartTime
 
   const processStocktakeScan = useCallback(async (barcode: string): Promise<StocktakeScanResponse | undefined> => {
     if (!state.currentSessionId) {
@@ -350,10 +451,15 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
     return enhancedResponse;
   }, [state.currentSessionId, state.currentLocation]); // Add dependency on currentLocation
 
+  const closeSessionReport = useCallback(() => {
+    setState(prevState => ({ ...prevState, showSessionReport: false }));
+  }, []);
+
   return {
     ...state,
     startStocktakeSession,
     endStocktakeSession,
     processStocktakeScan,
+    closeSessionReport, // Expose the new function
   };
 } 
