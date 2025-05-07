@@ -1376,6 +1376,7 @@ export type Database = {
           pod_id: string
           pol_id: string
           serial_number: string
+          unit_weight: string | null
         }
         Insert: {
           created_at?: string
@@ -1385,6 +1386,7 @@ export type Database = {
           pod_id?: string
           pol_id: string
           serial_number: string
+          unit_weight?: string | null
         }
         Update: {
           created_at?: string
@@ -1394,6 +1396,7 @@ export type Database = {
           pod_id?: string
           pol_id?: string
           serial_number?: string
+          unit_weight?: string | null
         }
         Relationships: [
           {
@@ -2048,26 +2051,26 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          full_name: string
+          full_name: string | null
           id: string
           updated_at: string | null
-          username: string
+          username: string | null
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
-          full_name: string
+          full_name?: string | null
           id: string
           updated_at?: string | null
-          username: string
+          username?: string | null
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
-          full_name?: string
+          full_name?: string | null
           id?: string
           updated_at?: string | null
-          username?: string
+          username?: string | null
           website?: string | null
         }
         Relationships: []
@@ -2320,6 +2323,63 @@ export type Database = {
           },
         ]
       }
+      stocktake_scans_feed_details: {
+        Row: {
+          associated_supplier_name_for_material: string | null
+          barcode_type: string | null
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          id: string | null
+          material_id: string | null
+          material_name: string | null
+          raw_barcode: string | null
+          scanned_at: string | null
+          status: string | null
+          stocktake_session_id: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
       v_batches: {
         Row: {
           batch_code: string | null
@@ -2528,6 +2588,7 @@ export type Database = {
           pod_id: string
           pol_id: string
           serial_number: string
+          unit_weight: string | null
         }[]
       }
       query_batches_view: {
