@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { useStockTake } from '@/hooks/use-stock-take';
-import { handleStockTakeScan } from '@/services/stockTakeScan';
+import { useStockTake } from '@/features/scanner/hooks/use-stocktake';
+import { handleStockTakeScan } from '@/features/scanner/services/stocktake-scan';
 import { supabase } from '@/lib/supabase/client';
 
 // Define the hardcoded device ID used in the hook

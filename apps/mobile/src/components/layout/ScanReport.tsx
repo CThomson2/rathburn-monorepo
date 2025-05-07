@@ -1,6 +1,6 @@
 import React from "react";
 import { X } from "lucide-react";
-import { JobStatus } from "@/components/inventory/JobCard";
+import { JobStatus } from "@/components/layout/JobCard";
 import SimpleModal from "@/components/ui/simple-modal";
 
 interface JobItem {

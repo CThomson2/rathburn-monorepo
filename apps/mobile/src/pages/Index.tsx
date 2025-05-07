@@ -36,9 +36,9 @@ import { TransportSettingsView } from "@/views/TransportSettingsView";
 // import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
-import { ScanInput } from "@/features/transport/ScanInput";
+import { ScanInput } from "@/features/scanner/components/scan-input";
 import { useScan } from "@/hooks/use-scan";
-import { useStockTake } from "@/hooks/use-stock-take";
+import { useStockTake } from "@/features/scanner/hooks/use-stocktake";
 import { useToast, type ToastProps } from "@/components/ui/use-toast";
 // import { useModal } from "@/hooks/use-modal";
 // import { ModalProvider } from "@/contexts/modal-context";
@@ -56,7 +56,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { ScanSuccessIndicator } from "@/components/scan-success-indicator";
+import { ScanSuccessIndicator } from "@/features/scanner/components/scan-success-indicator";
 // import { StocktakeButton } from "@/components/buttons/scan-button";
 
 const statusColors = {
@@ -537,12 +537,12 @@ const IndexContent = () => {
         extraActions={[]}
       />
 
-      <h1>
+      {/* <h1>
         {stockTake.currentSessionId
           ? "Stocktake Session Active: " +
             stockTake.currentSessionId.slice(0, 8)
           : "No Stocktake Session Active"}
-      </h1>
+      </h1> */}
 
       {/* Display current location as a badge if set */}
       {/* {location && (

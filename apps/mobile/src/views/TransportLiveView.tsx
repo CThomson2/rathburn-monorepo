@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { TransportCard } from "@/features/transport/TransportCard";
-import { ScanInput } from "@/features/transport/ScanInput";
-import { ScanHistory } from "@/features/transport/ScanHistory";
+import { TransportCard } from "@/components/layout/TransportCard";
+import { ScanInput } from "@/features/scanner/components/scan-input";
+import { ScanHistory } from "@/features/scanner/components/scan-history";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import scanService from "@/services/handle-scan";
+import scanService from "@/features/scanner/services/handle-scan";
 
 // Mock data for demonstration
 const MOCK_TRANSPORT_JOBS = [
