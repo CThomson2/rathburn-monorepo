@@ -130,9 +130,8 @@ const IndexContent = () => {
 
   // Use effect to reset scan count when a session ends
   useEffect(() => {
-    if (!stockTake.currentSessionId) {
-      setScanCount(0);
-    }
+    console.log('[IndexContent] currentSessionId changed to:', stockTake.currentSessionId);
+    setScanCount(0);
   }, [stockTake.currentSessionId]);
 
   // Clean up the success indicator timeout on unmount
