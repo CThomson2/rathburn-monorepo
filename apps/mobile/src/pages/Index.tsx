@@ -36,11 +36,11 @@ import { TransportSettingsView } from "@/views/TransportSettingsView";
 // import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
-import { ScanInput } from "@/features/scanner/components/scan-input";
+import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
 import { useScan } from "@/core/hooks/use-scan";
-import { useStockTake } from "@/features/scanner/hooks/use-stocktake";
+import { useStockTake } from "@/features/scanner/hooks/stocktake/use-stocktake";
 import { useToast, type ToastProps } from "@/core/components/ui/use-toast";
-// import { useModal } from "@/core/hooks/use-modal";
+// import { useModal } from "@/hooks/use-modal";
 // import { ModalProvider } from "@/contexts/modal-context";
 import {
   Sheet,

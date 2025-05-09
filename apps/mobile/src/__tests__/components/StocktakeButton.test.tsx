@@ -1,8 +1,8 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { StocktakeButton } from "@/features/scanner/components/scan-button";
-import { useStockTake } from "@/features/scanner/hooks/use-stocktake";
+import { StocktakeButton } from "@/features/scanner/components/scan-button/scan-button";
+import { useStockTake } from "@/features/scanner/hooks/stocktake/use-stocktake";
 import { useToast } from "@/core/components/ui/use-toast";
 
 // Mock the hooks

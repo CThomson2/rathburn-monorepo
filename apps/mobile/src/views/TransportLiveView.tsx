@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TransportCard } from "@/components/layout/TransportCard";
-import { ScanInput } from "@/features/scanner/components/scan-input";
-import { ScanHistory } from "@/features/scanner/components/scan-history";
+import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
+import { ScanHistory } from "@/features/scanner/components/scan-history/scan-history";
 import {
   Dialog,
   DialogContent,
