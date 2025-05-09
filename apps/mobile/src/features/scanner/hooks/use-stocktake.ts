@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 // Remove useAuth import as we'll get token directly
 // import { useAuth } from './useAuth'; 
 import { handleStockTakeScan, StocktakeScanResponse } from '../services/stocktake-scan';
-import { supabase } from '@/lib/supabase/client'; // Import the singleton supabase client
-import { Database } from '@/types/supabase';
+import { supabase } from '@/core/lib/supabase/client'; // Import the singleton supabase client
+import { Database } from '@/core/types/supabase';
 
 // Define location type
 type Location = Database["inventory"]["Enums"]["location_type"];

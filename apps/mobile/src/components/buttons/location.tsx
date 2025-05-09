@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { MapPin } from "lucide-react";
 import { FloatingNavBase } from "./nav-base";
-import { cn } from "@/lib/utils";
-import { Database } from "@/types/supabase";
+import { cn } from "@/core/lib/utils";
+import { Database } from "@/core/types/supabase";
 
 type Location = Database["inventory"]["Enums"]["location_type"];
 

@@ -25,10 +25,10 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { Database } from "@/types/supabase";
-import { logout } from "@/services/auth";
-import { FloatingNavGroup } from "@/components/buttons/nav-group";
+import { createClient } from "@/core/lib/supabase/client";
+import { Database } from "@/core/types/supabase";
+import { logout } from "@/core/services/auth";
+import { FloatingNavGroup } from "@/core/components/layout/nav-group";
 import TopNavbar from "@/components/navbar/top-navbar";
 import { TransportView } from "@/views/TransportView";
 import { ProductionView } from "@/views/ProductionView";
@@ -37,10 +37,10 @@ import { TransportSettingsView } from "@/views/TransportSettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ScanInput } from "@/features/scanner/components/scan-input";
-import { useScan } from "@/hooks/use-scan";
+import { useScan } from "@/core/hooks/use-scan";
 import { useStockTake } from "@/features/scanner/hooks/use-stocktake";
-import { useToast, type ToastProps } from "@/components/ui/use-toast";
-// import { useModal } from "@/hooks/use-modal";
+import { useToast, type ToastProps } from "@/core/components/ui/use-toast";
+// import { useModal } from "@/core/hooks/use-modal";
 // import { ModalProvider } from "@/contexts/modal-context";
 import {
   Sheet,
@@ -51,11 +51,15 @@ import {
   SheetFooter,
   SheetTrigger,
   SheetClose,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
+} from "@/core/components/ui/sheet";
+import { Button } from "@/core/components/ui/button";
+import { Input } from "@/core/components/ui/input";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/core/components/ui/alert";
+import { Badge } from "@/core/components/ui/badge";
 import { ScanSuccessIndicator } from "@/features/scanner/components/scan-success-indicator";
 // import { StocktakeButton } from "@/components/buttons/scan-button";
 
@@ -130,7 +134,10 @@ const IndexContent = () => {
 
   // Use effect to reset scan count when a session ends
   useEffect(() => {
-    console.log('[IndexContent] currentSessionId changed to:', stockTake.currentSessionId);
+    console.log(
+      "[IndexContent] currentSessionId changed to:",
+      stockTake.currentSessionId
+    );
     setScanCount(0);
   }, [stockTake.currentSessionId]);
 

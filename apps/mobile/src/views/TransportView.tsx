@@ -10,8 +10,8 @@ import {
   ChevronRight,
   ScanBarcode,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { useScan } from "@/hooks/use-scan";
+import { createClient } from "@/core/lib/supabase/client";
+import { useScan } from "@/core/hooks/use-scan";
 // import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
@@ -20,9 +20,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+} from "@/core/components/ui/card";
+import { Button } from "@/core/components/ui/button";
+import { Progress } from "@/core/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,9 +33,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
+} from "@/core/components/ui/alert-dialog";
+import { Badge } from "@/core/components/ui/badge";
+import { useToast } from "@/core/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 
 const statusColors = {

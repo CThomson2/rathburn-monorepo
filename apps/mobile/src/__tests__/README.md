@@ -77,7 +77,7 @@ For hook tests, use the renderHook utility:
 
 ```tsx
 import { renderHook, act } from "@testing-library/react";
-import { useMyHook } from "@/hooks/useMyHook";
+import { useMyHook } from "@/core/hooks/useMyHook";
 
 it("should update state correctly", () => {
   const { result } = renderHook(() => useMyHook());
@@ -96,7 +96,7 @@ For API service tests, mock the fetch API and test the service function:
 
 ```tsx
 import { vi } from "vitest";
-import { myService } from "@/services/myService";
+import { myService } from "@/core/services/myService";
 
 // Mock fetch
 const originalFetch = global.fetch;
@@ -141,6 +141,7 @@ Integration tests verify that multiple components work together correctly. They 
 ### Naming Convention
 
 Integration tests should be named with the `.integration.test.tsx` extension to distinguish them from unit tests. For example:
+
 - `Index.integration.test.tsx` - Tests the complete functionality of the Index page
 
 ### Example Usage
@@ -153,37 +154,37 @@ import { Index } from "@/pages/Index";
 import { ScanContextProvider } from "@/contexts/scan-context";
 
 // Mock the hooks and services that would be used in the Index page
-vi.mock("@/hooks/use-stock-take", () => ({
+vi.mock("@/core/hooks/use-stock-take", () => ({
   useStockTake: () => ({
     startStockTake: vi.fn().mockResolvedValue({ id: "test-session-id" }),
     isActive: true,
-    sessionId: "test-session-id"
-  })
+    sessionId: "test-session-id",
+  }),
 }));
 
-vi.mock("@/services/handle-scan", () => ({
-  handleScan: vi.fn().mockResolvedValue({ success: true })
+vi.mock("@/core/services/handle-scan", () => ({
+  handleScan: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 describe("Index Page Integration", () => {
   it("should handle complete scan workflow", async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ScanContextProvider>
         <Index />
       </ScanContextProvider>
     );
-    
+
     // Find and interact with the scan input
     const scanInput = screen.getByPlaceholderText("Scan barcode...");
     await user.type(scanInput, "ITEM001{Enter}");
-    
+
     // Verify the scan was processed and UI updated appropriately
     await waitFor(() => {
       expect(screen.getByText("Scan successful")).toBeInTheDocument();
     });
-    
+
     // Verify other components have updated accordingly
     expect(screen.getByText("Recent scans")).toBeInTheDocument();
     expect(screen.getByText("ITEM001")).toBeInTheDocument();

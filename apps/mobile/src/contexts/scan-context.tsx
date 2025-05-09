@@ -6,9 +6,9 @@ import {
   ReactNode,
 } from "react";
 
-import { supabase } from "@/lib/supabase/client";
-import { toast } from "@/components/ui/toaster";
-import { Database } from "@/types/supabase";
+import { supabase } from "@/core/lib/supabase/client";
+import { toast } from "@/core/components/ui/toaster";
+import { Database } from "@/core/types/supabase";
 import scanService from "@/features/scanner/services/handle-scan";
 
 // Determine if we should show the scan tester (typically in development)

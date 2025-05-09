@@ -11,9 +11,9 @@ import {
   ClipboardCheck,
   Menu,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/core/lib/utils";
 import { FloatingNavBase } from "./nav-base";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/core/hooks/use-auth";
 
 interface NavItem {
   id: string;

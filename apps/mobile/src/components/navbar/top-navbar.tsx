@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 // import { useNavigate } from "react-router-dom";
 import { LucideIcon } from "lucide-react";
-import { NavBar } from "@/components/ui/tubelight-navbar";
-import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { NavBar } from "@/core/components/ui/tubelight-navbar";
+import { cn } from "@/core/lib/utils";
+import { ThemeToggle } from "@/core/components/ui/theme-toggle";
 
 interface NavItem {
   name: string;

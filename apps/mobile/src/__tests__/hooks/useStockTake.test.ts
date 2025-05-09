@@ -2,17 +2,17 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { useStockTake } from '@/features/scanner/hooks/use-stocktake';
 import { handleStockTakeScan } from '@/features/scanner/services/stocktake-scan';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/core/lib/supabase/client';
 
 // Define the hardcoded device ID used in the hook
 const hardcodedDeviceId = '4f096e70-33fd-4913-9df1-8e1fae9591bc';
 
 // Mock external dependencies
-vi.mock('@/services/stockTakeScan', () => ({
+vi.mock('@/core/services/stockTakeScan', () => ({
   handleStockTakeScan: vi.fn(),
 }));
 
-vi.mock('@/lib/supabase/client', () => ({
+vi.mock('@/core/lib/supabase/client', () => ({
   supabase: {
     auth: {
       getSession: vi.fn(),
