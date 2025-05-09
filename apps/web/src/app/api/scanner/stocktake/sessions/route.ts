@@ -58,7 +58,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Get device ID - Prefer header, fall back to hardcoded for dev
     // TODO: Remove hardcoded fallback eventually
-    const deviceId = request.headers.get('X-Device-ID') || '4f096e70-33fd-4913-9df1-8e1fae9591bc';
+    const deviceId = request.headers.get('X-Device-ID') || process.env.NEXT_PUBLIC_DEVICE_ID;
 
     if (!deviceId) {
        console.warn('[API Sessions GET] Device ID missing.');
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // --- Device ID Handling ---
     // TODO: Link device ID to user properly in the future
-    const deviceId = request.headers.get('X-Device-ID') || '4f096e70-33fd-4913-9df1-8e1fae9591bc'; // Get from header or fallback
+    const deviceId = request.headers.get('X-Device-ID') || process.env.NEXT_PUBLIC_DEVICE_ID; // Get from header or fallback
      if (!deviceId) {
        console.warn('[API Sessions POST] Device ID missing.');
        // Decide if this is an error or if a session can be started without it

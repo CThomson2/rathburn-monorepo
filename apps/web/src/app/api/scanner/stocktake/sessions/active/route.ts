@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
     // TODO: In the future, get deviceId from request (header/body) or user session if linked
     // For now, using the hardcoded one provided for development
-    const deviceId = '4f096e70-33fd-4913-9df1-8e1fae9591bc';
+    const deviceId = process.env.NEXT_PUBLIC_DEVICE_ID;
 
     if (!deviceId) {
        return NextResponse.json({ error: 'Device ID is required' }, { status: 400 });

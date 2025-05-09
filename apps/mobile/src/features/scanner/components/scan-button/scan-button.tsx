@@ -2,7 +2,7 @@ import React from "react";
 import { Scan, StopCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingNavBase } from "@/components/buttons/nav-base";
-import { useStockTake } from "@/features/scanner/hooks/use-stocktake";
+import { useStockTake } from "@/features/scanner/hooks/stocktake/use-stocktake";
 import { useToast } from "@/components/ui/use-toast";
 
 interface StocktakeButtonProps {
