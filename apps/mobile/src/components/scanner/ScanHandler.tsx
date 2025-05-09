@@ -1,13 +1,13 @@
 // /src/components/transport/ScanHandler.tsx
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/core/components/ui/card";
+import { Button } from "@/core/components/ui/button";
 import { handleScan } from "@/features/scanner/services/handle-scan";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/core/components/ui/badge";
 import Barcode from "./Barcode";
-import { useScanJob } from "@/hooks/use-scan-job";
-import { useAuth } from "@/hooks/use-auth";
-import { useScan } from "@/hooks/use-scan";
+import { useScanJob } from "@/core/hooks/use-scan-job";
+import { useAuth } from "@/core/hooks/use-auth";
+import { useScan } from "@/core/hooks/use-scan";
 
 /**
  * NOT IN USE

@@ -1,6 +1,6 @@
 // components/BarcodeScannerInput.tsx
 import { useRef, useEffect, useState } from "react";
-import { isMobile } from "../../utils/deviceDetection";
+import { isMobile } from "../../core/utils/deviceDetection";
 
 interface BarcodeScannerInputProps {
   onScan: (barcode: string) => void;

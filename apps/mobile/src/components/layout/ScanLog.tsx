@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/core/lib/utils";
 
 interface ScanLogProps {
   log: {

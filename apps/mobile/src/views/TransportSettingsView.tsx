@@ -8,14 +8,14 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/core/components/ui/card";
+import { Button } from "@/core/components/ui/button";
+import { Switch } from "@/core/components/ui/switch";
+import { Input } from "@/core/components/ui/input";
+import { Label } from "@/core/components/ui/label";
 import { Save, Trash, LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/core/hooks/use-auth";
 
 /**
  * TransportSettingsView is a component that provides a user interface for configuring

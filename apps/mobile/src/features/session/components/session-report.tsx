@@ -1,9 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { XIcon, CheckCircle, Award } from 'lucide-react'; // Example icons
+import React, { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/core/components/ui/dialog";
+import { Button } from "@/core/components/ui/button";
+import { Progress } from "@/core/components/ui/progress";
+import { Badge } from "@/core/components/ui/badge";
+import { XIcon, CheckCircle, Award } from "lucide-react"; // Example icons
 
 interface SessionReportDialogProps {
   isOpen: boolean;
@@ -13,13 +19,17 @@ interface SessionReportDialogProps {
     scanCount: number;
     scannedBarcodes: Array<{ id: string; raw_barcode: string }>; // Updated to match query
     xpStart: number; // e.g. 15
-    xpEnd: number;   // e.g. 30
+    xpEnd: number; // e.g. 30
     currentLevel: number;
     sessionName?: string; // Optional name for the session
   };
 }
 
-export function SessionReportDialog({ isOpen, onClose, sessionData }: SessionReportDialogProps) {
+export function SessionReportDialog({
+  isOpen,
+  onClose,
+  sessionData,
+}: SessionReportDialogProps) {
   const [progressValue, setProgressValue] = useState(sessionData.xpStart);
 
   useEffect(() => {
@@ -44,7 +54,12 @@ export function SessionReportDialog({ isOpen, onClose, sessionData }: SessionRep
             <Award className="mr-3 h-8 w-8 text-yellow-400" />
             Session Complete!
           </DialogTitle>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-slate-400 hover:text-white">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-slate-400 hover:text-white"
+          >
             <XIcon className="h-6 w-6" />
           </Button>
         </DialogHeader>
@@ -53,18 +68,23 @@ export function SessionReportDialog({ isOpen, onClose, sessionData }: SessionRep
           {/* Session Name (Optional) */}
           {sessionData.sessionName && (
             <p className="text-center text-slate-300 text-lg">
-              Session: <span className="font-semibold">{sessionData.sessionName}</span>
+              Session:{" "}
+              <span className="font-semibold">{sessionData.sessionName}</span>
             </p>
           )}
 
           {/* Stats Section */}
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-3xl font-bold text-sky-400">{sessionData.duration}</p>
+              <p className="text-3xl font-bold text-sky-400">
+                {sessionData.duration}
+              </p>
               <p className="text-sm text-slate-400">Duration</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-sky-400">{sessionData.scanCount}</p>
+              <p className="text-3xl font-bold text-sky-400">
+                {sessionData.scanCount}
+              </p>
               <p className="text-sm text-slate-400">Scans</p>
             </div>
           </div>
@@ -75,34 +95,42 @@ export function SessionReportDialog({ isOpen, onClose, sessionData }: SessionRep
               <span>Level {sessionData.currentLevel}</span>
               <span>XP: {progressValue}% / 100%</span>
             </div>
-            <Progress value={progressValue} className="w-full h-4 bg-slate-600 [&>div]:bg-green-500 transition-all duration-1000 ease-in-out" />
+            <Progress
+              value={progressValue}
+              className="w-full h-4 bg-slate-600 [&>div]:bg-green-500 transition-all duration-1000 ease-in-out"
+            />
             <p className="text-xs text-center text-slate-400 mt-1">
-              You gained {sessionData.xpEnd - sessionData.xpStart} XP this session!
+              You gained {sessionData.xpEnd - sessionData.xpStart} XP this
+              session!
             </p>
           </div>
 
           {/* Scanned Barcodes Grid */}
-          {sessionData.scannedBarcodes && sessionData.scannedBarcodes.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2 text-slate-200">Scanned Items:</h3>
-              <div className="max-h-32 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-slate-750 rounded-md">
-                {sessionData.scannedBarcodes.map((scan, index) => (
-                  <Badge
-                    key={scan.id || index} // Use scan.id if available, otherwise index
-                    variant="secondary"
-                    className="truncate bg-slate-600 text-slate-200 hover:bg-slate-500"
-                  >
-                    {scan.raw_barcode}
-                  </Badge>
-                ))}
+          {sessionData.scannedBarcodes &&
+            sessionData.scannedBarcodes.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-2 text-slate-200">
+                  Scanned Items:
+                </h3>
+                <div className="max-h-32 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-slate-750 rounded-md">
+                  {sessionData.scannedBarcodes.map((scan, index) => (
+                    <Badge
+                      key={scan.id || index} // Use scan.id if available, otherwise index
+                      variant="secondary"
+                      className="truncate bg-slate-600 text-slate-200 hover:bg-slate-500"
+                    >
+                      {scan.raw_barcode}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-           {sessionData.scannedBarcodes && sessionData.scannedBarcodes.length === 0 && (
-             <p className="text-center text-slate-400">No items were scanned in this session.</p>
-           )}
-
-
+            )}
+          {sessionData.scannedBarcodes &&
+            sessionData.scannedBarcodes.length === 0 && (
+              <p className="text-center text-slate-400">
+                No items were scanned in this session.
+              </p>
+            )}
         </div>
 
         <DialogFooter className="p-6 bg-slate-750 rounded-b-lg">
@@ -145,4 +173,4 @@ export function SessionReportDialog({ isOpen, onClose, sessionData }: SessionRep
 //       />
 //     </>
 //   );
-// } 
+// }

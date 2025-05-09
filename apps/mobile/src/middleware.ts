@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/core/lib/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { NavigateFunction, Location } from "react-router-dom";
 

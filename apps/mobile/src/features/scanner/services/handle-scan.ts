@@ -3,7 +3,7 @@
  * Handle-scan service
  * This service handles all scanning functionality for the application
  */
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/core/lib/supabase/client";
 
 // Define the structure of a scan response
 export interface ScanResponse {

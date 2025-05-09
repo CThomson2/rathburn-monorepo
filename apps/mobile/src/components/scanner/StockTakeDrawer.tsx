@@ -12,9 +12,9 @@ import {
   AlertCircle,
   ScanBarcode,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/core/lib/utils";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/core/components/ui/button";
 import {
   Sheet,
   SheetClose,
@@ -23,11 +23,15 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
+} from "@/core/components/ui/sheet";
+import { Input } from "@/core/components/ui/input";
+import { Label } from "@/core/components/ui/label";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/core/components/ui/alert";
+import { Badge } from "@/core/components/ui/badge";
 
 interface ScanFeedback {
   type: "success" | "error";

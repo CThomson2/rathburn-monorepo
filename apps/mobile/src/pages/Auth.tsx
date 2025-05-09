@@ -1,13 +1,11 @@
-import { useState, useEffect } from "react";
-import { SubmitButton } from "@/components/buttons/submit-button";
-import MicrosoftSvg from "@/assets/svg/microsoft.svg";
 import {
   loginWithPasscode,
   requestPasscodeReset,
   createMobilePasscode,
-} from "@/services/auth";
-import { useAuth } from "@/hooks/use-auth";
-import React from "react";
+} from "@/core/services/auth";
+import { useAuth } from "@/core/hooks/use-auth";
+import { useState, useEffect } from "react";
+import MicrosoftSvg from "@/assets/svg/microsoft.svg";
 
 /**
  * A login screen component that accepts a username and 4-digit passcode.

@@ -1,6 +1,6 @@
-import { Separator } from "@/components/ui/separator";
-import { useTheme } from "@/providers/theme-provider";
-import { Button } from "@/components/ui/button";
+import { Separator } from "@/core/components/ui/separator";
+import { useTheme } from "@/core/providers/theme-provider";
+import { Button } from "@/core/components/ui/button";
 import {
   Moon,
   Sun,
@@ -13,11 +13,11 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useModal } from "@/hooks/use-modal";
+import { useModal } from "@/core/hooks/use-modal";
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { logout } from "@/services/auth";
-import { toast } from "@/components/ui/use-toast";
+import { createClient } from "@/core/lib/supabase/client";
+import { logout } from "@/core/services/auth";
+import { toast } from "@/core/components/ui/use-toast";
 
 /**
  * Settings view component
