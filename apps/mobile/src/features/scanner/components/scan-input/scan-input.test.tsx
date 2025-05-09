@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { ScanInput } from "@/features/scanner/components/scan-input";
+import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
 
 describe("ScanInput", () => {
   const mockOnScan = vi.fn();

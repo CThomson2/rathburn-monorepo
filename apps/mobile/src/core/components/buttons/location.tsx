@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MapPin } from "lucide-react";
-import { FloatingNavBase } from "./nav-base";
+import { FloatingNavBase } from "../layout/nav-base";
 import { cn } from "@/core/lib/utils";
 import { Database } from "@/core/types/supabase";
 

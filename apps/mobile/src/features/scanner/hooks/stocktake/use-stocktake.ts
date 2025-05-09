@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 // Remove useAuth import as we'll get token directly
 // import { useAuth } from './useAuth'; 
-import { handleStockTakeScan, StocktakeScanResponse } from '../services/stocktake-scan';
+import { handleStockTakeScan, StocktakeScanResponse } from '../../services/stocktake-scan';
 import { supabase } from '@/core/lib/supabase/client'; // Import the singleton supabase client
 import { Database } from '@/core/types/supabase';
 
@@ -75,7 +75,7 @@ interface UseStockTakeReturn extends UseStockTakeState {
 function getDeviceId(): string {
     // Placeholder - implement logic to get a unique device ID if required by API
     // return navigator.userAgent || 'unknown_device'; 
-    return '4f096e70-33fd-4913-9df1-8e1fae9591bc';
+    return import.meta.env.VITE_DEVICE_ID;
 }
 
 /**
