@@ -101,7 +101,7 @@ function getDeviceId(): string {
  * @param initialLocation - Optional initial location parameter
  * @returns UseStockTakeReturn object containing state and functions
  */
-export function useStockTake(initialLocation: Location | null = null): UseStockTakeReturn {
+export function useStockTake(): UseStockTakeReturn {
   // Remove useAuth hook call
   // const { token } = useAuth(); 
   const [state, setState] = useState<UseStockTakeState>({
@@ -111,7 +111,7 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
     lastScanStatus: 'idle',
     lastScanMessage: 'Initializing...', // Initial message
     lastScanId: null,
-    currentLocation: initialLocation,
+    currentLocation: null,
     isInitializing: true, // Start in initializing state
     sessionStartTime: null,
     showSessionReport: false,
@@ -183,18 +183,17 @@ export function useStockTake(initialLocation: Location | null = null): UseStockT
       }
     };
     syncSessionStateOnMount();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
-  // Update location prop if it changes externally
-  useEffect(() => {
-    // Don't update location from prop if we are initializing or already have a session ID
-    // Let the initial sync handle the location if a session exists
-    if (!state.isInitializing && !state.currentSessionId && initialLocation !== state.currentLocation) {
-      console.log(`[useStockTake] Location prop updated externally to: ${initialLocation}`);
-      setState(prevState => ({ ...prevState, currentLocation: initialLocation }));
-    }
-  }, [initialLocation, state.currentLocation, state.isInitializing, state.currentSessionId]);
+  // // Update location prop if it changes externally
+  // useEffect(() => {
+  //   // Don't update location from prop if we are initializing or already have a session ID
+  //   // Let the initial sync handle the location if a session exists
+  //   if (!state.isInitializing && !state.currentSessionId && initialLocation !== state.currentLocation) {
+  //     console.log(`[useStockTake] Location prop updated externally to: ${initialLocation}`);
+  //     setState(prevState => ({ ...prevState, currentLocation: initialLocation }));
+  //   }
+  // }, [initialLocation, state.currentLocation, state.isInitializing, state.currentSessionId]);
 
   // Updated startStocktakeSession function
   const startStocktakeSession = useCallback(async () => {

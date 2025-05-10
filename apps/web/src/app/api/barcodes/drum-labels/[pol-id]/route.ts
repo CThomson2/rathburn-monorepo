@@ -53,10 +53,7 @@ export async function GET(
     }
 
     // Generate a QR code for the purchase order line endpoint (using polId)
-    const qrCodeUrl =
-      process.env.NODE_ENV === "development"
-        ? `http://localhost/api/barcodes/drum-labels/${polId}`
-        : `https://${process.env.NEXT_PUBLIC_API_URL}/barcodes/drum-labels/${polId}`;
+    const qrCodeUrl = `https://rathburn.app/batches/${polId}`;
     const qrCodeBuffer = await toBuffer(qrCodeUrl, {
       errorCorrectionLevel: "M",
       margin: 0,
