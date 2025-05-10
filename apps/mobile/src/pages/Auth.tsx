@@ -5,7 +5,7 @@ import {
 } from "@/core/services/auth";
 import { useAuth } from "@/core/hooks/use-auth";
 import { useState, useEffect } from "react";
-import MicrosoftSvg from "@/assets/svg/microsoft.svg";
+import MicrosoftSvg from "/svg/microsoft.svg";
 
 /**
  * A login screen component that accepts a username and 4-digit passcode.

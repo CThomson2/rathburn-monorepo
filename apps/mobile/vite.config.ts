@@ -37,8 +37,10 @@ export default defineConfig(({ mode }): UserConfig => {
         process: 'process/browser',
         // Resolve workspace packages
         '@rathburn/ui': path.resolve(__dirname, '../../packages/ui'),
+        // Fix Three.js imports
+        'three/addons/': path.resolve(__dirname, './node_modules/three/examples/jsm/'),
       },
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'three'],
     },
     base: isProd ? '/' : '/',
     build: {
@@ -55,6 +57,7 @@ export default defineConfig(({ mode }): UserConfig => {
         output: {
           manualChunks: {
             react: ['react', 'react-dom', 'react/jsx-runtime'],
+            three: ['three'],
           }
         },
         // In production, bundle the UI package
@@ -221,10 +224,11 @@ export default defineConfig(({ mode }): UserConfig => {
       'react/jsx-runtime', 
       'react/jsx-dev-runtime',
       // Include workspace packages 
-      '@rathburn/ui'
+      '@rathburn/ui',
+      // Remove optimizeDeps for Three.js since it causes issues
     ],
     // Don't exclude workspace packages
-    exclude: []
+    exclude: ['three', '@react-three/fiber', '@react-spring/three']
   };
 
   return config;

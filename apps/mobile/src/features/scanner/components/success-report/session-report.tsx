@@ -25,6 +25,26 @@ interface SessionReportDialogProps {
   };
 }
 
+/**
+ * A dialog component that displays a summary of a completed stocktake session.
+ * It takes in the following props:
+ * - isOpen: a boolean indicating whether the dialog is open or closed
+ * - onClose: a function to call when the dialog is closed
+ * - sessionData: an object containing the session data, including:
+ *   - duration: the length of the session (e.g. "5m 32s")
+ *   - scanCount: the number of scans in the session
+ *   - scannedBarcodes: an array of objects, each containing the id and raw_barcode of a scanned item
+ *   - xpStart: the starting XP for the session
+ *   - xpEnd: the final XP for the session
+ *   - currentLevel: the current level of the user
+ *   - sessionName: an optional name for the session
+ * The component displays the following information:
+ * - Session name (if provided)
+ * - Duration and scan count
+ * - XP progress bar, with the starting and final XP values, and the current level
+ * - A list of scanned items, with each item displayed as a badge
+ * - A "Continue" button to close the dialog
+ */
 export function SessionReportDialog({
   isOpen,
   onClose,
