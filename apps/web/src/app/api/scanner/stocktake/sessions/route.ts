@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from "@/lib/supabase/server";
-import { Database } from '@/types/models/supabase'; // Adjust path if needed
+import { Database } from '@/types/supabase'; // Adjust path if needed
 import { validateAuth, createAuthenticatedClient } from '@/lib/api/auth'; // <-- Import validateAuth and createAuthenticatedClient
 import { getCorsHeaders, handleOptionsRequest } from '@/lib/api/utils/cors'; // <-- Import CORS utils
 // Import the specific type for cookie options expected by Next.js cookies().set
