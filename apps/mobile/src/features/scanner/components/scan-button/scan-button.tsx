@@ -1,10 +1,18 @@
 import { Scan, StopCircle } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import { FloatingNavBase } from "@/core/components/layout/nav-base";
-import { useStockTake } from "@/features/scanner/hooks/stocktake/use-stocktake";
 import { useToast } from "@/core/components/ui/use-toast";
 
-interface StocktakeButtonProps {
+// Define props for controlling the stocktake button
+interface StocktakeControlProps {
+  currentSessionId: string | null;
+  isScanning: boolean;
+  lastScanMessage: string | null;
+  startStocktakeSession: () => Promise<void>;
+  endStocktakeSession: () => Promise<void>;
+}
+
+interface StocktakeButtonProps extends StocktakeControlProps {
   className?: string;
 }
 
@@ -18,22 +26,28 @@ interface StocktakeButtonProps {
  * - When inactive, clicking starts a new stocktake session
  * - When active, clicking ends the current stocktake session
  */
-export function StocktakeButton({ className }: StocktakeButtonProps) {
-  const stockTake = useStockTake();
+export function StocktakeButton({
+  className,
+  currentSessionId,
+  isScanning,
+  lastScanMessage,
+  startStocktakeSession,
+  endStocktakeSession,
+}: StocktakeButtonProps) {
   const { toast } = useToast();
-  const isVisuallyActive = !!stockTake.currentSessionId;
+  const isVisuallyActive = !!currentSessionId;
 
   const handleToggle = async () => {
     console.log("[StocktakeButton] Toggling stock take session");
     try {
       if (isVisuallyActive) {
-        await stockTake.endStocktakeSession();
+        await endStocktakeSession();
         toast({
           title: "Stock Take Ended",
           description: "Your stock take session has been ended",
         });
       } else {
-        await stockTake.startStocktakeSession();
+        await startStocktakeSession();
         toast({
           title: "Stock Take Started",
           description: "Your stock take session is now active",
@@ -46,7 +60,7 @@ export function StocktakeButton({ className }: StocktakeButtonProps) {
       toast({
         title: "Error",
         description:
-          stockTake.lastScanMessage ||
+          lastScanMessage ||
           `Failed to ${isVisuallyActive ? "end" : "start"} stock take session`,
         variant: "destructive",
       });
@@ -61,7 +75,7 @@ export function StocktakeButton({ className }: StocktakeButtonProps) {
       className={cn(
         isVisuallyActive && "rounded-2xl border-2 border-red-700",
         !isVisuallyActive && "border-2 border-red-700",
-        stockTake.isScanning && "animate-pulse",
+        isScanning && "animate-pulse",
         className
       )}
       aria-label={

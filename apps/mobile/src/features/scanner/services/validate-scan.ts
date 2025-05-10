@@ -133,7 +133,11 @@ export const processBarcodeScan = async (barcode: string) => {
 export const getStockCountData = async (filters?: {
   supplier_id?: string;
   material_id?: string;
-}) => {
+}): Promise<{
+  success: boolean;
+  data?: unknown;
+  message?: string;
+}> => {
   try {
     let query = supabase
       .from('stock_count')

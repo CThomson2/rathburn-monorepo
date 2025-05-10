@@ -12,7 +12,7 @@ import {
   Menu,
 } from "lucide-react";
 import { cn } from "@/core/lib/utils";
-import { FloatingNavBase } from "../layout/nav-base";
+import { FloatingNavBase } from "./nav-base";
 import { useAuth } from "@/core/hooks/use-auth";
 
 interface NavItem {

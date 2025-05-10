@@ -501,7 +501,6 @@ const IndexContent = () => {
   };
 
   const renderView = () => {
-    console.log(`Rendering view: ${currentView}`);
     switch (currentView) {
       case "transport":
         return <TransportView />;
@@ -510,9 +509,6 @@ const IndexContent = () => {
       case "transportsettings":
         return <TransportSettingsView />;
       default:
-        console.log(
-          `No matching view for "${currentView}", showing default TransportView`
-        );
         return <TransportView />;
     }
   };
@@ -596,6 +592,11 @@ const IndexContent = () => {
         // activeLocation={location} // Removed
         isStockTakeActive={Boolean(stockTake.currentSessionId)}
         scanCount={scanCount}
+        currentSessionId={stockTake.currentSessionId}
+        isScanning={stockTake.isScanning}
+        lastScanMessage={stockTake.lastScanMessage}
+        startStocktakeSession={stockTake.startStocktakeSession}
+        endStocktakeSession={stockTake.endStocktakeSession}
       />
     </div>
   );
