@@ -2,17 +2,9 @@ import { Scan, StopCircle } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import { FloatingNavBase } from "@/core/components/layout/nav-base";
 import { useToast } from "@/core/components/ui/use-toast";
+import { useStocktakeStore } from "@/core/stores/stocktake-store";
 
-// Define props for controlling the stocktake button
-interface StocktakeControlProps {
-  currentSessionId: string | null;
-  isScanning: boolean;
-  lastScanMessage: string | null;
-  startStocktakeSession: () => Promise<void>;
-  endStocktakeSession: () => Promise<void>;
-}
-
-interface StocktakeButtonProps extends StocktakeControlProps {
+interface StocktakeButtonProps {
   className?: string;
 }
 
@@ -22,40 +14,41 @@ interface StocktakeButtonProps extends StocktakeControlProps {
  * Uses the FloatingNavBase component for consistent styling with other floating buttons.
  * When active, the button appears as a rounded square instead of a circle.
  *
- * This button directly controls the stocktake session:
- * - When inactive, clicking starts a new stocktake session
- * - When active, clicking ends the current stocktake session
+ * This button directly controls the stocktake session by using the Zustand store.
  */
-export function StocktakeButton({
-  className,
-  currentSessionId,
-  isScanning,
-  lastScanMessage,
-  startStocktakeSession,
-  endStocktakeSession,
-}: StocktakeButtonProps) {
+export function StocktakeButton({ className }: StocktakeButtonProps) {
   const { toast } = useToast();
+
+  const {
+    currentSessionId,
+    isScanning,
+    lastScanMessage,
+    startStocktakeSession,
+    endStocktakeSession,
+  } = useStocktakeStore();
+
   const isVisuallyActive = !!currentSessionId;
 
   const handleToggle = async () => {
-    console.log("[StocktakeButton] Toggling stock take session");
+    console.log("[StocktakeButton] Toggling stock take session via Zustand...");
     try {
       if (isVisuallyActive) {
         await endStocktakeSession();
         toast({
           title: "Stock Take Ended",
-          description: "Your stock take session has been ended",
+          description: "Session end initiated.",
         });
       } else {
         await startStocktakeSession();
         toast({
           title: "Stock Take Started",
-          description: "Your stock take session is now active",
+          description: "Session start initiated.",
         });
       }
     } catch (error) {
       console.error(
-        "[StocktakeButton] Error toggling session (handled in hook)"
+        "[StocktakeButton] Error toggling session (error should be in store state):",
+        error
       );
       toast({
         title: "Error",

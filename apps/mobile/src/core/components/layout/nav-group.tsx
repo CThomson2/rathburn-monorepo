@@ -8,23 +8,15 @@ import { Gauge } from "@/core/components/ui/gauge";
 
 type Location = Database["inventory"]["Enums"]["location_type"];
 
-// Props that StocktakeButton will need
-interface StocktakeControlProps {
-  currentSessionId: string | null;
-  isScanning: boolean;
-  lastScanMessage: string | null;
-  startStocktakeSession: () => Promise<void>;
-  endStocktakeSession: () => Promise<void>;
-}
+// Removed StocktakeControlProps as StocktakeButton now uses Zustand store directly
 
-interface FloatingNavGroupProps extends StocktakeControlProps {
-  // Extend with StocktakeControlProps
+interface FloatingNavGroupProps {
   onMenuNavigate?: (itemId: string) => void;
   onMenuToggle?: (isOpen: boolean) => void;
-  onLocationChange?: (location: Location) => void;
-  activeLocation?: Location | null;
-  isStockTakeActive: boolean; // This can still be used for layout logic if preferred
-  scanCount?: number;
+  onLocationChange?: (location: Location) => void; // Kept if used for other location logic
+  activeLocation?: Location | null; // Kept if used
+  isStockTakeActive: boolean; // Crucial for layout: driven by store via Index.tsx
+  scanCount?: number; // For GaugeCounter
 }
 
 function GaugeCounter({ scanCount }: { scanCount: number }) {
@@ -52,12 +44,6 @@ export function FloatingNavGroup({
   activeLocation = null,
   isStockTakeActive,
   scanCount = 0,
-  // Destructure new props for StocktakeButton
-  currentSessionId,
-  isScanning,
-  lastScanMessage,
-  startStocktakeSession,
-  endStocktakeSession,
 }: FloatingNavGroupProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
@@ -106,25 +92,13 @@ export function FloatingNavGroup({
 
               {/* Scan button moves to the right when session is active */}
               <div className="transform translate-x-1/2">
-                <StocktakeButton
-                  currentSessionId={currentSessionId}
-                  isScanning={isScanning}
-                  lastScanMessage={lastScanMessage}
-                  startStocktakeSession={startStocktakeSession}
-                  endStocktakeSession={endStocktakeSession}
-                />
+                <StocktakeButton />
               </div>
             </div>
           ) : (
             /* Scan button centered when session is not active */
             <div className="mx-auto">
-              <StocktakeButton
-                currentSessionId={currentSessionId}
-                isScanning={isScanning}
-                lastScanMessage={lastScanMessage}
-                startStocktakeSession={startStocktakeSession}
-                endStocktakeSession={endStocktakeSession}
-              />
+              <StocktakeButton />
             </div>
           )}
         </div>

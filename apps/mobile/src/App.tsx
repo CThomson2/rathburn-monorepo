@@ -131,14 +131,14 @@ const RouterWithMiddleware = () => {
               </ProtectedRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/scan"
             element={
               <ProtectedRoute>
                 <ScanPage />
               </ProtectedRoute>
             }
-          />
+          /> */}
           <Route
             path="/transport-settings"
             element={
