@@ -1266,6 +1266,7 @@ export type Database = {
           material_id: string
           name: string
           supplier_id: string | null
+          unit_weight: number | null
           updated_at: string
         }
         Insert: {
@@ -1276,6 +1277,7 @@ export type Database = {
           material_id: string
           name: string
           supplier_id?: string | null
+          unit_weight?: number | null
           updated_at?: string
         }
         Update: {
@@ -1286,6 +1288,7 @@ export type Database = {
           material_id?: string
           name?: string
           supplier_id?: string | null
+          unit_weight?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -2052,24 +2055,24 @@ export type Database = {
         Row: {
           avatar_url: string | null
           full_name: string | null
-          id: string
           updated_at: string | null
+          user_id: string
           username: string | null
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
           full_name?: string | null
-          id: string
           updated_at?: string | null
+          user_id: string
           username?: string | null
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
           full_name?: string | null
-          id?: string
           updated_at?: string | null
+          user_id?: string
           username?: string | null
           website?: string | null
         }
@@ -2496,6 +2499,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drums"
             referencedColumns: ["drum_id"]
+          },
+        ]
+      }
+      v_purchase_order_drum_details: {
+        Row: {
+          drum_created_at: string | null
+          is_received: boolean | null
+          item_id: string | null
+          item_name: string | null
+          line_item_quantity: number | null
+          po_eta_date: string | null
+          po_id: string | null
+          po_number: string | null
+          po_order_date: string | null
+          pod_id: string | null
+          pol_id: string | null
+          received_drums_for_line: number | null
+          serial_number: string | null
+          supplier_name: string | null
+          total_drums_for_line: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_drums_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
           },
         ]
       }

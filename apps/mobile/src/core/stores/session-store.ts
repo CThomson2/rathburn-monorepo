@@ -32,6 +32,16 @@ interface RpcPendingPurchaseOrderLine {
   quantity: number; // This is pol.quantity
 }
 
+// Interface for the data fetched from the new SQL view v_purchase_order_drum_details
+export interface DrumDetail {
+  pod_id: string | null;
+  serial_number: string | null;
+  pol_id: string | null;
+  is_received: boolean | null;
+  item_name: string | null; // Added for context, though it will be the same for all drums in this task
+  // Add other fields from the view if needed for display
+}
+
 // Define an interface for the session metadata
 interface SessionMetadata {
   type: string;
@@ -94,10 +104,12 @@ interface SessionState {
   showTaskSelectionModal: boolean;
   isFetchingTasks: boolean;
   scannedDrumsForCurrentTask: string[]; // Tracks serial numbers for the active task
+  activeTaskDrumDetails: DrumDetail[]; // Detailed drum info for the active task from the view
 
   setCurrentLocation: (location: Location | null) => void;
   syncSessionStateOnMount: () => Promise<void>;
   fetchPurchaseOrderTasks: () => Promise<void>;
+  fetchActiveTaskDrumDetails: (polId: string) => Promise<void>; // New action
   selectTask: (taskId: string) => void; // taskId will be pol_id
   openTaskSelectionModal: () => void;
   closeTaskSelectionModal: () => void;
@@ -141,6 +153,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   showTaskSelectionModal: false,
   isFetchingTasks: false,
   scannedDrumsForCurrentTask: [],
+  activeTaskDrumDetails: [], // Initialize
 
   setCurrentLocation: (location) => set({ currentLocation: location }),
 
@@ -191,6 +204,30 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
+  fetchActiveTaskDrumDetails: async (polId: string) => {
+    if (!polId) return;
+    console.log(`[SessionStore] Fetching drum details for active task (pol_id): ${polId}`);
+    set({ isFetchingTasks: true }); // Can use a more specific loading state if needed
+    try {
+      const supabase = createClient();
+      // Query the new view
+      const { data, error } = await supabase
+        .from('v_purchase_order_drum_details') // Ensure this view is in the public schema or adjust as needed
+        .select('pod_id, serial_number, pol_id, is_received, item_name')
+        .eq('pol_id', polId)
+        .order('serial_number'); 
+      console.log(`[SessionStore] Drum details for pol_id ${polId}:`, data);
+      if (error) {
+        console.error("Error fetching drum details from view:", error);
+        throw error;
+      }
+      set({ activeTaskDrumDetails: data || [], isFetchingTasks: false });
+    } catch (error) {
+      console.error("Failed to fetch drum details:", error);
+      set({ activeTaskDrumDetails: [], isFetchingTasks: false });
+    }
+  },
+
   selectTask: (taskId) => set({ selectedTaskId: taskId }),
 
   openTaskSelectionModal: () => {
@@ -215,7 +252,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
 
     console.log(`[SessionStore] Confirming start session for task (pol_id): ${selectedTaskId}`);
-    set({ isScanning: true, lastScanStatus: 'idle', lastScanMessage: 'Starting session...', showTaskSelectionModal: false });
+    set({ isScanning: true, lastScanStatus: 'idle', lastScanMessage: 'Starting session...', showTaskSelectionModal: false, activeTaskDrumDetails: [], scannedDrumsForCurrentTask: [] }); // Reset drums for new task session
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -265,6 +302,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           scannedDrumsForCurrentTask: [], // Reset for new session
           selectedTaskId: null, // Clear selection
         });
+        if (metadata.task_id) {
+          get().fetchActiveTaskDrumDetails(metadata.task_id); // Fetch drums for the new session's task
+        }
       } else {
         throw new Error("Session data or metadata not returned/valid after insert.");
       }
@@ -310,8 +350,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           sessionStartTime: activeSession.started_at ? new Date(activeSession.started_at) : new Date(), // Attempt to get start time
           lastScanMessage: 'Resumed active session.',
           isScanning: true, // If session active, assume scanning is enabled
-          scannedDrumsForCurrentTask: [] // TODO: Fetch already scanned drums for this session on resume
+          scannedDrumsForCurrentTask: [] // Reset initially, fetch if task_id present
         }));
+        if (metadata?.task_id) {
+          get().fetchActiveTaskDrumDetails(metadata.task_id); // Fetch drums for resumed session's task
+        }
       } else {
         console.log("[SessionStore] No active session found. Initializing as ready.");
         set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, lastScanMessage: 'Ready.', isScanning: false });
@@ -336,7 +379,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (authErr || !token) {
       console.error("[SessionStore] Auth error ending session:", authErr);
       // Still end locally
-      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, lastScanStatus: 'error', lastScanMessage: 'Auth error. Session ended locally.', scannedDrumsForCurrentTask: [] });
+      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, lastScanStatus: 'error', lastScanMessage: 'Auth error. Session ended locally.', scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [] });
       return;
     }
 
@@ -373,22 +416,22 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         set({
           isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null,
           lastScanStatus: 'idle', lastScanMessage: result.message || 'Session ended.',
-          showSessionReport: true, sessionReportData: reportData, scannedDrumsForCurrentTask: []
+          showSessionReport: true, sessionReportData: reportData, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: []
         });
       } else {
         console.error(`[SessionStore] Failed to end session ${currentSessionId} on server:`, result.error || `Status ${apiResponse.status}`);
         // Still end locally but indicate server error
-        set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Server error: ${result.error || `Status ${apiResponse.status}`}`, scannedDrumsForCurrentTask: [] });
+        set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Server error: ${result.error || `Status ${apiResponse.status}`}`, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [] });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error ending session';
       console.error('[SessionStore] Error in endSession:', message);
-      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Client error: ${message}`, scannedDrumsForCurrentTask: [] });
+      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Client error: ${message}`, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [] });
     }
   },
 
   processScan: async (barcode: string) => {
-    const { currentSessionId, currentSessionTaskId, scannedDrumsForCurrentTask } = get();
+    const { currentSessionId, currentSessionTaskId, scannedDrumsForCurrentTask, activeTaskDrumDetails } = get();
     if (!currentSessionId || !currentSessionTaskId) {
       console.warn("[SessionStore] processScan called without active session or task.");
       set({ lastScanStatus: 'error', lastScanMessage: 'No active session or task for scan.' });
@@ -429,15 +472,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: `Drum ${barcode} not part of current task.` });
         return;
       }
-      if (drumData.is_received) {
-        console.log(`Drum ${barcode} already marked as received.`);
-        set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: `Drum ${barcode} already received.` });
-        // Optionally add to scannedDrumsForCurrentTask if not already there, for UI consistency
-        if (!scannedDrumsForCurrentTask.includes(barcode)) {
-            set(state => ({ scannedDrumsForCurrentTask: [...state.scannedDrumsForCurrentTask, barcode] }));
-        }
-        return;
-      }
+      // No need to check drumData.is_received here again if we are updating activeTaskDrumDetails based on the view below
+      // However, if we want to prevent re-processing an already received drum, this check is fine.
+      // if (drumData.is_received) {
+      //   set({ isScanning: false, lastScanStatus: 'info', lastScanMessage: `Drum ${barcode} already received.` });
+      //   if (!scannedDrumsForCurrentTask.includes(barcode)) {
+      //       set(state => ({ scannedDrumsForCurrentTask: [...state.scannedDrumsForCurrentTask, barcode] }));
+      //   }
+      //   return;
+      // }
 
       // Update the drum as received in the database
       const { error: updateError } = await supabase
@@ -452,15 +495,23 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       }
 
       console.log(`Drum ${barcode} successfully marked as received for task ${currentSessionTaskId}.`);
+      
+      // Update local state immediately for UI responsiveness
+      const updatedDrumDetails = activeTaskDrumDetails.map(d => 
+        d.serial_number === barcode ? { ...d, is_received: true } : d
+      );
+      const newScannedDrums = scannedDrumsForCurrentTask.includes(barcode) ? scannedDrumsForCurrentTask : [...scannedDrumsForCurrentTask, barcode];
+
       set(state => ({
         isScanning: false,
         lastScanStatus: 'success',
         lastScanMessage: `Drum ${barcode} received.`,
         lastScanId: drumData.pod_id, // Store actual pod_id as lastScanId
-        scannedDrumsForCurrentTask: [...state.scannedDrumsForCurrentTask, barcode],
+        scannedDrumsForCurrentTask: newScannedDrums,
+        activeTaskDrumDetails: updatedDrumDetails,
       }));
       
-      // Optionally, re-fetch tasks to update receivedQuantity, or update locally
+      // Update availableTasks to reflect the new received count for the current task
       const tasks = get().availableTasks.map(task => 
         task.id === currentSessionTaskId 
           ? { ...task, receivedQuantity: task.receivedQuantity + 1, remainingQuantity: task.remainingQuantity -1 } 

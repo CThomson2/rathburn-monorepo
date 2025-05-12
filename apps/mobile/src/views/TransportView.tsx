@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -39,9 +39,15 @@ import { Badge } from "@/core/components/ui/badge";
 import {
   useSessionStore,
   PurchaseOrderLineTask,
+  DrumDetail,
 } from "@/core/stores/session-store";
 import { TaskSelectionModal } from "@/features/scanner/components/task-selection-modal";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/core/components/ui/collapsible";
 
 /**
  * Transport view that displays goods in transport
@@ -56,7 +62,10 @@ export function TransportView() {
     currentSessionTaskId,
     availableTasks,
     scannedDrumsForCurrentTask,
+    activeTaskDrumDetails,
   } = useSessionStore();
+
+  const [isDrumListOpen, setIsDrumListOpen] = useState(false);
 
   const currentActiveTaskDetails = useMemo(() => {
     if (!currentSessionTaskId) return null;
@@ -139,6 +148,60 @@ export function TransportView() {
                   />
                 </div>
               </div>
+
+              <Collapsible
+                open={isDrumListOpen}
+                onOpenChange={setIsDrumListOpen}
+              >
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between px-0 hover:bg-transparent"
+                  >
+                    <span>Show Drums ({activeTaskDrumDetails.length})</span>
+                    {isDrumListOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <ScrollArea className="h-[150px] border rounded-md p-2">
+                    {activeTaskDrumDetails.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No drums associated with this task line yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {activeTaskDrumDetails.map((drum: DrumDetail) => (
+                          <Badge
+                            key={drum.pod_id}
+                            variant={
+                              drum.is_received ||
+                              scannedDrumsForCurrentTask.includes(
+                                drum.serial_number
+                              )
+                                ? "default"
+                                : "outline"
+                            }
+                            className={`w-full justify-start truncate ${
+                              drum.is_received ||
+                              scannedDrumsForCurrentTask.includes(
+                                drum.serial_number
+                              )
+                                ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-700 dark:text-white dark:border-green-500"
+                                : "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                            }`}
+                          >
+                            {drum.serial_number}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CollapsibleContent>
+              </Collapsible>
             </CardContent>
           </Card>
 
@@ -146,29 +209,28 @@ export function TransportView() {
             <CardHeader className="p-4">
               <CardTitle className="text-base flex items-center space-x-2">
                 <ScanBarcode className="h-4 w-4" />
-                <span>Scanned Drums for this Task</span>
+                <span>Drums Scanned This Session</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-450px)] min-h-[200px]">
+              <ScrollArea className="h-[calc(100vh-600px)] min-h-[100px]">
                 {scannedDrumsForCurrentTask.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-center p-4">
+                  <div className="flex flex-col items-center justify-center h-24 text-center p-4">
                     <Package className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      No drums scanned for this task yet. Active scanning input
-                      below.
+                      Scan barcodes to receive drums.
                     </p>
                   </div>
                 ) : (
                   <div className="divide-y">
                     {scannedDrumsForCurrentTask.map((serialNumber, index) => (
                       <div
-                        key={`${currentActiveTaskDetails.id}-${serialNumber}-${index}`}
-                        className="flex items-center justify-between p-4"
+                        key={`${currentActiveTaskDetails.id}-scanned-${serialNumber}-${index}`}
+                        className="flex items-center justify-between p-3"
                       >
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          <span className="font-mono text-sm">
+                          <span className="font-mono text-xs">
                             {serialNumber}
                           </span>
                         </div>
