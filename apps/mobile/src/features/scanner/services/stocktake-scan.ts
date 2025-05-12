@@ -1,5 +1,5 @@
 // Define the payload for the stocktake scan API
-export interface StocktakeScanPayload {
+export interface ScanPayload {
   barcode: string;
   sessionId: string;
   deviceId?: string;
@@ -7,7 +7,7 @@ export interface StocktakeScanPayload {
 
 // Define the expected response structure from the stocktake scan API
 // Reusing parts of OriginalScanResponse but tailoring it
-export interface StocktakeScanResponse {
+export interface ScanResponse {
   success: boolean;
   scanId?: string; // UUID of the scan record in logs.stocktake_scans
   message?: string;
@@ -28,13 +28,13 @@ const STOCKTAKE_SCAN_ENDPOINT = `${API_BASE_URL}${STOCKTAKE_SCAN_ENDPOINT_PATH}`
  * @param authToken - The user's JWT authentication token.
  * @returns A promise resolving to the API response.
  */
-export async function handleStockTakeScan(
-  payload: StocktakeScanPayload,
+export async function handleScan(
+  payload: ScanPayload,
   authToken: string
-): Promise<StocktakeScanResponse> {
+): Promise<ScanResponse> {
   try {
-    console.log('[Stocktake Scan Service] Sending scan:', payload);
-    console.log('[Stocktake Scan Service] Endpoint:', STOCKTAKE_SCAN_ENDPOINT);
+    console.log('[Scan Service] Sending scan:', payload);
+    console.log('[Scan Service] Endpoint:', STOCKTAKE_SCAN_ENDPOINT);
 
     const response = await fetch(STOCKTAKE_SCAN_ENDPOINT, {
       method: 'POST',

@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { handleStockTakeScan, type StocktakeScanPayload } from '@/features/scanner/services/stocktake-scan';
+import { handleScan, type ScanPayload } from '@/features/scanner/services/stocktake-scan';
 
 describe('stockTakeScan', () => {
   const originalFetch = global.fetch;
@@ -7,7 +7,7 @@ describe('stockTakeScan', () => {
   global.fetch = mockFetch;
   
   // Test values
-  const testPayload: StocktakeScanPayload = {
+  const testPayload: ScanPayload = {
     barcode: 'TEST123456',
     sessionId: 'test-session-id',
     deviceId: 'test-device-id',
@@ -35,7 +35,7 @@ describe('stockTakeScan', () => {
 
   it('sends the correct request to the API', async () => {
     // Call the function
-    await handleStockTakeScan(testPayload, testToken);
+    await handleScan(testPayload, testToken);
     
     // Check that fetch was called with the correct parameters
     expect(mockFetch).toHaveBeenCalledWith(
@@ -54,7 +54,7 @@ describe('stockTakeScan', () => {
   });
 
   it('returns a success response when the API call succeeds', async () => {
-    const response = await handleStockTakeScan(testPayload, testToken);
+    const response = await handleScan(testPayload, testToken);
     
     expect(response).toEqual({
       success: true,
@@ -74,7 +74,7 @@ describe('stockTakeScan', () => {
       }),
     });
     
-    const response = await handleStockTakeScan(testPayload, testToken);
+    const response = await handleScan(testPayload, testToken);
     
     expect(response).toEqual({
       success: false,
@@ -86,7 +86,7 @@ describe('stockTakeScan', () => {
     // Mock a network failure
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
     
-    const response = await handleStockTakeScan(testPayload, testToken);
+    const response = await handleScan(testPayload, testToken);
     
     expect(response).toEqual({
       success: false,
@@ -105,7 +105,7 @@ describe('stockTakeScan', () => {
       }),
     });
     
-    const response = await handleStockTakeScan(testPayload, testToken);
+    const response = await handleScan(testPayload, testToken);
     
     // Should still return a success structure but with undefined fields
     expect(response).toEqual({
@@ -123,7 +123,7 @@ describe('stockTakeScan', () => {
       json: async () => { throw new Error('JSON parse error'); },
     });
     
-    const response = await handleStockTakeScan(testPayload, testToken);
+    const response = await handleScan(testPayload, testToken);
     
     expect(response).toEqual({
       success: false,
@@ -142,7 +142,7 @@ describe('stockTakeScan', () => {
       }),
     });
     
-    const response = await handleStockTakeScan(testPayload, testToken);
+    const response = await handleScan(testPayload, testToken);
     
     expect(response).toEqual({
       success: false,
