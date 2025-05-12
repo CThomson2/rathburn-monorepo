@@ -1,34 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  //   Scan,
-  //   User,
-  //   BarChart,
-  //   Settings,
-  ChevronDown,
-  ChevronUp,
-  Calendar,
-  Users,
-  MapPin,
-  Forklift,
-  Atom,
-  Settings,
-  Search,
-  Zap,
-  Truck,
-  Factory,
-  ClipboardList,
-  ScanBarcode,
-  Play,
-  StopCircle,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { Database } from "@/types/supabase";
-import { logout } from "@/services/auth";
-import { FloatingNavGroup } from "@/components/buttons/nav-group";
+import { Forklift, Atom, Settings, Search } from "lucide-react";
+// import { createClient } from "@/core/lib/supabase/client"; // No longer needed here
+import { Database } from "@/core/types/supabase";
+// import { logout } from "@/core/services/auth"; // No longer needed here
+import { FloatingNavGroup } from "@/core/components/layout/nav-group";
 import TopNavbar from "@/components/navbar/top-navbar";
 import { TransportView } from "@/views/TransportView";
 import { ProductionView } from "@/views/ProductionView";
@@ -36,27 +12,15 @@ import { TransportSettingsView } from "@/views/TransportSettingsView";
 // import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
-import { ScanInput } from "@/features/scanner/components/scan-input";
-import { useScan } from "@/hooks/use-scan";
-import { useStockTake } from "@/features/scanner/hooks/use-stocktake";
-import { useToast, type ToastProps } from "@/components/ui/use-toast";
+import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
+import { useScan } from "@/core/hooks/use-scan"; // This is for non-stocktake scans, keep it
+import { useSessionStore } from "@/core/stores/session-store"; // IMPORT: Zustand store
+import { useToast, type ToastProps } from "@/core/components/ui/use-toast";
 // import { useModal } from "@/hooks/use-modal";
 // import { ModalProvider } from "@/contexts/modal-context";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { ScanSuccessIndicator } from "@/features/scanner/components/scan-success-indicator";
+import { SessionReportDialog } from "@/features/scanner/components/success-report/session-report"; // Import SessionReportDialog
+import { ScanResponse } from "@/features/scanner/services/stocktake-scan"; // IMPORT StocktakeScanResponse
 // import { StocktakeButton } from "@/components/buttons/scan-button";
 
 const statusColors = {
@@ -73,8 +37,6 @@ const statusColors = {
   },
 };
 
-type Location = Database["inventory"]["Enums"]["location_type"];
-
 /**
  * Inventory component that displays a list of production jobs with
  * expandable details. Each job includes information such as name,
@@ -89,22 +51,17 @@ type Location = Database["inventory"]["Enums"]["location_type"];
 const IndexContent = () => {
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState("transport");
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isLoading, setIsLoading] = useState(true); // This might be covered by store.isInitializing
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchTimeoutRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [userInfo, setUserInfo] = useState<Record<string, string | null>>({
-    userId: null,
-    userName: null,
-    sessionToken: null,
-    email: null,
-  });
+
   const { toast } = useToast();
-  const transportScan = useScan();
+  const transportScan = useScan(); // For non-stocktake transport scans
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   // const [location, setLocation] = useState<Location | null>(null);
-  const [scanCount, setScanCount] = useState(0);
+  const [scanCount, setScanCount] = useState(0); // Local count for UI, reset by session changes
 
   // Add state for showing the successful scan indicator
   const [successfulScan, setSuccessfulScan] = useState<string | null>(null);
@@ -114,25 +71,39 @@ const IndexContent = () => {
   const barcodeBufferRef = useRef<string>("");
   const lastKeyTimeRef = useRef<number>(0);
 
-  const stockTake = useStockTake();
+  // Use Zustand store for stocktake state and actions
+  const {
+    currentSessionId,
+    isScanning,
+    // lastScanMessage, // Not directly used in this component, toast can show store messages
+    // lastScanStatus, // Not directly used here
+    showSessionReport,
+    sessionReportData,
+    syncSessionStateOnMount,
+    startSession: startStocktakeSession, // Alias for clarity if preferred in this component
+    endSession, // Corrected name from store
+    processScan, // Corrected name from store
+    closeSessionReport,
+  } = useSessionStore();
 
-  // Update stockTake's location when our location state changes
-  // useEffect(() => {
-  //   // Location changes are tracked within the hook internally
-  //   if (stockTake.currentLocation !== location && stockTake.currentSessionId) {
-  //     // If we had an API endpoint to update location for an active session, we'd call it here
-  //     console.log(
-  //       `[Index] Location changed during active session: ${location}`
-  //     );
-  //     // This could trigger a location update API call if needed
-  //   }
-  // }, [location, stockTake.currentLocation, stockTake.currentSessionId]);
-
-  // Use effect to reset scan count when a session ends
+  // Sync session state on mount using the store action
   useEffect(() => {
-    console.log('[IndexContent] currentSessionId changed to:', stockTake.currentSessionId);
-    setScanCount(0);
-  }, [stockTake.currentSessionId]);
+    syncSessionStateOnMount();
+  }, [syncSessionStateOnMount]);
+
+  // Reset scan count when a session starts or ends (via Zustand state change)
+  useEffect(() => {
+    console.log(
+      "[IndexContent] currentSessionId from store changed to:",
+      currentSessionId
+    );
+    if (currentSessionId) {
+      // Potentially reset scanCount based on fetched session data if needed
+      // For now, assuming scanCount is for *this* UI interaction with the active session
+    } else {
+      setScanCount(0); // Reset when session ends or there isn't one
+    }
+  }, [currentSessionId]);
 
   // Clean up the success indicator timeout on unmount
   useEffect(() => {
@@ -144,12 +115,12 @@ const IndexContent = () => {
   }, []);
 
   const shouldActivateScanInput = useMemo(() => {
-    const isActive = !!stockTake.currentSessionId;
+    const isActive = !!currentSessionId;
     console.log(
-      `[Index] ScanInput active: ${isActive} (Session ID: ${stockTake.currentSessionId}, IsScanning: ${stockTake.isScanning})`
+      `[Index] ScanInput active: ${isActive} (Session ID: ${currentSessionId}, IsScanning: ${isScanning})`
     );
     return isActive;
-  }, [stockTake.currentSessionId, stockTake.isScanning]);
+  }, [currentSessionId, isScanning]);
 
   useEffect(() => {
     if (shouldActivateScanInput) {
@@ -198,40 +169,45 @@ const IndexContent = () => {
           console.warn(`[IndexPage] Ignoring invalid barcode: ${barcode}`);
           return;
         }
-        if (stockTake.currentSessionId) {
+        if (currentSessionId) {
           console.log(
-            "[IndexPage] Routing scan to useStockTake (Session Active)"
+            "[IndexPage] Routing scan to useSessionStore (Session Active)"
           );
-          stockTake
-            .processStocktakeScan(barcode)
-            .then((response) => {
+          processScan(barcode) // Use corrected store action name: processScan
+            .then((response: ScanResponse | undefined) => {
               if (response?.success) {
-                // Increment scan counter
                 setScanCount((prevCount) => prevCount + 1);
-
-                // Show success indicator with the scanned barcode
                 setSuccessfulScan(barcode);
-
-                // Clear any existing timeout
                 if (successTimeoutRef.current) {
                   window.clearTimeout(successTimeoutRef.current);
                 }
-
-                // Set timeout to clear the indicator after 2.5 seconds
                 successTimeoutRef.current = window.setTimeout(() => {
                   setSuccessfulScan(null);
                   successTimeoutRef.current = null;
                 }, 2500);
               }
+              if (response && response.message) {
+                toast({
+                  title: response.success ? "Scan Success" : "Scan Info",
+                  description: response.message,
+                  variant: response.success ? "default" : "default",
+                });
+              } else if (response && response.error) {
+                toast({
+                  title: "Scan Error",
+                  description: response.error,
+                  variant: "destructive",
+                });
+              }
             })
-            .catch((err) => {
+            .catch((err: Error) => {
               console.error(
                 "[IndexPage] Error processing stocktake scan:",
                 err
               );
               toast({
                 title: "Scan Error",
-                description: "Failed to process stocktake scan",
+                description: err.message || "Failed to process stocktake scan",
                 variant: "destructive",
               });
             });
@@ -254,7 +230,7 @@ const IndexContent = () => {
         });
       }
     },
-    [currentView, stockTake, transportScan, toast]
+    [currentView, processScan, currentSessionId, transportScan, toast] // Ensure processScan is in dependency array
   );
 
   // Global keydown listener for barcode scanner
@@ -494,7 +470,6 @@ const IndexContent = () => {
   };
 
   const renderView = () => {
-    console.log(`Rendering view: ${currentView}`);
     switch (currentView) {
       case "transport":
         return <TransportView />;
@@ -503,9 +478,6 @@ const IndexContent = () => {
       case "transportsettings":
         return <TransportSettingsView />;
       default:
-        console.log(
-          `No matching view for "${currentView}", showing default TransportView`
-        );
         return <TransportView />;
     }
   };
@@ -582,13 +554,31 @@ const IndexContent = () => {
         {successfulScan && <ScanSuccessIndicator barcode={successfulScan} />}
       </AnimatePresence>
 
+      {/* Session Report Dialog using Zustand state */}
+      {sessionReportData && (
+        <SessionReportDialog
+          isOpen={showSessionReport}
+          onClose={closeSessionReport} // Use action from store
+          sessionData={sessionReportData}
+        />
+      )}
+
       <FloatingNavGroup
         onMenuNavigate={handleNavigation}
         onMenuToggle={handleMenuToggle}
         // onLocationChange={handleLocationChange} // Removed
         // activeLocation={location} // Removed
-        isStockTakeActive={Boolean(stockTake.currentSessionId)}
-        scanCount={scanCount}
+        isStockTakeActive={Boolean(currentSessionId)} // From store
+        scanCount={scanCount} // Local scan count for the UI
+        // Pass actions from the store, aliasing startSession if needed for clarity in FloatingNavGroup/StocktakeButton if they were to use it directly
+        // However, StocktakeButton now uses the store directly, so these specific props might not be needed by FloatingNavGroup itself
+        // For now, keeping them as they were, assuming FloatingNavGroup might pass them or use them.
+        // If StocktakeButton is the only consumer and uses the store, these become redundant on FloatingNavGroup.
+        // currentSessionId={currentSessionId} // Provided by isStockTakeActive logic
+        // isScanning={isScanning} // StocktakeButton gets from store
+        // lastScanMessage={useSessionStore.getState().lastScanMessage}
+        // startStocktakeSession={startStocktakeSession} // StocktakeButton gets from store
+        // endStocktakeSession={endSession} // StocktakeButton gets from store
       />
     </div>
   );

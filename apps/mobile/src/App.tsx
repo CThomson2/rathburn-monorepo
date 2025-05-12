@@ -1,5 +1,5 @@
-import { ToastProvider } from "@/providers/toast-provider";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { ToastProvider } from "@/core/providers/toast-provider";
+import { TooltipProvider } from "@/core/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   BrowserRouter,
@@ -15,12 +15,13 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/auth/callback";
 import TransportSettings from "./pages/Settings";
 import { ErrorBoundary } from "react-error-boundary";
-import { ThemeProvider } from "./providers/theme-provider";
+import { ThemeProvider } from "@/core/providers/theme-provider";
 import { ScanProvider } from "@/contexts/scan-context";
-import { ToastContextSetter } from "@/components/ui/use-toast";
-import { Toaster } from "@/components/ui/toaster";
-import { useMiddleware } from "@/hooks/use-middleware";
+import { ToastContextSetter } from "@/core/components/ui/use-toast";
+import { Toaster } from "@/core/components/ui/toaster";
+import { useMiddleware } from "@/core/hooks/use-middleware";
 import { publicRoutes } from "@/middleware";
+import ScanPage from "./pages/ScanPage";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +131,14 @@ const RouterWithMiddleware = () => {
               </ProtectedRoute>
             }
           />
+          {/* <Route
+            path="/scan"
+            element={
+              <ProtectedRoute>
+                <ScanPage />
+              </ProtectedRoute>
+            }
+          /> */}
           <Route
             path="/transport-settings"
             element={

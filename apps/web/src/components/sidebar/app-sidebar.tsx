@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
 import {
   AudioWaveform,
   BookOpen,
@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { signOutAction } from "@/app/actions";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { NavMain, SidebarItemAction } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
@@ -40,11 +41,6 @@ import {
 
 // This is sample data.
 const data = {
-  user: {
-    name: "conrad",
-    email: "design@rathburn.co.uk",
-    avatar: "/avatars/conrad/library-1.png",
-  },
   teams: [
     {
       name: "Office",
@@ -188,6 +184,15 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuth();
+
+  // Create a user profile from the authenticated user
+  const userProfile = {
+    name: user?.user_metadata?.name || user?.email?.split("@")[0] || "User",
+    email: user?.email || null,
+    avatar: "/avatars/default.jpg",
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -198,7 +203,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser userProfile={userProfile} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

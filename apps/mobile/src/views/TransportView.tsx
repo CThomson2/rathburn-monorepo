@@ -9,9 +9,13 @@ import {
   X,
   ChevronRight,
   ScanBarcode,
+  Truck,
+  Package,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { useScan } from "@/hooks/use-scan";
+import { createClient } from "@/core/lib/supabase/client";
+import { useScan } from "@/core/hooks/use-scan";
 // import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
@@ -20,9 +24,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+} from "@/core/components/ui/card";
+import { Button } from "@/core/components/ui/button";
+import { Progress } from "@/core/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,10 +37,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
+} from "@/core/components/ui/alert-dialog";
+import { Badge } from "@/core/components/ui/badge";
+import { useToast } from "@/core/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useSessionStore } from "@/core/stores/session-store";
+import { TaskSelectionModal } from "@/features/scanner/components/task-selection-modal";
+import { ScrollArea } from "@/core/components/ui/scroll-area";
 
 const statusColors = {
   transport: {
@@ -85,13 +92,6 @@ interface ProductionJob {
   drums: PurchaseOrderDrumData[];
 }
 
-// Custom badge variants for our UI
-const statusVariants = {
-  complete: "default",
-  "in-progress": "default",
-  pending: "secondary",
-} as const;
-
 /**
  * Transport view that displays goods in transport
  * Extracted from the original Index component
@@ -103,8 +103,23 @@ export function TransportView() {
   const [jobDetail, setJobDetail] = useState<ProductionJob | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { scannedDrums, resetScannedDrums, scanMode, setScanMode } = useScan();
-
   const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([]);
+
+  // Get session store state and actions
+  const {
+    currentSessionId,
+    currentSessionTaskId,
+    isScanning,
+    startSession,
+    endSession,
+    processScan,
+    availableTasks,
+  } = useSessionStore();
+
+  // Get the current task details
+  const currentTask = availableTasks.find(
+    (task) => task.id === currentSessionTaskId
+  );
 
   // Fetch production jobs data
   useEffect(() => {
@@ -120,7 +135,6 @@ export function TransportView() {
 
         if (ordersError) {
           console.error("Error fetching purchase orders:", ordersError);
-          // Fallback to test data
           setProductionJobs([]);
           return;
         }
@@ -184,7 +198,6 @@ export function TransportView() {
         setProductionJobs(validJobs);
       } catch (err) {
         console.error("Unexpected error fetching production jobs:", err);
-        // Fallback to test data
         setProductionJobs([]);
       } finally {
         setIsLoading(false);
@@ -225,17 +238,18 @@ export function TransportView() {
   // Function to reload page
   const handleRefresh = () => {
     window.location.reload();
-    // resetScannedDrums();
-    // setRefreshTrigger((prev) => prev + 1);
-    // setJobDetail(null);
   };
 
   // Function to open job details
-  const openJobDetail = (job: ProductionJob) => {
-    setJobDetail(job);
-    // Set the scan mode to bulk for receiving drums
-    // We know from the type definition that ScanMode is 'single' | 'bulk'
-    setScanMode("bulk");
+  const handleStartScanning = (job: ProductionJob) => {
+    if (isScanning) {
+      // If already scanning, show the job details
+      setJobDetail(job);
+      setScanMode("bulk");
+    } else {
+      // If not scanning, start a new session
+      startSession();
+    }
   };
 
   // Function to close job details modal
@@ -293,163 +307,112 @@ export function TransportView() {
   };
 
   return (
-    <div className="container py-4 space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Goods In</h2>
-        <Button variant="ghost" onClick={handleRefresh} disabled={isLoading}>
-          Refresh
-        </Button>
-      </div>
+    <div className="container max-w-lg mx-auto p-4 space-y-4">
+      <TaskSelectionModal />
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-40">
-          <p>Loading...</p>
+      {!isScanning ? (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <Truck className="h-12 w-12 text-muted-foreground" />
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-semibold">Start Transport Session</h2>
+            <p className="text-sm text-muted-foreground">
+              Select a purchase order to start receiving drums into stock.
+            </p>
+          </div>
+          <Button onClick={startSession} className="w-full max-w-xs">
+            Select Task
+          </Button>
         </div>
-      ) : updatedJobs.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">
-            No pending purchase orders found
-          </p>
-        </div>
-      ) : (
+      ) : currentTask ? (
         <div className="space-y-4">
-          {updatedJobs.map((job) => (
-            <Card key={`job-${job.id}-${job.item}`} className="relative">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <div>
-                    <CardTitle>{job.title}</CardTitle>
-                    <CardDescription>{job.supplier}</CardDescription>
-                  </div>
-                  <div className="text-right">
+          {/* Task Header */}
+          <Card>
+            <CardHeader className="p-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center space-x-2">
+                  <Truck className="h-5 w-5" />
+                  <span>PO #{currentTask.poNumber}</span>
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={endSession}>
+                  End Session
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Supplier:</span>
+                  <span className="font-medium">{currentTask.supplier}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Item:</span>
+                  <span className="font-medium">{currentTask.item}</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Progress:</span>
                     <Badge
                       variant={
-                        job.progress === 100
-                          ? "default" // Use default variant for completed
-                          : job.progress > 0
-                            ? "default" // Use default variant for in-progress
-                            : "secondary" // Use secondary variant for pending
+                        scannedDrums.length === currentTask.totalQuantity
+                          ? "default"
+                          : "secondary"
                       }
                     >
-                      {job.progress === 100
-                        ? "Complete"
-                        : job.progress > 0
-                          ? "In Progress"
-                          : "Pending"}
+                      {scannedDrums.length} / {currentTask.totalQuantity} drums
                     </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(job.orderDate).toLocaleDateString()}
+                  </div>
+                  <Progress
+                    value={
+                      (scannedDrums.length / currentTask.totalQuantity) * 100
+                    }
+                    className="h-2"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Scanned Drums List */}
+          <Card>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base flex items-center space-x-2">
+                <ScanBarcode className="h-4 w-4" />
+                <span>Scanned Drums</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[300px]">
+                {scannedDrums.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-center p-4">
+                    <Package className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      No drums scanned yet. Start scanning barcodes to receive
+                      drums.
                     </p>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pb-2">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>{job.item}</span>
-                    <span>
-                      {job.drums.filter((d) => d.is_received).length} of{" "}
-                      {job.drums.length} drums received
-                    </span>
-                  </div>
-                  <Progress value={job.progress} className="h-2" />
-                </div>
-              </CardContent>
-              <CardFooter className="pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => openJobDetail(job)}
-                >
-                  <ScanBarcode className="h-4 w-4 mr-2" />
-                  Scan Drums
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Job Detail Modal */}
-      <AlertDialog
-        open={!!jobDetail}
-        onOpenChange={(open) => !open && closeJobDetail()}
-      >
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {jobDetail?.title} - {jobDetail?.supplier}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {jobDetail?.item} - {jobDetail?.quantity} drums
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress</span>
-                <span>
-                  {jobDetail?.drums.filter((d) => d.is_received).length} of{" "}
-                  {jobDetail?.drums.length} drums
-                </span>
-              </div>
-              <Progress value={jobDetail?.progress} className="h-2" />
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Drums</h4>
-              <div className="flex flex-wrap gap-2">
-                {jobDetail?.drums.map((drum) => (
-                  <Badge
-                    key={`drum-${drum.pod_id}`}
-                    variant={
-                      drum.is_received ||
-                      scannedDrums.includes(drum.serial_number)
-                        ? "default" // Use default variant instead of success
-                        : "outline"
-                    }
-                    className="text-xs"
-                  >
-                    {drum.serial_number}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Recently Scanned</h4>
-              <div className="flex flex-wrap gap-2">
-                {scannedDrums.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No drums scanned yet
-                  </p>
                 ) : (
-                  scannedDrums.map((serial: string) => (
-                    <Badge
-                      key={`scanned-${serial}`}
-                      variant="default"
-                      className="text-xs"
-                    >
-                      {serial}
-                    </Badge>
-                  ))
+                  <div className="divide-y">
+                    {scannedDrums.map((serialNumber, index) => (
+                      <div
+                        key={serialNumber}
+                        className="flex items-center justify-between p-4"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <span className="font-mono">{serialNumber}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          #{index + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </div>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button variant="default" onClick={handleRefresh}>
-                Refresh Data
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }

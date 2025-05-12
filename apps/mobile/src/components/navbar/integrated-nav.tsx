@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Scan, LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { cn } from "@/core/lib/utils";
+import { ThemeToggle } from "@/core/components/ui/theme-toggle";
 
 interface NavItem {
   name: string;

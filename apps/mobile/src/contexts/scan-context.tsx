@@ -1,19 +1,8 @@
-import {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  ReactNode,
-} from "react";
+import { createContext, useState, useEffect, ReactNode } from "react";
 
-import { supabase } from "@/lib/supabase/client";
-import { toast } from "@/components/ui/toaster";
-import { Database } from "@/types/supabase";
+import { supabase } from "@/core/lib/supabase/client";
+import { toast } from "@/core/components/ui/toaster";
 import scanService from "@/features/scanner/services/handle-scan";
-
-// Determine if we should show the scan tester (typically in development)
-const SHOW_SCAN_TESTER = "false";
-// import.meta.env.DEV || import.meta.env.VITE_SHOW_SCAN_TESTER === "true";
 
 // // Define interfaces for the tables we're using (based on inventory schema)
 // interface Drum {

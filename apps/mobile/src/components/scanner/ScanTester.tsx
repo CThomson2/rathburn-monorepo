@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useScan } from "@/hooks/use-scan";
-import { createClient } from "@/lib/supabase/client";
+import { useScan } from "@/core/hooks/use-scan";
+import { createClient } from "@/core/lib/supabase/client";
 
 /**
  * A component for testing the scan functionality during development

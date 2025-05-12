@@ -7,8 +7,8 @@ import {
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom"; // Need router context
 import Index from "@/pages/Index";
-import { useStockTake } from "@/features/scanner/hooks/use-stocktake"; // To mock
-import { useScan } from "@/hooks/use-scan"; // To mock (if needed)
+import { useStockTake } from "@/features/scanner/hooks/stocktake/use-stocktake"; // To mock
+import { useScan } from "@/core/hooks/use-scan"; // To mock (if needed)
 import { vi, Mock } from "vitest";
 
 // Mock the hooks
@@ -16,10 +16,10 @@ vi.mock("@/hooks/use-stock-take");
 vi.mock("@/hooks/use-scan"); // Mock transport scan if its interaction matters
 
 // Mock supabase client if IndexContent fetches session directly (it was commented out)
-// vi.mock('@/lib/supabase/client', ...)
+// vi.mock('@/core/lib/supabase/client', ...)
 
 // Mock useToast
-vi.mock("@/components/ui/use-toast", () => ({
+vi.mock("@/core/components/ui/use-toast", () => ({
   useToast: () => ({
     toast: vi.fn(),
   }),

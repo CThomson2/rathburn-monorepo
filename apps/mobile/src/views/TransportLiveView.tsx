@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TransportCard } from "@/components/layout/TransportCard";
-import { ScanInput } from "@/features/scanner/components/scan-input";
-import { ScanHistory } from "@/features/scanner/components/scan-history";
+import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
+import { ScanHistory } from "@/features/scanner/components/scan-history/scan-history";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "@/core/components/ui/dialog";
+import { Button } from "@/core/components/ui/button";
 import {
   Maximize,
   History,
@@ -21,7 +21,7 @@ import {
   XCircle,
   Settings,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/core/lib/utils";
 import { toast } from "sonner";
 import scanService from "@/features/scanner/services/handle-scan";
 

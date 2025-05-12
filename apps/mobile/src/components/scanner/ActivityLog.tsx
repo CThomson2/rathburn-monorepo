@@ -1,5 +1,5 @@
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card } from "@/core/components/ui/card";
+import { ScrollArea } from "@/core/components/ui/scroll-area";
 
 // Define the structure for scan activity items
 interface ScanActivity {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/core/lib/supabase/client";
 
 const AuthCallback = () => {
   const [error, setError] = useState<string | null>(null);

@@ -1,16 +1,16 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { StocktakeButton } from "@/features/scanner/components/scan-button";
-import { useStockTake } from "@/features/scanner/hooks/use-stocktake";
-import { useToast } from "@/components/ui/use-toast";
+import { StocktakeButton } from "@/features/scanner/components/scan-button/scan-button";
+import { useStockTake } from "@/features/scanner/hooks/stocktake/use-stocktake";
+import { useToast } from "@/core/components/ui/use-toast";
 
 // Mock the hooks
-vi.mock("@/hooks/use-stock-take", () => ({
+vi.mock("@/core/hooks/use-stock-take", () => ({
   useStockTake: vi.fn(),
 }));
 
-vi.mock("@/components/ui/use-toast", () => ({
+vi.mock("@/core/components/ui/use-toast", () => ({
   useToast: vi.fn(),
 }));
 

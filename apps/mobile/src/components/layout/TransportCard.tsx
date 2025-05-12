@@ -6,10 +6,10 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+} from "@/core/components/ui/card";
+import { Badge } from "@/core/components/ui/badge";
+import { Button } from "@/core/components/ui/button";
+import { Progress } from "@/core/components/ui/progress";
 import {
   ChevronDown,
   ChevronUp,
@@ -18,7 +18,7 @@ import {
   FlaskConical,
   MapPin,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/core/lib/utils";
 
 interface TransportJob {
   id: number;
