@@ -120,8 +120,8 @@ interface SessionState {
   closeSessionReport: () => void;
 }
 
-const SESSIONS_API_ENDPOINT = '/api/scanner/stocktake/sessions';
-const END_SESSION_API_ENDPOINT_TEMPLATE = '/api/scanner/stocktake/sessions/{sessionId}/end';
+const SESSIONS_API_ENDPOINT = '/api/scanner/sessions';
+const END_SESSION_API_ENDPOINT_TEMPLATE = '/api/scanner/sessions/{sessionId}/end';
 
 function getDeviceId(): string {
   // Ensure VITE_DEVICE_ID is a valid UUID or handle its conversion/generation appropriately.
@@ -133,7 +133,7 @@ function getDeviceId(): string {
 // type InventoryTables = Database['inventory']['Tables'];
 // type PublicTables = Database['public']['Tables'];
 // type PurchaseOrderDrumRow = InventoryTables['purchase_order_drums']['Row'];
-// type StocktakeSessionRow = PublicTables['stocktake_sessions']['Row']; // Not directly used for insert type shape, insert type is inferred or explicit
+// type StocktakeSessionRow = PublicTables['sessions']['Row']; // Not directly used for insert type shape, insert type is inferred or explicit
 
 export const useSessionStore = create<SessionState>((set, get) => ({
   currentSessionId: null,
@@ -285,7 +285,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
     try {
       const { data: sessionData, error: sessionError } = await supabase
-        .from('stocktake_sessions') // public schema assumed by default if not specified
+        .from('sessions') // public schema assumed by default if not specified
         .insert({
           created_by: user.id,
           device_id: deviceIdToUse, // Ensure this is a valid UUID or null if column allows

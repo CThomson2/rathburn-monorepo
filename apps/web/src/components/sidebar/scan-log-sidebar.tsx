@@ -11,11 +11,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 // Import the specific type from the centralized file
-import { SessionScanData, Database } from "@/types/supabase";
+import { Database } from "@/types/supabase";
 
 // Define the interface for scan data from public.session_scans
 // Based on the supabase.ts provided:
-// export type SessionScanRow = Database["public"]["Tables"]["session_scans"]["Row"];
+type SessionScanData = Database["public"]["Tables"]["session_scans"]["Row"];
 // Using a more explicit interface for clarity in the component:
 // interface SessionScanData { ... }
 
@@ -74,7 +74,8 @@ const RealtimeScanLogSidebar = ({
         setIsLoadingInitial(true);
         const { data, error: fetchError } = await supabase
           .from("session_scans")
-          .select("*, profiles(email)") // Keep the join if needed for user_email
+          .select("*")
+          //   .select("*", "profiles(email)") // Keep the join if needed for user_email
           .order("created_at", { ascending: false })
           .limit(25);
 

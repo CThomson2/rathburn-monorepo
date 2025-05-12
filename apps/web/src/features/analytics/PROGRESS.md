@@ -9,7 +9,7 @@
 - **Scan Input (`ScanInput.tsx`):** A globally persistent, hidden input field captures keyboard wedge scans across all views. Its activation (`isActive` prop) is now strictly controlled based on whether a stocktake session is active in the central state. Significant effort was made to ensure reliable focus management for this component.
 - **State Management (`useStockTake.ts`):** This custom hook centralizes the state and logic for stocktake operations.
   - Manages `currentSessionId`, scan processing status (`isScanning`), and feedback (`lastScanStatus`, `lastScanMessage`).
-  - `startStocktakeSession`: Now initiates a session by calling a dedicated backend API (`/api/stocktake/sessions/start`) and stores the backend-generated session UUID in state.
+  - `startStocktakeSession`: Now initiates a session by calling a dedicated backend API (`/api/scanner/sessions/start`) and stores the backend-generated session UUID in state.
   - `processStocktakeScan`: Triggered by the global scan handler, it fetches the _current_ Supabase auth token (`getSession().access_token`), verifies an active session ID exists, and calls the backend scan processing service (`handleStockTakeScan`).
   - `endStocktakeSession`: Currently updates local state to clear the `currentSessionId`. _(See Outstanding Issues)_.
 - **UI (`StockTakeDrawer.tsx` & `Index.tsx`):**
@@ -23,7 +23,7 @@
 
 **2. Backend (Next.js - `apps/web`)**
 
-- **Session Start API (`/api/stocktake/sessions/start`):**
+- **Session Start API (`/api/scanner/sessions/start`):**
   - A new `POST` endpoint was created.
   - Authenticates the request using the Bearer token.
   - Inserts a new record into `public.stocktake_sessions` with a generated name and the authenticated user's ID.

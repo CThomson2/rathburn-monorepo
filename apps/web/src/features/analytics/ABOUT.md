@@ -47,7 +47,7 @@ The stock take dashboard shows:
 
 The system uses several tables:
 
-**`stocktake_sessions`**
+**`sessions`**
 
 - Tracks individual stock take events
 - Stores metadata about each count session

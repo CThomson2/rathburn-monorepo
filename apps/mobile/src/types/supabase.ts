@@ -2054,29 +2054,40 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          full_name: string | null
+          created_at: string | null
+          email: string | null
+          role: string | null
           updated_at: string | null
           user_id: string
           username: string | null
-          website: string | null
         }
         Insert: {
           avatar_url?: string | null
-          full_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          role?: string | null
           updated_at?: string | null
           user_id: string
           username?: string | null
-          website?: string | null
         }
         Update: {
           avatar_url?: string | null
-          full_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          role?: string | null
           updated_at?: string | null
           user_id?: string
           username?: string | null
-          website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_email_fkey"
+            columns: ["email"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scans_feed_details"
+            referencedColumns: ["user_email"]
+          },
+        ]
       }
       session_scans: {
         Row: {
@@ -2156,17 +2167,59 @@ export type Database = {
             foreignKeyName: "session_scans_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_material_counts"
-            referencedColumns: ["session_id"]
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "session_scans_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_sessions"
-            referencedColumns: ["id"]
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
           },
         ]
+      }
+      sessions: {
+        Row: {
+          completed_at: string | null
+          created_by: string
+          description: string | null
+          device_id: string | null
+          ended_at: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          notes: string | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_by: string
+          description?: string | null
+          device_id?: string | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_by?: string
+          description?: string | null
+          device_id?: string | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
       stock_count: {
         Row: {
@@ -2282,15 +2335,15 @@ export type Database = {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_material_counts"
-            referencedColumns: ["session_id"]
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_sessions"
-            referencedColumns: ["id"]
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "stocktake_scans_supplier_id_fkey"
@@ -2300,48 +2353,6 @@ export type Database = {
             referencedColumns: ["supplier_id"]
           },
         ]
-      }
-      stocktake_sessions: {
-        Row: {
-          completed_at: string | null
-          created_by: string
-          description: string | null
-          device_id: string | null
-          ended_at: string | null
-          id: string
-          metadata: Json | null
-          name: string
-          notes: string | null
-          started_at: string | null
-          status: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_by: string
-          description?: string | null
-          device_id?: string | null
-          ended_at?: string | null
-          id?: string
-          metadata?: Json | null
-          name: string
-          notes?: string | null
-          started_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_by?: string
-          description?: string | null
-          device_id?: string | null
-          ended_at?: string | null
-          id?: string
-          metadata?: Json | null
-          name?: string
-          notes?: string | null
-          started_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
       }
       user_roles: {
         Row: {
@@ -2404,15 +2415,15 @@ export type Database = {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_material_counts"
-            referencedColumns: ["session_id"]
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_sessions"
-            referencedColumns: ["id"]
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
           },
         ]
       }
@@ -2454,15 +2465,15 @@ export type Database = {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_material_counts"
-            referencedColumns: ["session_id"]
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
-            referencedRelation: "stocktake_sessions"
-            referencedColumns: ["id"]
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "stocktake_scans_supplier_id_fkey"

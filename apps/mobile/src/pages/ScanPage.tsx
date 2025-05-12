@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Scan, StopCircle, LogOut, Bell } from "lucide-react";
 import { cn } from "@/core/lib/utils";
-import { useStockTake } from "@/features/scanner/hooks/stocktake/use-stocktake";
+import { useSessionStore } from "@/core/stores/session-store";
 import { useToast } from "@/core/components/ui/use-toast";
 import { useAuth } from "@/core/hooks/use-auth";
 import { supabase } from "@/core/lib/supabase/client";

@@ -81,7 +81,7 @@ describe('useStockTake', () => {
     
     // Verify API call
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/scanner/stocktake/sessions/start'),
+      expect.stringContaining('/api/scanner/sessions/start'),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

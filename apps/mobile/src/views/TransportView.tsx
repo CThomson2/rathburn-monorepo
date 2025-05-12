@@ -179,17 +179,19 @@ export function TransportView() {
                             key={drum.pod_id}
                             variant={
                               drum.is_received ||
-                              scannedDrumsForCurrentTask.includes(
-                                drum.serial_number
-                              )
+                              (drum.serial_number !== null &&
+                                scannedDrumsForCurrentTask.includes(
+                                  drum.serial_number
+                                ))
                                 ? "default"
                                 : "outline"
                             }
                             className={`w-full justify-start truncate ${
                               drum.is_received ||
-                              scannedDrumsForCurrentTask.includes(
-                                drum.serial_number
-                              )
+                              (drum.serial_number !== null &&
+                                scannedDrumsForCurrentTask.includes(
+                                  drum.serial_number
+                                ))
                                 ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-700 dark:text-white dark:border-green-500"
                                 : "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
                             }`}
