@@ -2078,6 +2078,96 @@ export type Database = {
         }
         Relationships: []
       }
+      session_scans: {
+        Row: {
+          cancelled_scan_id: string | null
+          created_at: string
+          device_id: string | null
+          error_message: string | null
+          id: string
+          item_name: string | null
+          metadata: Json | null
+          pod_id: string | null
+          pol_id: string | null
+          raw_barcode: string
+          scan_action: Database["public"]["Enums"]["scan_action_type"]
+          scan_status: Database["public"]["Enums"]["scan_status_type"]
+          scanned_at: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cancelled_scan_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          item_name?: string | null
+          metadata?: Json | null
+          pod_id?: string | null
+          pol_id?: string | null
+          raw_barcode: string
+          scan_action: Database["public"]["Enums"]["scan_action_type"]
+          scan_status: Database["public"]["Enums"]["scan_status_type"]
+          scanned_at?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cancelled_scan_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          item_name?: string | null
+          metadata?: Json | null
+          pod_id?: string | null
+          pol_id?: string | null
+          raw_barcode?: string
+          scan_action?: Database["public"]["Enums"]["scan_action_type"]
+          scan_status?: Database["public"]["Enums"]["scan_status_type"]
+          scanned_at?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "session_scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "v_purchase_order_drum_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_count: {
         Row: {
           created_at: string
@@ -2665,7 +2755,13 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      scan_action_type:
+        | "check_in"
+        | "transport"
+        | "process"
+        | "context"
+        | "cancel"
+      scan_status_type: "success" | "error" | "ignored"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2855,6 +2951,15 @@ export const Constants = {
     },
   },
   public: {
-    Enums: {},
+    Enums: {
+      scan_action_type: [
+        "check_in",
+        "transport",
+        "process",
+        "context",
+        "cancel",
+      ],
+      scan_status_type: ["success", "error", "ignored"],
+    },
   },
 } as const

@@ -3,7 +3,7 @@ import { cn } from "@/core/lib/utils";
 import { ScanButton } from "@/features/scanner/components/scan-button/scan-button";
 import FloatingNavMenu from "@/core/components/layout/nav-menu";
 import { LocationButton } from "@/core/components/buttons/location";
-import { Database } from "@/core/types/supabase";
+import { Database } from "@/types/supabase";
 import { Gauge } from "@/core/components/ui/gauge";
 
 type Location = Database["inventory"]["Enums"]["location_type"];

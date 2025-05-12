@@ -22,6 +22,16 @@ import {
 } from "@/core/components/ui/card";
 import { Truck, Package, ChevronRight } from "lucide-react";
 
+/**
+ * TODO: Add caching of tasks to avoid fetching from the database on every modal open.
+ * Redis cache? SWR? React Query?
+ *
+ * TaskSelectionModal is a modal that allows the user to select a purchase order to start receiving drums into stock.
+ * It displays a list of purchase orders with their status and a progress bar.
+ * The user can select a purchase order to start receiving drums into stock.
+ *
+ * @returns
+ */
 export function TaskSelectionModal() {
   // Get relevant state and actions from the session store
   const {

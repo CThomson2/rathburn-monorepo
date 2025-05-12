@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { supabase } from '@/core/lib/supabase/client';
-import { Database, Json } from '@/core/types/supabase';
-import { handleScan, ScanResponse } from '@/features/scanner/services/stocktake-scan';
+import { Database, Json } from '@/types/supabase';
 import { createClient } from "@/core/lib/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
+import { ScanStatus, ScanType } from '@/types/scanner';
 
 type Location = Database["inventory"]["Enums"]["location_type"];
 
@@ -90,7 +90,7 @@ interface SessionState {
   currentSessionName: string | null;
   currentSessionTaskId: string | null; // Stores the linked pol_id for the active session
   isScanning: boolean;
-  lastScanStatus: 'success' | 'error' | 'idle';
+  lastScanStatus: 'success' | 'error' | 'idle' | 'ignored';
   lastScanMessage: string | null;
   lastScanId: string | null;
   currentLocation: Location | null;
@@ -130,9 +130,9 @@ function getDeviceId(): string {
   return import.meta.env.VITE_DEVICE_ID || '00000000-0000-0000-0000-000000000000'; // Fallback to a nil UUID if env var is missing
 }
 
-type InventoryTables = Database['inventory']['Tables'];
-type PublicTables = Database['public']['Tables'];
-type PurchaseOrderDrumRow = InventoryTables['purchase_order_drums']['Row'];
+// type InventoryTables = Database['inventory']['Tables'];
+// type PublicTables = Database['public']['Tables'];
+// type PurchaseOrderDrumRow = InventoryTables['purchase_order_drums']['Row'];
 // type StocktakeSessionRow = PublicTables['stocktake_sessions']['Row']; // Not directly used for insert type shape, insert type is inferred or explicit
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -200,6 +200,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({ availableTasks: tasks, isFetchingTasks: false });
     } catch (error) {
       console.error("[SessionStore] Failed to fetch tasks:", error);
+      set({ isFetchingTasks: false, availableTasks: [] });
+    }
+  },
+
+  // TODO: Yet to be implemented
+  fetchProductionTasks: async () => {
+    console.log("[SessionStore] Fetching production tasks...");
+    set({ isFetchingTasks: true });
+    try {
+      // const supabase = createClient();
+    } catch (error) {
+      console.error("[SessionStore] Failed to fetch production tasks:", error);
       set({ isFetchingTasks: false, availableTasks: [] });
     }
   },
@@ -430,98 +442,183 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
+  // TODO: Add location logic to front end session logic and always pass location to the scan
   processScan: async (barcode: string) => {
-    const { currentSessionId, currentSessionTaskId, scannedDrumsForCurrentTask, activeTaskDrumDetails } = get();
+    const { currentSessionId, currentSessionTaskId, scannedDrumsForCurrentTask, activeTaskDrumDetails, currentLocation } = get();
+    const supabase = createClient(); // Get supabase client instance
+    const { data: { user }, error: userError } = await supabase.auth.getUser(); // Get user earlier for logging
+
     if (!currentSessionId || !currentSessionTaskId) {
       console.warn("[SessionStore] processScan called without active session or task.");
       set({ lastScanStatus: 'error', lastScanMessage: 'No active session or task for scan.' });
+      // Log error scan to public.session_scans if user context is available
+      if (user) {
+        await supabase.from('session_scans').insert({
+          session_id: currentSessionId,
+          raw_barcode: barcode,
+          scan_status: 'error' as ScanStatus,
+          scan_action: 'process' as ScanType, // Or determine appropriate action type based on context
+          error_message: 'No active session or task for scan.',
+          user_id: user.id,
+          device_id: getDeviceId(),
+          pol_id: currentSessionTaskId
+        });
+      }
       return;
     }
     if (scannedDrumsForCurrentTask.includes(barcode)){
-      set({ lastScanStatus: 'error', lastScanMessage: `Drum ${barcode} already scanned for this task.` });
+      const message = `Drum ${barcode} already scanned for this task.`;
+      set({ lastScanStatus: 'error', lastScanMessage: message });
+       // Log error scan to public.session_scans
+      if (user) {
+         await supabase.from('session_scans').insert({
+          session_id: currentSessionId,
+          raw_barcode: barcode,
+          scan_status: 'error' as ScanStatus,
+          scan_action: 'check_in' as ScanType, // TODO: Add more if checks for barcodes in process, transport tasks etc.
+          error_message: message,
+          user_id: user.id,
+          device_id: getDeviceId(),
+          pol_id: currentSessionTaskId
+        });
+      }
       return;
     }
 
     set({ isScanning: true, lastScanMessage: `Processing ${barcode}...` }); // Indicate specific scan processing
 
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    if (authError || !token) {
-      console.error("[SessionStore] Auth error for scan:", authError);
+    // Removed auth token check here as 'user' object is already fetched and checked if null
+
+    if (userError || !user) {
+      console.error("[SessionStore] Auth error for scan:", userError);
       set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: 'Authentication error.' });
+       // Log error scan to public.session_scans (session_id might be null here if initial auth failed earlier)
+      await supabase.from('session_scans').insert({
+        session_id: currentSessionId,
+        raw_barcode: barcode,
+        scan_status: 'error' as ScanStatus,
+        scan_action: 'process' as ScanType,
+        error_message: 'Authentication error.',
+        user_id: user?.id || undefined, // Use user ID if available
+        device_id: getDeviceId(),
+        pol_id: currentSessionTaskId
+      });
       return;
     }
+
+    let scanResult: { status: ScanStatus; message: string; pod_id?: string | null; item_name?: string | null; error?: PostgrestError | Error | null } = {
+      status: 'error',
+      message: 'Scan processing failed unexpectedly.',
+      error: null,
+    };
+
 
     try {
       // Find the purchase_order_drum by serial_number AND pol_id (currentSessionTaskId)
       const { data: drumData, error: drumError } = await supabase
         .schema('inventory')
         .from('purchase_order_drums')
-        .select('pod_id, serial_number, is_received, pol_id')
+        .select('pod_id, serial_number, is_received, pol_id') // REMOVED item_id fetch here
         .eq('serial_number', barcode)
         .eq('pol_id', currentSessionTaskId) // Ensure drum belongs to the current task (pol_id)
         .maybeSingle();
 
       if (drumError) {
         console.error("Error checking drum in DB:", drumError);
-        throw drumError;
+        scanResult = { status: 'error', message: 'Database error checking drum.', error: drumError };
+        throw drumError; // Throw to be caught below for logging
       }
 
       if (!drumData) {
-        console.log(`Drum ${barcode} not found for task ${currentSessionTaskId}.`);
-        set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: `Drum ${barcode} not part of current task.` });
-        return;
+        const message = `Drum ${barcode} not part of current task.`;
+        console.log(message);
+        scanResult = { status: 'error', message: message, error: new Error(message) };
+        // Don't throw here, let it proceed to finally block for logging
+      } else {
+          // Drum found, proceed to update
+          const { error: updateError } = await supabase
+            .schema('inventory')
+            .from('purchase_order_drums')
+            .update({ is_received: true })
+            .eq('pod_id', drumData.pod_id);
+
+          if (updateError) {
+            console.error("Error updating drum in DB:", updateError);
+             scanResult = { status: 'error', message: 'Database error updating drum.', error: updateError };
+            throw updateError; // Throw to be caught below for logging
+          }
+
+          // Get item name from existing drum details if possible
+          const existingDrumDetail = activeTaskDrumDetails.find(d => d.pod_id === drumData.pod_id);
+          const itemName: string | null = existingDrumDetail?.item_name || null;
+
+          const message = `Drum ${barcode} received.`;
+          console.log(`${message} for task ${currentSessionTaskId}.`);
+          scanResult = { status: 'success', message: message, pod_id: drumData.pod_id, item_name: itemName };
+
+           // Update local state immediately for UI responsiveness
+          const updatedDrumDetails = activeTaskDrumDetails.map(d =>
+            d.serial_number === barcode ? { ...d, is_received: true } : d
+          );
+          const newScannedDrums = scannedDrumsForCurrentTask.includes(barcode) ? scannedDrumsForCurrentTask : [...scannedDrumsForCurrentTask, barcode];
+
+          set({
+            isScanning: false, // Update status locally after DB operations attempt
+            lastScanStatus: scanResult.status,
+            lastScanMessage: scanResult.message,
+            lastScanId: scanResult.pod_id, // Store actual pod_id as lastScanId
+            scannedDrumsForCurrentTask: newScannedDrums,
+            activeTaskDrumDetails: updatedDrumDetails,
+          });
+
+          // Update availableTasks to reflect the new received count for the current task
+          const tasks = get().availableTasks.map(task =>
+            task.id === currentSessionTaskId
+              ? { ...task, receivedQuantity: task.receivedQuantity + 1, remainingQuantity: task.remainingQuantity - 1 }
+              : task
+          );
+          set({ availableTasks: tasks });
       }
-      // No need to check drumData.is_received here again if we are updating activeTaskDrumDetails based on the view below
-      // However, if we want to prevent re-processing an already received drum, this check is fine.
-      // if (drumData.is_received) {
-      //   set({ isScanning: false, lastScanStatus: 'info', lastScanMessage: `Drum ${barcode} already received.` });
-      //   if (!scannedDrumsForCurrentTask.includes(barcode)) {
-      //       set(state => ({ scannedDrumsForCurrentTask: [...state.scannedDrumsForCurrentTask, barcode] }));
-      //   }
-      //   return;
-      // }
-
-      // Update the drum as received in the database
-      const { error: updateError } = await supabase
-        .schema('inventory')
-        .from('purchase_order_drums')
-        .update({ is_received: true })
-        .eq('pod_id', drumData.pod_id);
-
-      if (updateError) {
-        console.error("Error updating drum in DB:", updateError);
-        throw updateError;
-      }
-
-      console.log(`Drum ${barcode} successfully marked as received for task ${currentSessionTaskId}.`);
-      
-      // Update local state immediately for UI responsiveness
-      const updatedDrumDetails = activeTaskDrumDetails.map(d => 
-        d.serial_number === barcode ? { ...d, is_received: true } : d
-      );
-      const newScannedDrums = scannedDrumsForCurrentTask.includes(barcode) ? scannedDrumsForCurrentTask : [...scannedDrumsForCurrentTask, barcode];
-
-      set(state => ({
-        isScanning: false,
-        lastScanStatus: 'success',
-        lastScanMessage: `Drum ${barcode} received.`,
-        lastScanId: drumData.pod_id, // Store actual pod_id as lastScanId
-        scannedDrumsForCurrentTask: newScannedDrums,
-        activeTaskDrumDetails: updatedDrumDetails,
-      }));
-      
-      // Update availableTasks to reflect the new received count for the current task
-      const tasks = get().availableTasks.map(task => 
-        task.id === currentSessionTaskId 
-          ? { ...task, receivedQuantity: task.receivedQuantity + 1, remainingQuantity: task.remainingQuantity -1 } 
-          : task
-      );
-      set({availableTasks: tasks});
 
     } catch (error) {
       console.error("Error processing scan:", error);
-      set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: `Failed to process scan for ${barcode}.` });
+      // Ensure scanResult reflects the error if not already set
+      if(scanResult.status !== 'error') {
+          scanResult = { status: 'error', message: `Failed to process scan for ${barcode}.`, error: error instanceof Error ? error : new Error(String(error)) };
+      }
+       set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: scanResult.message });
+    } finally {
+        // Always attempt to log the scan to public.session_scans
+        try {
+            const logEntry = {
+                session_id: currentSessionId,
+                raw_barcode: barcode,
+                scan_status: scanResult.status,
+                // Determine scan_action based on context if possible, default to 'process' or 'check_in' for now
+                scan_action: 'check_in' as ScanType, 
+                error_message: scanResult.status === 'error' ? scanResult.message : null,
+                user_id: user.id, // User is confirmed non-null by this point if no early return
+                device_id: getDeviceId(),
+                pol_id: currentSessionTaskId,
+                pod_id: scanResult.pod_id, // Will be null if drum not found or error occurred before finding it
+                item_name: scanResult.item_name, // Use item name from scanResult (derived from activeTaskDrumDetails)
+            };
+            const { error: logError } = await supabase.from('session_scans').insert(logEntry);
+            if (logError) {
+                console.error("[SessionStore] CRITICAL: Failed to log scan result to public.session_scans:", logError, logEntry);
+                 // Optionally update UI state to indicate logging failure?
+                // set({ lastScanMessage: `${scanResult.message} (Logging Failed)` });
+            } else {
+                 console.log("[SessionStore] Scan result logged to public.session_scans:", logEntry);
+            }
+        } catch (logCatchError) {
+             console.error("[SessionStore] CRITICAL: Exception during scan logging:", logCatchError);
+        }
+
+        // Ensure scanning state is set to false if not already done
+        if (get().isScanning) {
+          set({ isScanning: false });
+        }
     }
   },
 
