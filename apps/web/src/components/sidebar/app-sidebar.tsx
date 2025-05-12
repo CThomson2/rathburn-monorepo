@@ -24,8 +24,6 @@ import {
   LogOut,
 } from "lucide-react";
 
-import { signOutAction } from "@/app/actions";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { NavMain, SidebarItemAction } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
@@ -38,6 +36,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import type { UserProfileData } from "@/types/user";
 
 // This is sample data.
 const data = {
@@ -183,15 +182,22 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth();
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  profileData: UserProfileData;
+}
 
-  // Create a user profile from the authenticated user
+export function AppSidebar({ profileData, ...props }: AppSidebarProps) {
+  // const { user } = useAuth(); // Remove or comment out if not needed directly
+
+  // Create userProfile directly from props
   const userProfile = {
-    name: user?.user_metadata?.name || user?.email?.split("@")[0] || "User",
-    email: user?.email || null,
-    avatar: "/avatars/default.jpg",
+    username: profileData.username ?? "User", // Provide default
+    email: profileData.email, // Already string | null
+    avatar_url: profileData.avatar_url ?? "/avatars/default.jpg", // Provide default
   };
+
+  // Remove old NavUserProfile type assertion if present
+  // type NavUserProfile = { ... };
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -203,6 +209,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
+        {/* Ensure NavUser expects username, email, avatar_url */}
         <NavUser userProfile={userProfile} />
       </SidebarFooter>
       <SidebarRail />

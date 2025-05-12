@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Forklift, Atom, Settings, Search } from "lucide-react";
-// import { createClient } from "@/core/lib/supabase/client"; // No longer needed here
-import { Database } from "@/core/types/supabase";
 // import { logout } from "@/core/services/auth"; // No longer needed here
 import { FloatingNavGroup } from "@/core/components/layout/nav-group";
 import TopNavbar from "@/components/navbar/top-navbar";
@@ -80,7 +78,7 @@ const IndexContent = () => {
     showSessionReport,
     sessionReportData,
     syncSessionStateOnMount,
-    startSession: startStocktakeSession, // Alias for clarity if preferred in this component
+    startSession, // Alias for clarity if preferred in this component
     endSession, // Corrected name from store
     processScan, // Corrected name from store
     closeSessionReport,
@@ -577,7 +575,7 @@ const IndexContent = () => {
         // currentSessionId={currentSessionId} // Provided by isStockTakeActive logic
         // isScanning={isScanning} // StocktakeButton gets from store
         // lastScanMessage={useSessionStore.getState().lastScanMessage}
-        // startStocktakeSession={startStocktakeSession} // StocktakeButton gets from store
+        // startSession={startSession} // Alias for clarity if preferred in this component
         // endStocktakeSession={endSession} // StocktakeButton gets from store
       />
     </div>

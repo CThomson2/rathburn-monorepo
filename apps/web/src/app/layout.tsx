@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/layout/dashboard-layout";
 import { createServiceClient } from "@/lib/supabase/server";
 
 import "@/styles/globals.css";
+import type { UserProfileData } from "@/types/user";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,61 @@ async function fetchInitialScans(): Promise<StocktakeScanFeedDetail[]> {
   }
 }
 
+async function fetchProfileData(): Promise<UserProfileData> {
+  const supabase = createServiceClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  // Default profile structure based on assumed type
+  let defaultProfile: UserProfileData = {
+    username: "User",
+    email: "no-email@example.com", // Provide a default non-null string
+    avatar_url: "/avatars/default.jpg",
+  };
+
+  if (authError || !user) {
+    console.error(
+      "Error fetching user or no user found in fetchProfileData:",
+      authError
+    );
+    return defaultProfile; // Return default if no user
+  }
+
+  // Update default profile with user info we have
+  // Ensure email is never null according to assumed type
+  defaultProfile.email = user.email ?? defaultProfile.email;
+  // Use email part as initial fallback username
+  defaultProfile.username =
+    user.email?.split("@")[0] ?? defaultProfile.username;
+
+  // Fetch only the fields assumed to be in UserProfileData
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("username, avatar_url") // Fetch only relevant fields
+    .eq("user_id", user.id)
+    .single();
+
+  if (profileError && profileError.code !== "PGRST116") {
+    // Ignore row not found
+    console.error("Error fetching profile in fetchProfileData:", profileError);
+    return defaultProfile;
+  }
+
+  // If profile exists, merge it
+  if (profile) {
+    return {
+      ...defaultProfile, // Contains email
+      username: profile.username ?? defaultProfile.username,
+      avatar_url: profile.avatar_url ?? defaultProfile.avatar_url,
+    };
+  }
+
+  // If profile doesn't exist, return default updated with auth info
+  return defaultProfile;
+}
+
 function isAuthPage(pathname: string) {
   const isAuth =
     pathname.startsWith("/sign-in") ||
@@ -93,8 +149,14 @@ export default async function RootLayout({
   let initialScans: StocktakeScanFeedDetail[] = [];
   let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   let supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  let profileData: UserProfileData = {
+    username: "User",
+    email: "no-email@example.com", // Use same default non-null string
+    avatar_url: "/avatars/default.jpg",
+  };
 
   if (!isAuth) {
+    profileData = await fetchProfileData();
     initialScans = await fetchInitialScans();
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error(
@@ -123,6 +185,7 @@ export default async function RootLayout({
             <DashboardLayout
               apiUrl={supabaseUrl}
               apiKey={supabaseAnonKey}
+              profileData={profileData}
               initialScans={initialScans}
             >
               <main>{children}</main>

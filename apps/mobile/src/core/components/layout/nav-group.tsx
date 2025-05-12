@@ -92,13 +92,13 @@ export function FloatingNavGroup({
 
               {/* Scan button moves to the right when session is active */}
               <div className="transform translate-x-1/2">
-                <StocktakeButton />
+                <ScanButton />
               </div>
             </div>
           ) : (
             /* Scan button centered when session is not active */
             <div className="mx-auto">
-              <StocktakeButton />
+              <ScanButton />
             </div>
           )}
         </div>

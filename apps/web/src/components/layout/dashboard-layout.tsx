@@ -48,6 +48,7 @@ import { useNavigationLoading } from "@/hooks/use-navigation-loading";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "../ui/button";
 import { RealtimeFeedSidebar } from "../realtime/sidebar-feed";
+import type { UserProfileData } from "@/types/user";
 
 // TypeScript workaround for React 18 vs React 19 type compatibility issue
 // @ts-ignore
@@ -76,6 +77,7 @@ interface DashboardLayoutProps {
   apiUrl: string;
   apiKey: string;
   initialScans: StocktakeScanFeedDetail[];
+  profileData: UserProfileData; // <-- Add profileData prop
 }
 
 interface NavItem {
@@ -100,6 +102,7 @@ const DashboardLayout = ({
   apiUrl,
   apiKey,
   initialScans,
+  profileData, // <-- Destructure profileData
 }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
@@ -129,7 +132,8 @@ const DashboardLayout = ({
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Left Navigation Sidebar */}
       <SidebarProvider className="h-full">
-        <AppSidebar />
+        {/* Pass profile data to AppSidebar */}
+        <AppSidebar profileData={profileData} />
 
         {/* Main Content Area (Center + Right Sidebar) */}
         <div className="flex flex-1 h-full overflow-hidden">

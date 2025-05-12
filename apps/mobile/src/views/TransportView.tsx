@@ -45,21 +45,32 @@ import { useSessionStore } from "@/core/stores/session-store";
 import { TaskSelectionModal } from "@/features/scanner/components/task-selection-modal";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
 
-const statusColors = {
-  transport: {
-    pending: "#03045e",
-    inProgress: "#0077B6",
-  },
-  production: {
-    pending: "#82E3FC",
-    inProgress: "#00b4d8",
-  },
-  shared: {
-    completed: "#358600",
-  },
-};
-
-// Define the interface for our purchase order data from the RPC function
+/**
+ * Define the interface for our purchase order data from the RPC function
+ * `get_pending_purchase_orders`
+ *
+ * ```sql
+ * BEGIN
+ *     RETURN QUERY
+ *     SELECT json_build_object(
+ *         'po_id', po.po_id,
+ *         'po_number', po.po_number,
+ *         'supplier', s.name,
+ *         'order_date', po.order_date,
+ *         'status', po.status,
+ *         'eta_date', po.eta_date,
+ *         'item', i.name,
+ *         'quantity', pol.quantity
+ *     )
+ *     FROM inventory.purchase_orders po
+ *     JOIN inventory.suppliers s ON po.supplier_id = s.supplier_id
+ *     JOIN inventory.purchase_order_lines pol ON po.po_id = pol.po_id
+ *     JOIN inventory.items i ON pol.item_id = i.item_id
+ *     WHERE po.status IN ('pending', 'partially_received')
+ *     ORDER BY po.order_date DESC;
+ * END;
+ * ```
+ */
 interface PurchaseOrderData {
   po_id: string;
   po_number: string;
@@ -71,7 +82,26 @@ interface PurchaseOrderData {
   quantity: number;
 }
 
-// Define the interface for purchase order drums from the RPC function
+/**
+ * Define the interface for purchase order drums from the RPC function
+ * `get_purchase_order_drums`
+ *
+ * ```sql
+ * BEGIN
+ *   RETURN QUERY
+ *   SELECT json_build_object(
+ *       'pod_id', pod.pod_id,
+ *       'pol_id', pod.pol_id,
+ *       'serial_number', pod.serial_number,
+ *       'is_received', pod.is_received
+ *   )
+ *   FROM inventory.purchase_order_drums pod
+ *     JOIN inventory.purchase_order_lines pol ON pod.pol_id = pol.pol_id
+ *     WHERE pol.po_id = p_po_id
+ *     ORDER BY pod.serial_number;
+ * END;
+ * ```
+ */
 interface PurchaseOrderDrumData {
   pod_id: string;
   pol_id: string;
@@ -79,7 +109,7 @@ interface PurchaseOrderDrumData {
   is_received: boolean;
 }
 
-interface ProductionJob {
+interface TransportJob {
   id: string; // po_id
   title: string; // po_number
   supplier: string;
@@ -97,13 +127,12 @@ interface ProductionJob {
  * Extracted from the original Index component
  */
 export function TransportView() {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const [jobDetail, setJobDetail] = useState<ProductionJob | null>(null);
+  const [jobDetail, setJobDetail] = useState<TransportJob | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { scannedDrums, resetScannedDrums, scanMode, setScanMode } = useScan();
-  const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([]);
+  const [transportJobs, setTransportJobs] = useState<TransportJob[]>([]);
 
   // Get session store state and actions
   const {
@@ -121,9 +150,9 @@ export function TransportView() {
     (task) => task.id === currentSessionTaskId
   );
 
-  // Fetch production jobs data
+  // Fetch transport jobs data
   useEffect(() => {
-    const fetchProductionJobs = async () => {
+    const fetchTransportJobs = async () => {
       try {
         setIsLoading(true);
         const supabase = createClient();
@@ -135,12 +164,12 @@ export function TransportView() {
 
         if (ordersError) {
           console.error("Error fetching purchase orders:", ordersError);
-          setProductionJobs([]);
+          setTransportJobs([]);
           return;
         }
 
         if (!ordersData) {
-          setProductionJobs([]);
+          setTransportJobs([]);
           return;
         }
 
@@ -191,27 +220,27 @@ export function TransportView() {
 
         const results = await Promise.all(jobsPromises);
         const validJobs = results.filter(
-          (job): job is ProductionJob => job !== null
+          (job): job is TransportJob => job !== null
         );
 
-        console.log("Fetched production jobs:", validJobs);
-        setProductionJobs(validJobs);
+        console.log("Fetched transport jobs:", validJobs);
+        setTransportJobs(validJobs);
       } catch (err) {
-        console.error("Unexpected error fetching production jobs:", err);
-        setProductionJobs([]);
+        console.error("Unexpected error fetching transport jobs:", err);
+        setTransportJobs([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProductionJobs();
+    fetchTransportJobs();
   }, [refreshTrigger]);
 
   // Update job progress based on scanned drums
   const updatedJobs = useMemo(() => {
     console.log("Recomputing job progress with scanned drums:", scannedDrums);
 
-    return productionJobs.map((job) => {
+    return transportJobs.map((job) => {
       // Count how many drums from this job are in the scanned list
       const updatedDrums = job.drums.map((drum) => {
         // If the drum is in our scannedDrums list, mark it as received
@@ -233,7 +262,7 @@ export function TransportView() {
         drums: updatedDrums,
       };
     });
-  }, [productionJobs, scannedDrums]);
+  }, [transportJobs, scannedDrums]);
 
   // Function to reload page
   const handleRefresh = () => {
@@ -241,7 +270,7 @@ export function TransportView() {
   };
 
   // Function to open job details
-  const handleStartScanning = (job: ProductionJob) => {
+  const handleStartScanning = (job: TransportJob) => {
     if (isScanning) {
       // If already scanning, show the job details
       setJobDetail(job);
