@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { useStockTake } from '@/features/scanner/hooks/stocktake/use-stocktake';
-import { handleStockTakeScan } from '@/features/scanner/services/stocktake-scan';
+import { handleScan } from '@/features/scanner/services/stocktake-scan';
 import { supabase } from '@/core/lib/supabase/client';
 
 // Define the hardcoded device ID used in the hook
@@ -51,7 +51,7 @@ describe('useStockTake', () => {
     });
     
     // Default scan handler mock
-    (handleStockTakeScan as any).mockResolvedValue({ success: true, scanId: 'scan-123', message: 'Scan OK' });
+    (handleScan as any).mockResolvedValue({ success: true, scanId: 'scan-123', message: 'Scan OK' });
   });
   
   afterAll(() => {
@@ -201,7 +201,7 @@ describe('useStockTake', () => {
     expect(result.current.lastScanStatus).toBe('success');
     
     // Verify scan service was called with correct params
-    expect(handleStockTakeScan).toHaveBeenCalledWith(
+    expect(handleScan).toHaveBeenCalledWith(
       {
         barcode,
         sessionId: 'test-session-id',
@@ -236,7 +236,7 @@ describe('useStockTake', () => {
     // Should update state with error
     expect(result.current.lastScanStatus).toBe('error');
     expect(result.current.lastScanMessage).toContain('No active stocktake session');
-    expect(handleStockTakeScan).not.toHaveBeenCalled();
+    expect(handleScan).not.toHaveBeenCalled();
   });
 
   it('should handle scan processing failures', async () => {
@@ -262,7 +262,7 @@ describe('useStockTake', () => {
     await waitFor(() => expect(result.current.currentSessionId).toBe('fail-session'));
 
     // Mock failed scan response
-    (handleStockTakeScan as any).mockResolvedValueOnce({
+    (handleScan as any).mockResolvedValueOnce({
       success: false,
       message: scanError,
     });

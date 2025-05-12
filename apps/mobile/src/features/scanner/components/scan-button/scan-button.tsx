@@ -2,9 +2,9 @@ import { Scan, StopCircle } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import { FloatingNavBase } from "@/core/components/layout/nav-base";
 import { useToast } from "@/core/components/ui/use-toast";
-import { useStocktakeStore } from "@/core/stores/stocktake-store";
+import { useSessionStore } from "@/core/stores/session-store";
 
-interface StocktakeButtonProps {
+interface ScanButtonProps {
   className?: string;
 }
 
@@ -16,38 +16,38 @@ interface StocktakeButtonProps {
  *
  * This button directly controls the stocktake session by using the Zustand store.
  */
-export function StocktakeButton({ className }: StocktakeButtonProps) {
+export function ScanButton({ className }: ScanButtonProps) {
   const { toast } = useToast();
 
   const {
     currentSessionId,
     isScanning,
     lastScanMessage,
-    startStocktakeSession,
-    endStocktakeSession,
-  } = useStocktakeStore();
+    startSession,
+    endSession,
+  } = useSessionStore();
 
   const isVisuallyActive = !!currentSessionId;
 
   const handleToggle = async () => {
-    console.log("[StocktakeButton] Toggling stock take session via Zustand...");
+    console.log("[ScanButton] Toggling stock take session via Zustand...");
     try {
       if (isVisuallyActive) {
-        await endStocktakeSession();
+        await endSession();
         toast({
-          title: "Stock Take Ended",
+          title: "Session Ended",
           description: "Session end initiated.",
         });
       } else {
-        await startStocktakeSession();
+        await startSession();
         toast({
-          title: "Stock Take Started",
+          title: "Session Started",
           description: "Session start initiated.",
         });
       }
     } catch (error) {
       console.error(
-        "[StocktakeButton] Error toggling session (error should be in store state):",
+        "[ScanButton] Error toggling session (error should be in store state):",
         error
       );
       toast({

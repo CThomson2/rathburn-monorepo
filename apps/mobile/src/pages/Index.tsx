@@ -1,30 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  //   Scan,
-  //   User,
-  //   BarChart,
-  //   Settings,
-  ChevronDown,
-  ChevronUp,
-  Calendar,
-  Users,
-  MapPin,
-  Forklift,
-  Atom,
-  Settings,
-  Search,
-  Zap,
-  Truck,
-  Factory,
-  ClipboardList,
-  ScanBarcode,
-  Play,
-  StopCircle,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
+import { Forklift, Atom, Settings, Search } from "lucide-react";
 // import { createClient } from "@/core/lib/supabase/client"; // No longer needed here
 import { Database } from "@/core/types/supabase";
 // import { logout } from "@/core/services/auth"; // No longer needed here
@@ -38,30 +14,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
 import { useScan } from "@/core/hooks/use-scan"; // This is for non-stocktake scans, keep it
-import { useStocktakeStore } from "@/core/stores/stocktake-store"; // IMPORT: Zustand store
+import { useSessionStore } from "@/core/stores/session-store"; // IMPORT: Zustand store
 import { useToast, type ToastProps } from "@/core/components/ui/use-toast";
 // import { useModal } from "@/hooks/use-modal";
 // import { ModalProvider } from "@/contexts/modal-context";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-  SheetTrigger,
-  SheetClose,
-} from "@/core/components/ui/sheet";
-import { Button } from "@/core/components/ui/button";
-import { Input } from "@/core/components/ui/input";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/core/components/ui/alert";
-import { Badge } from "@/core/components/ui/badge";
 import { ScanSuccessIndicator } from "@/features/scanner/components/scan-success-indicator";
 import { SessionReportDialog } from "@/features/scanner/components/success-report/session-report"; // Import SessionReportDialog
+import { ScanResponse } from "@/features/scanner/services/stocktake-scan"; // IMPORT StocktakeScanResponse
 // import { StocktakeButton } from "@/components/buttons/scan-button";
 
 const statusColors = {
@@ -77,8 +36,6 @@ const statusColors = {
     completed: "#358600",
   },
 };
-
-type Location = Database["inventory"]["Enums"]["location_type"];
 
 /**
  * Inventory component that displays a list of production jobs with
@@ -123,11 +80,11 @@ const IndexContent = () => {
     showSessionReport,
     sessionReportData,
     syncSessionStateOnMount,
-    startStocktakeSession, // Renamed for clarity if used directly
-    endStocktakeSession, // Renamed for clarity if used directly
-    processStocktakeScan, // Renamed for clarity if used directly
+    startSession: startStocktakeSession, // Alias for clarity if preferred in this component
+    endSession, // Corrected name from store
+    processScan, // Corrected name from store
     closeSessionReport,
-  } = useStocktakeStore();
+  } = useSessionStore();
 
   // Sync session state on mount using the store action
   useEffect(() => {
@@ -212,13 +169,12 @@ const IndexContent = () => {
           console.warn(`[IndexPage] Ignoring invalid barcode: ${barcode}`);
           return;
         }
-        // Use currentSessionId from store
         if (currentSessionId) {
           console.log(
-            "[IndexPage] Routing scan to useStocktakeStore (Session Active)"
+            "[IndexPage] Routing scan to useSessionStore (Session Active)"
           );
-          processStocktakeScan(barcode) // Use action from store
-            .then((response) => {
+          processScan(barcode) // Use corrected store action name: processScan
+            .then((response: ScanResponse | undefined) => {
               if (response?.success) {
                 setScanCount((prevCount) => prevCount + 1);
                 setSuccessfulScan(barcode);
@@ -230,7 +186,6 @@ const IndexContent = () => {
                   successTimeoutRef.current = null;
                 }, 2500);
               }
-              // Toast for scan result can be handled here based on response.message or response.error
               if (response && response.message) {
                 toast({
                   title: response.success ? "Scan Success" : "Scan Info",
@@ -245,7 +200,7 @@ const IndexContent = () => {
                 });
               }
             })
-            .catch((err) => {
+            .catch((err: Error) => {
               console.error(
                 "[IndexPage] Error processing stocktake scan:",
                 err
@@ -275,8 +230,7 @@ const IndexContent = () => {
         });
       }
     },
-    // Add dependencies from the store that are used in the callback
-    [currentView, processStocktakeScan, currentSessionId, transportScan, toast]
+    [currentView, processScan, currentSessionId, transportScan, toast] // Ensure processScan is in dependency array
   );
 
   // Global keydown listener for barcode scanner
@@ -616,11 +570,15 @@ const IndexContent = () => {
         // activeLocation={location} // Removed
         isStockTakeActive={Boolean(currentSessionId)} // From store
         scanCount={scanCount} // Local scan count for the UI
-        // currentSessionId={currentSessionId} // From store
-        // isScanning={isScanning} // From store
-        // lastScanMessage={useStocktakeStore.getState().lastScanMessage} // Directly get for props if not destructured above for re-render reasons
-        // startStocktakeSession={startStocktakeSession} // From store
-        // endStocktakeSession={endStocktakeSession} // From store
+        // Pass actions from the store, aliasing startSession if needed for clarity in FloatingNavGroup/StocktakeButton if they were to use it directly
+        // However, StocktakeButton now uses the store directly, so these specific props might not be needed by FloatingNavGroup itself
+        // For now, keeping them as they were, assuming FloatingNavGroup might pass them or use them.
+        // If StocktakeButton is the only consumer and uses the store, these become redundant on FloatingNavGroup.
+        // currentSessionId={currentSessionId} // Provided by isStockTakeActive logic
+        // isScanning={isScanning} // StocktakeButton gets from store
+        // lastScanMessage={useSessionStore.getState().lastScanMessage}
+        // startStocktakeSession={startStocktakeSession} // StocktakeButton gets from store
+        // endStocktakeSession={endSession} // StocktakeButton gets from store
       />
     </div>
   );
