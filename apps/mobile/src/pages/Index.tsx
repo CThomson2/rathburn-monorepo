@@ -73,15 +73,15 @@ const IndexContent = () => {
   const {
     currentSessionId,
     isScanning,
-    // lastScanMessage, // Not directly used in this component, toast can show store messages
-    // lastScanStatus, // Not directly used here
     showSessionReport,
     sessionReportData,
     syncSessionStateOnMount,
-    startSession, // Alias for clarity if preferred in this component
-    endSession, // Corrected name from store
-    processScan, // Corrected name from store
+    startSession,
+    endSession,
+    processScan,
     closeSessionReport,
+    lastScanStatus,
+    lastScanMessage,
   } = useSessionStore();
 
   // Sync session state on mount using the store action
@@ -153,82 +153,90 @@ const IndexContent = () => {
     }
   }, [shouldActivateScanInput]);
 
-  // Moved handleGlobalScan definition earlier to resolve linter error
+  // Effect to show toast based on lastScanStatus and lastScanMessage from the store
+  useEffect(() => {
+    if (lastScanMessage) {
+      if (lastScanStatus === "success") {
+        toast({ title: "Scan Success", description: lastScanMessage });
+      } else if (lastScanStatus === "error") {
+        toast({
+          title: "Scan Error",
+          description: lastScanMessage,
+          variant: "destructive",
+        });
+      } else if (
+        lastScanStatus === "idle" &&
+        lastScanMessage !== "Initializing..." &&
+        lastScanMessage !== "Ready." &&
+        lastScanMessage !== "Resumed active session." &&
+        !lastScanMessage.startsWith("Session") &&
+        !lastScanMessage.startsWith("Ending") &&
+        !lastScanMessage.startsWith("No active")
+      ) {
+        // Catch other general messages from the store to display as info
+        toast({ title: "Info", description: lastScanMessage });
+      }
+      // Optionally, reset lastScanMessage in the store after showing toast
+      // useSessionStore.setState({ lastScanMessage: null, lastScanStatus: 'idle' });
+      // Be cautious with auto-resetting, might hide important subsequent states if not handled carefully
+    }
+  }, [lastScanStatus, lastScanMessage, toast]);
+
   const handleGlobalScan = useCallback(
-    (barcode: string) => {
+    async (barcode: string) => {
+      // Made async to await processScan
       console.log(
         `[IndexPage] handleGlobalScan CALLED with barcode: ${barcode}`
       );
-      try {
-        console.log(
-          `[IndexPage] Global scan received: ${barcode}, Current View: ${currentView}`
-        );
-        if (!barcode || barcode.length < 3) {
-          console.warn(`[IndexPage] Ignoring invalid barcode: ${barcode}`);
-          return;
-        }
-        if (currentSessionId) {
-          console.log(
-            "[IndexPage] Routing scan to useSessionStore (Session Active)"
-          );
-          processScan(barcode) // Use corrected store action name: processScan
-            .then((response: ScanResponse | undefined) => {
-              if (response?.success) {
-                setScanCount((prevCount) => prevCount + 1);
-                setSuccessfulScan(barcode);
-                if (successTimeoutRef.current) {
-                  window.clearTimeout(successTimeoutRef.current);
-                }
-                successTimeoutRef.current = window.setTimeout(() => {
-                  setSuccessfulScan(null);
-                  successTimeoutRef.current = null;
-                }, 2500);
-              }
-              if (response && response.message) {
-                toast({
-                  title: response.success ? "Scan Success" : "Scan Info",
-                  description: response.message,
-                  variant: response.success ? "default" : "default",
-                });
-              } else if (response && response.error) {
-                toast({
-                  title: "Scan Error",
-                  description: response.error,
-                  variant: "destructive",
-                });
-              }
-            })
-            .catch((err: Error) => {
-              console.error(
-                "[IndexPage] Error processing stocktake scan:",
-                err
-              );
-              toast({
-                title: "Scan Error",
-                description: err.message || "Failed to process stocktake scan",
-                variant: "destructive",
-              });
-            });
-        } else if (currentView === "transport") {
-          console.log(
-            "[IndexPage] Routing scan to useScan (Transport, No Stocktake Session)"
-          );
-          transportScan.handleDrumScan(barcode);
-        } else {
-          console.log(
-            `[IndexPage] Scan ignored: View ${currentView} does not handle scans and no stocktake session active.`
-          );
-        }
-      } catch (error) {
-        console.error("[IndexPage] Unexpected error handling scan:", error);
+      // try/catch block removed from here as errors are handled in the store and reflected in state
+      if (!barcode || barcode.length < 3) {
+        console.warn(`[IndexPage] Ignoring invalid barcode: ${barcode}`);
+        // Potentially set a message in store or use local toast for this UI-specific validation
         toast({
-          title: "Error",
-          description: "An unexpected error occurred processing the scan",
+          title: "Invalid Scan",
+          description: "Barcode too short.",
           variant: "destructive",
+        });
+        return;
+      }
+
+      if (currentSessionId) {
+        console.log(
+          "[IndexPage] Routing scan to useSessionStore (Session Active)"
+        );
+        await processScan(barcode); // Call store action, no .then() needed
+
+        // UI updates like scanCount and successfulScan indicator are now driven by store state changes
+        // or can remain local if they are purely visual feedback not tied to core session logic.
+        // For scanCount specifically for the active session in UI:
+        const { scannedDrumsForCurrentTask } = useSessionStore.getState();
+        setScanCount(scannedDrumsForCurrentTask.length);
+
+        // For the visual pop-up of the scanned barcode:
+        setSuccessfulScan(barcode);
+        if (successTimeoutRef.current) {
+          window.clearTimeout(successTimeoutRef.current);
+        }
+        successTimeoutRef.current = window.setTimeout(() => {
+          setSuccessfulScan(null);
+          successTimeoutRef.current = null;
+        }, 2500);
+      } else if (currentView === "transport") {
+        console.log(
+          "[IndexPage] Routing scan to useScan (Transport, No Stocktake Session)"
+        );
+        transportScan.handleDrumScan(barcode); // This is the old non-Zustand scan path
+      } else {
+        console.log(
+          `[IndexPage] Scan ignored: View ${currentView} does not handle scans and no stocktake session active.`
+        );
+        toast({
+          title: "Scan Inactive",
+          description: "No active session to process this scan.",
         });
       }
     },
-    [currentView, processScan, currentSessionId, transportScan, toast] // Ensure processScan is in dependency array
+    [currentView, processScan, currentSessionId, transportScan, toast]
   );
 
   // Global keydown listener for barcode scanner

@@ -6,7 +6,7 @@ import { RouteAwareControls } from "@/components/layout/route-aware-controls";
 import { Providers } from "./providers";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/layout/dashboard-layout";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 import "@/styles/globals.css";
 import type { UserProfileData } from "@/types/user";
@@ -69,7 +69,7 @@ async function fetchInitialScans(): Promise<StocktakeScanFeedDetail[]> {
 }
 
 async function fetchProfileData(): Promise<UserProfileData> {
-  const supabase = createServiceClient();
+  const supabase = createClient();
   const {
     data: { user },
     error: authError,
@@ -156,7 +156,9 @@ export default async function RootLayout({
   };
 
   if (!isAuth) {
+    console.log("[LAYOUT DEBUG] Fetching profile data");
     profileData = await fetchProfileData();
+    console.log("[LAYOUT DEBUG] Profile data fetched:", profileData);
     initialScans = await fetchInitialScans();
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error(
