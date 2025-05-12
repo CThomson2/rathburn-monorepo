@@ -27,15 +27,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { UserProfileData } from "@/types/user";
 
 export function NavUser({
   userProfile,
 }: {
   userProfile: {
-    username: string;
+    username: string | null;
     email: string | null;
-    avatar_url: string;
+    avatar_url: string | null;
   };
 }) {
   const { isMobile } = useSidebar();
@@ -56,8 +55,8 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
-                  src={userProfile.avatar_url}
-                  alt={userProfile.username}
+                  src={userProfile.avatar_url || "/avatars/default.jpg"}
+                  alt={userProfile.username || ""}
                 />
                 <AvatarFallback className="rounded-lg">
                   {getFallback(userProfile.username)}
@@ -84,8 +83,8 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={userProfile.avatar_url}
-                    alt={userProfile.username}
+                    src={userProfile.avatar_url || "/avatars/default.jpg"}
+                    alt={userProfile.username || ""}
                   />
                   <AvatarFallback className="rounded-lg">
                     {getFallback(userProfile.username)}

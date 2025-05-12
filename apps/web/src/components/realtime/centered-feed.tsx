@@ -11,36 +11,37 @@ import {
   createClient,
 } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
+import { Database, Json } from "@/types/supabase";
 
-// Interface for the view data (consistent with sidebar component)
-interface StocktakeScanFeedDetail {
+// Updated interface to match public.session_scans
+interface SessionScanData {
   id: string;
-  stocktake_session_id: string;
+  session_id: string | null;
   scanned_at: string;
   created_at: string;
   raw_barcode: string;
-  barcode_type: "material" | "supplier" | "unknown" | "error";
-  status: "success" | "error" | "ignored";
+  scan_status: "success" | "error" | "ignored";
+  scan_action: "check_in" | "transport" | "process" | "context" | "cancel";
   error_message?: string | null;
-  user_id: string;
+  user_id?: string | null;
   user_email?: string | null;
   device_id?: string | null;
-  material_id?: string | null;
-  material_name?: string | null;
-  supplier_id?: string | null;
-  supplier_name?: string | null;
-  associated_supplier_name_for_material?: string | null;
+  pol_id?: string | null;
+  pod_id?: string | null;
+  item_name?: string | null;
+  cancelled_scan_id?: string | null;
+  metadata?: Json | null;
 }
 
 // Props expected by the component
 interface RealtimeFeedCenteredProps {
   apiUrl: string;
   apiKey: string;
-  initialScans: StocktakeScanFeedDetail[];
+  initialScans: SessionScanData[];
 }
 
-// Helper functions (reused from existing component)
-function getStatusColor(status: StocktakeScanFeedDetail["status"]): string {
+// Helper functions (update parameter types)
+function getStatusColor(status: SessionScanData["scan_status"]): string {
   switch (status) {
     case "success":
       return "bg-green-500";
@@ -54,7 +55,7 @@ function getStatusColor(status: StocktakeScanFeedDetail["status"]): string {
 }
 
 function getStatusBadgeVariant(
-  status: StocktakeScanFeedDetail["status"]
+  status: SessionScanData["scan_status"]
 ): "default" | "destructive" | "secondary" | "outline" | null | undefined {
   switch (status) {
     case "success":
@@ -73,7 +74,7 @@ export function RealtimeFeedCentered({
   apiKey,
   initialScans = [],
 }: RealtimeFeedCenteredProps) {
-  const [scans, setScans] = useState<StocktakeScanFeedDetail[]>(initialScans);
+  const [scans, setScans] = useState<SessionScanData[]>(initialScans);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -110,87 +111,61 @@ export function RealtimeFeedCentered({
     }
 
     console.log(
-      "Realtime Centered: Attempting to subscribe to base table changes..."
+      "Realtime Centered: Attempting to subscribe to session_scans changes..."
     );
 
-    const channelName = `stocktake_scans_centered_feed_${Date.now()}`;
+    const channelName = `session_scans_centered_feed_${Date.now()}`;
     const channel = supabase
       .channel(channelName)
-      .on<any>(
+      .on<SessionScanData>(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "stocktake_scans",
+          table: "session_scans",
         },
-        (payload: RealtimePostgresChangesPayload<any>) => {
+        (payload: RealtimePostgresChangesPayload<SessionScanData>) => {
           console.log(
-            `Realtime Centered (${channelName}): Received payload from base table:`,
+            `Realtime Centered (${channelName}): Received payload from session_scans:`,
             payload
           );
           if (payload.errors) {
             console.error(
-              `Realtime Centered (${channelName}) error (base table):`,
+              `Realtime Centered (${channelName}) error (session_scans):`,
               payload.errors
             );
             setError(`Realtime error: ${payload.errors[0]}`);
             return;
           }
 
-          if (
-            (payload.eventType === "INSERT" ||
-              payload.eventType === "UPDATE") &&
-            payload.new &&
-            payload.new.id
-          ) {
-            const changedScanId = payload.new.id;
-            console.log(`New/Updated scan ID (${channelName}):`, changedScanId);
-
-            supabase
-              .from("stocktake_scans_feed_details")
-              .select("*")
-              .eq("id", changedScanId)
-              .single()
-              .then(({ data: enrichedScan, error: fetchError }) => {
-                if (fetchError) {
-                  console.error(
-                    `Error fetching enriched scan data (${channelName}):`,
-                    fetchError
-                  );
-                  return;
-                }
-                if (enrichedScan) {
-                  console.log(
-                    `Fetched enriched scan data (${channelName}):`,
-                    enrichedScan
-                  );
-                  setScans((prevScans) => {
-                    const existingIndex = prevScans.findIndex(
-                      (s) => s.id === enrichedScan.id
-                    );
-                    let updatedScans;
-                    if (existingIndex !== -1) {
-                      updatedScans = [...prevScans];
-                      updatedScans[existingIndex] =
-                        enrichedScan as StocktakeScanFeedDetail;
-                    } else {
-                      updatedScans = [
-                        enrichedScan as StocktakeScanFeedDetail,
-                        ...prevScans,
-                      ];
-                    }
-                    return updatedScans.slice(0, 50);
-                  });
-                  setError(null);
-                }
-              });
+          if (payload.eventType === "INSERT" && payload.new) {
+            const newScan = payload.new as SessionScanData;
+            console.log(`New session scan ID (${channelName}):`, newScan.id);
+            setScans((prevScans) => {
+              const updatedScans = [newScan, ...prevScans];
+              return updatedScans.slice(0, 50);
+            });
+            setError(null);
+          } else if (payload.eventType === "UPDATE" && payload.new) {
+            const updatedScan = payload.new as SessionScanData;
+            console.log(
+              `Updated session scan ID (${channelName}):`,
+              updatedScan.id
+            );
+            setScans((prevScans) =>
+              prevScans.map((s) => (s.id === updatedScan.id ? updatedScan : s))
+            );
+            setError(null);
           } else if (
             payload.eventType === "DELETE" &&
             payload.old &&
-            payload.old.id
+            (payload.old as SessionScanData).id
           ) {
-            const deletedScanId = payload.old.id;
-            console.log(`Scan deleted (${channelName}):`, deletedScanId);
+            const deletedScanId = (payload.old as SessionScanData).id;
+            console.log(
+              `Session scan deleted (${channelName}):`,
+              deletedScanId
+            );
             setScans((prevScans) =>
               prevScans.filter((s) => s.id !== deletedScanId)
             );
@@ -251,7 +226,7 @@ export function RealtimeFeedCentered({
     <div className="w-full max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-2xl font-semibold text-white">
-          Realtime Stocktake Feed
+          Realtime Session Scans
         </h3>
         <div className="flex items-center px-3 py-1.5 rounded-full bg-slate-800/50 border border-slate-700/50">
           <span
@@ -304,9 +279,9 @@ export function RealtimeFeedCentered({
                 <Card
                   className={cn(
                     "w-full transition-all duration-300 ease-in-out shadow-md bg-slate-900/50 border-slate-700/50",
-                    scan.status === "error"
+                    scan.scan_status === "error"
                       ? "border-red-500/50"
-                      : scan.status === "success"
+                      : scan.scan_status === "success"
                         ? "border-green-500/50"
                         : "border-slate-600/50"
                   )}
@@ -315,7 +290,7 @@ export function RealtimeFeedCentered({
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <span className="font-medium text-lg block text-slate-200">
-                          {new Date(scan.created_at).toLocaleTimeString([], {
+                          {new Date(scan.scanned_at).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
                             second: "2-digit",
@@ -328,16 +303,18 @@ export function RealtimeFeedCentered({
                           >
                             {scan.user_email.slice(
                               0,
-                              scan.user_email.indexOf("@")
+                              scan.user_email.indexOf("@") !== -1
+                                ? scan.user_email.indexOf("@")
+                                : undefined
                             )}
                           </span>
                         )}
                       </div>
                       <Badge
-                        variant={getStatusBadgeVariant(scan.status)}
+                        variant={getStatusBadgeVariant(scan.scan_status)}
                         className="capitalize px-3 py-1 text-sm"
                       >
-                        {scan.status}
+                        {scan.scan_status}
                       </Badge>
                     </div>
 
@@ -346,43 +323,19 @@ export function RealtimeFeedCentered({
                       title={scan.raw_barcode}
                     >
                       <div>
-                        {scan.barcode_type === "material" &&
-                        scan.material_name ? (
-                          <>
-                            <span className="font-semibold text-blue-400">
-                              [Material]
-                            </span>{" "}
-                            {scan.material_name}
-                            {scan.associated_supplier_name_for_material && (
-                              <span className="text-slate-400 text-sm block mt-1">
-                                Supplier:{" "}
-                                {scan.associated_supplier_name_for_material}
-                              </span>
-                            )}
-                          </>
-                        ) : scan.barcode_type === "supplier" &&
-                          scan.supplier_name ? (
-                          <>
-                            <span className="font-semibold text-purple-400">
-                              [Supplier]
-                            </span>{" "}
-                            {scan.supplier_name}
-                          </>
-                        ) : (
-                          <>
-                            <span className="font-semibold capitalize text-amber-400">
-                              [{scan.barcode_type}]
-                            </span>{" "}
-                            {scan.raw_barcode}
-                          </>
+                        <span className="font-semibold capitalize text-blue-400">
+                          [{scan.scan_action.replace("_", " ")}]
+                        </span>{" "}
+                        {scan.item_name || scan.raw_barcode}
+                        {scan.item_name && (
+                          <span className="text-slate-400 text-sm block mt-1">
+                            Barcode: {scan.raw_barcode}
+                          </span>
                         )}
                       </div>
-                      <span className="text-slate-400 text-sm ml-2 text-right">
-                        {scan.raw_barcode}
-                      </span>
                     </div>
 
-                    {scan.status === "error" && scan.error_message && (
+                    {scan.scan_status === "error" && scan.error_message && (
                       <p className="text-red-400 text-sm mt-1 px-3 py-2 bg-red-900/20 rounded-md">
                         Error: {scan.error_message}
                       </p>

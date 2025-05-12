@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode } from "react";
 import {
   Menu,
   X,
@@ -12,7 +12,6 @@ import {
   Settings,
   Phone,
   LogOut,
-  Database,
   BarChart,
   File,
   Layers,
@@ -48,7 +47,10 @@ import { useNavigationLoading } from "@/hooks/use-navigation-loading";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "../ui/button";
 import { RealtimeFeedSidebar } from "../realtime/sidebar-feed";
-import type { UserProfileData } from "@/types/user";
+// import { AppHeader } from "@/components/header/app-header"; // Commented out - file might not exist
+import RealtimeScanLogSidebar from "@/components/sidebar/scan-log-sidebar";
+import { Json, Database } from "@/types/supabase";
+import React, { Suspense } from "react";
 
 // TypeScript workaround for React 18 vs React 19 type compatibility issue
 // @ts-ignore
@@ -72,12 +74,27 @@ interface StocktakeScanFeedDetail {
   associated_supplier_name_for_material?: string | null;
 }
 
+interface SessionScanData {
+  id: string;
+  session_id: string | null;
+  scanned_at: string;
+  created_at: string;
+  raw_barcode: string;
+  scan_status: "success" | "error" | "ignored";
+  scan_action: "check_in" | "transport" | "process" | "context" | "cancel";
+  error_message?: string | null;
+  user_id?: string | null;
+  user_email?: string | null;
+  device_id?: string | null;
+  pol_id?: string | null;
+  pod_id?: string | null;
+  item_name?: string | null;
+  cancelled_scan_id?: string | null;
+  metadata?: Json | null;
+}
+
 interface DashboardLayoutProps {
   children: ReactNode;
-  apiUrl: string;
-  apiKey: string;
-  initialScans: StocktakeScanFeedDetail[];
-  profileData: UserProfileData; // <-- Add profileData prop
 }
 
 interface NavItem {
@@ -94,99 +111,54 @@ declare module "lucide-react" {
   }
 }
 
-/**
- * DashboardLayout renders the main layout with left nav sidebar and right feed sidebar.
- */
-const DashboardLayout = ({
-  children,
-  apiUrl,
-  apiKey,
-  initialScans,
-  profileData, // <-- Destructure profileData
-}: DashboardLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
-  const isNavigating = useNavigationLoading();
+const navItems: NavItem[] = [
+  { name: "Dashboard", icon: Home, url: "/" },
+  { name: "Production", icon: Atom, url: "/production" },
+  { name: "Inventory", icon: Package, url: "/inventory" },
+  { name: "Analytics", icon: BarChart, url: "/analytics" },
+];
 
-  const navItems: NavItem[] = [
-    { name: "Dashboard", icon: Home, url: "/" },
-    {
-      name: "Production",
-      icon: Atom,
-      url: "/production",
-    },
-    {
-      name: "Inventory",
-      icon: Package,
-      url: "/inventory",
-    },
-    {
-      name: "Analytics",
-      icon: BarChart,
-      url: "/analytics",
-    },
-  ];
-
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {/* Left Navigation Sidebar */}
-      <SidebarProvider className="h-full">
-        {/* Pass profile data to AppSidebar */}
-        <AppSidebar profileData={profileData} />
-
-        {/* Main Content Area (Center + Right Sidebar) */}
-        <div className="flex flex-1 h-full overflow-hidden">
-          {/* Center Content Column (Header + Main Children) */}
-          <div className="flex flex-col flex-1 h-full overflow-auto">
-            {/* Top Floating NavBar */}
-            <NavBar items={navItems} isLoading={isNavigating} />
-
-            {/* Main content section */}
-            <div className="flex flex-col flex-1">
-              {/* Top header */}
-              <header className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-900/30 z-10">
-                <div className="flex items-center justify-end h-12 py-8 px-4 sm:px-6 lg:px-8">
-                  <div className="flex items-center space-x-3">
-                    <ThemeToggle />
-                    <form action={signOutAction}>
-                      <Button variant="ghost" type="submit">
-                        <LogOut size={16} />
-                      </Button>
-                    </form>
-                  </div>
-                </div>
-              </header>
-
-              {/* Page content passed as children */}
-              <main className="flex-1 p-4 overflow-auto">
-                {isNavigating ? (
-                  <div className="space-y-6">
-                    {/* Skeleton loading state */}
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-md w-1/3 animate-pulse"></div>
-                    <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-md w-full animate-pulse"></div>
-                    <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-md w-full animate-pulse"></div>
-                    <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-md w-full animate-pulse"></div>
-                  </div>
-                ) : (
-                  children
-                )}
-              </main>
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-background text-foreground">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Header section restored */}
+          <header className="sticky top-0 z-10 flex h-[57px] items-center gap-1 border-b bg-background px-4">
+            <h1 className="text-xl font-semibold">Dashboard</h1>{" "}
+            {/* Example Title, can be dynamic */}
+            <div className="ml-auto flex items-center space-x-4">
+              <ThemeToggle />
+              <form action={signOutAction}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="submit"
+                  aria-label="Sign Out"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </form>
             </div>
-          </div>
+          </header>
+          {/* NavBar restored below header, if that was the intended layout */}
+          {/* If NavBar is fixed/floating, its own styling will dictate placement */}
+          {/* <NavBar items={navItems} /> */}
+          {/* The main NavBar is often part of a client component wrapper if it needs client-side interactivity for path changes */}
 
-          {/* Right Realtime Feed Sidebar */}
-          {/* <div className="hidden md:flex h-full">
-            <RealtimeFeedSidebar
-              apiUrl={apiUrl}
-              apiKey={apiKey}
-              initialScans={initialScans}
-            />
-          </div> */}
+          <main className="flex-1 overflow-auto p-4 md:p-6">
+            {/* Client-side NavBar can be here if it controls view content and needs usePathname */}
+            <NavBar items={navItems} />
+            <Suspense fallback={<div>Loading page content...</div>}>
+              {children}
+            </Suspense>
+          </main>
         </div>
-      </SidebarProvider>
-    </div>
+        <div className="w-80 hidden lg:block border-l border-border overflow-y-auto bg-background">
+          <RealtimeScanLogSidebar />
+        </div>
+      </div>
+    </SidebarProvider>
   );
-};
-
-export default DashboardLayout;
+}

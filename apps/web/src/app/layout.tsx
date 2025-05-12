@@ -156,9 +156,7 @@ export default async function RootLayout({
   };
 
   if (!isAuth) {
-    console.log("[LAYOUT DEBUG] Fetching profile data");
     profileData = await fetchProfileData();
-    console.log("[LAYOUT DEBUG] Profile data fetched:", profileData);
     initialScans = await fetchInitialScans();
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error(

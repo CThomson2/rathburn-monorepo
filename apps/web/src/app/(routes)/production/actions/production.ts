@@ -68,7 +68,7 @@ export async function fetchProductionJobs(): Promise<Order[]> {
       // $$;
 
       if (error) {
-        console.error('Error fetching production jobs:', error);
+        // console.error('Error fetching production jobs:', error);
         return [];
       }
 

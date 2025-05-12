@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   AudioWaveform,
   BookOpen,
@@ -36,7 +36,9 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import type { UserProfileData } from "@/types/user";
+import { useAuth } from "@/hooks/use-auth";
+import { createClient } from "@/lib/supabase/client";
+import { Database } from "@/types/supabase";
 
 // This is sample data.
 const data = {
@@ -182,22 +184,52 @@ const data = {
   ],
 };
 
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  profileData: UserProfileData;
-}
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
-export function AppSidebar({ profileData, ...props }: AppSidebarProps) {
-  // const { user } = useAuth(); // Remove or comment out if not needed directly
+export function AppSidebar({ ...props }: AppSidebarProps) {
+  const { user, loading: authLoading } = useAuth();
+  type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // Create userProfile directly from props
-  const userProfile = {
-    username: profileData.username ?? "User", // Provide default
-    email: profileData.email, // Already string | null
-    avatar_url: profileData.avatar_url ?? "/avatars/default.jpg", // Provide default
+  useEffect(() => {
+    async function fetchProfile() {
+      if (user && !authLoading) {
+        setLoadingProfile(true);
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .single<ProfileRow>();
+
+        if (error) {
+          console.error("Error fetching profile in AppSidebar:", error);
+          setProfile(null);
+        } else {
+          setProfile(data);
+        }
+        setLoadingProfile(false);
+      } else if (!authLoading) {
+        setProfile(null);
+        setLoadingProfile(false);
+      }
+    }
+
+    fetchProfile();
+  }, [user, authLoading]);
+
+  const navUserProfile = {
+    username: profile?.username ?? (user?.email?.split("@")[0] || "User"),
+    email: profile?.email ?? user?.email ?? null,
+    avatar_url: profile?.avatar_url ?? "/avatars/default.jpg",
   };
 
-  // Remove old NavUserProfile type assertion if present
-  // type NavUserProfile = { ... };
+  if (authLoading || loadingProfile) {
+    // Render a loading state or skeleton for the user section
+    // For simplicity, we can just render the structure with defaults for now
+    // Or return a skeleton sidebar
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -209,8 +241,7 @@ export function AppSidebar({ profileData, ...props }: AppSidebarProps) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        {/* Ensure NavUser expects username, email, avatar_url */}
-        <NavUser userProfile={userProfile} />
+        <NavUser userProfile={navUserProfile} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
