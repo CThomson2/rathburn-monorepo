@@ -9,6 +9,7 @@ import {
   List,
   Search,
   ClipboardCheck,
+  History,
   Menu,
 } from "lucide-react";
 import { cn } from "@/core/lib/utils";
@@ -59,10 +60,10 @@ const FloatingNavMenu = ({
     { id: "logout", label: "Log Out", icon: <User size={20} /> },
     { id: "logs", label: "Logs", icon: <List size={20} /> },
     {
-      id: "tasks",
-      label: "Tasks",
-      icon: <ClipboardCheck size={20} />,
-      path: "/",
+      id: "history",
+      label: "History",
+      icon: <History size={20} />,
+      path: "/history",
     },
     { id: "search", label: "Search", icon: <Search size={20} /> },
     {
