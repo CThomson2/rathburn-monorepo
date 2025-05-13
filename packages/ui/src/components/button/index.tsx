@@ -54,6 +54,9 @@ export function createButtonVariants(options: ButtonStyleOptions = {}) {
           secondary: `bg-secondary text-secondary-foreground ${
             useShadow ? "shadow-sm" : ""
           } hover:bg-secondary/80`,
+          success: `bg-success text-success-foreground ${
+            useShadow ? "shadow-sm" : ""
+          } hover:bg-success/80`,
           ghost: "hover:bg-accent hover:text-accent-foreground",
           link: "text-primary underline-offset-4 hover:underline",
         },

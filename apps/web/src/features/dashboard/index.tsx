@@ -78,221 +78,221 @@ import {
 } from "./utils/theme-colors";
 
 // Mock data for development
-const mockInventoryData: DrumInventory[] = [
-  {
-    id: "1",
-    code: "ACT",
-    name: "Acetone",
-    category: "Gen Solvents",
-    newStock: 15,
-    reproStock: 8,
-    threshold: 10,
-    total: 23,
-  },
-  {
-    id: "2",
-    code: "MET",
-    name: "Methanol",
-    category: "Gen Solvents",
-    newStock: 5,
-    reproStock: 2,
-    threshold: 12,
-    total: 7,
-  },
-  {
-    id: "3",
-    code: "SFA",
-    name: "Sulfuric Acid",
-    category: "Gen Solvents",
-    newStock: 12,
-    reproStock: 4,
-    threshold: 8,
-    total: 16,
-  },
-  {
-    id: "4",
-    code: "IHX",
-    name: "Isohexane",
-    category: "Hydrocarbons",
-    newStock: 3,
-    reproStock: 1,
-    threshold: 5,
-    total: 4,
-  },
-  {
-    id: "5",
-    code: "CS2",
-    name: "Carbon Disulfide",
-    category: "Gen Solvents",
-    newStock: 10,
-    reproStock: 5,
-    threshold: 7,
-    total: 15,
-  },
-  {
-    id: "6",
-    code: "OXY",
-    name: "o-Xylene",
-    category: "Aromatics",
-    newStock: 9,
-    reproStock: 7,
-    threshold: 10,
-    total: 16,
-  },
-  {
-    id: "7",
-    code: "ACN",
-    name: "Acetonitrile",
-    category: "Gen Solvents",
-    newStock: 2,
-    reproStock: 1,
-    threshold: 8,
-    total: 3,
-  },
-];
+// const mockInventoryData: DrumInventory[] = [
+//   {
+//     id: "1",
+//     code: "ACT",
+//     name: "Acetone",
+//     category: "Gen Solvents",
+//     newStock: 15,
+//     reproStock: 8,
+//     threshold: 10,
+//     total: 23,
+//   },
+//   {
+//     id: "2",
+//     code: "MET",
+//     name: "Methanol",
+//     category: "Gen Solvents",
+//     newStock: 5,
+//     reproStock: 2,
+//     threshold: 12,
+//     total: 7,
+//   },
+//   {
+//     id: "3",
+//     code: "SFA",
+//     name: "Sulfuric Acid",
+//     category: "Gen Solvents",
+//     newStock: 12,
+//     reproStock: 4,
+//     threshold: 8,
+//     total: 16,
+//   },
+//   {
+//     id: "4",
+//     code: "IHX",
+//     name: "Isohexane",
+//     category: "Hydrocarbons",
+//     newStock: 3,
+//     reproStock: 1,
+//     threshold: 5,
+//     total: 4,
+//   },
+//   {
+//     id: "5",
+//     code: "CS2",
+//     name: "Carbon Disulfide",
+//     category: "Gen Solvents",
+//     newStock: 10,
+//     reproStock: 5,
+//     threshold: 7,
+//     total: 15,
+//   },
+//   {
+//     id: "6",
+//     code: "OXY",
+//     name: "o-Xylene",
+//     category: "Aromatics",
+//     newStock: 9,
+//     reproStock: 7,
+//     threshold: 10,
+//     total: 16,
+//   },
+//   {
+//     id: "7",
+//     code: "ACN",
+//     name: "Acetonitrile",
+//     category: "Gen Solvents",
+//     newStock: 2,
+//     reproStock: 1,
+//     threshold: 8,
+//     total: 3,
+//   },
+// ];
 
-// Mock chemical item data with additional details
-const mockChemicalItems: Record<string, ChemicalItem> = {
-  "1": {
-    id: "1",
-    name: "Acetone",
-    formula: "C₃H₆O",
-    casNumber: "67-64-1",
-    category: "Gen Solvents",
-    hazardLevel: "medium",
-    storageConditions:
-      "Store in a cool, well-ventilated area away from sources of ignition.",
-    totalQuantity: 23,
-    unit: "L",
-    locations: [
-      { name: "Main Storage", quantity: 15 },
-      { name: "Lab A", quantity: 5 },
-      { name: "Lab B", quantity: 3 },
-    ],
-    lastUpdated: "2023-11-20T10:30:00Z",
-    expiryDate: "2024-11-20T00:00:00Z",
-    supplier: "Sigma-Aldrich",
-    msdsUrl: "https://example.com/msds/acetone",
-  },
-  "2": {
-    id: "2",
-    name: "Methanol",
-    formula: "CH₃OH",
-    casNumber: "67-56-1",
-    category: "Gen Solvents",
-    hazardLevel: "high",
-    storageConditions:
-      "Store in a cool, dry place away from sources of heat and ignition.",
-    totalQuantity: 7,
-    unit: "L",
-    locations: [
-      { name: "Main Storage", quantity: 4 },
-      { name: "Lab C", quantity: 3 },
-    ],
-    lastUpdated: "2023-11-18T15:45:00Z",
-    expiryDate: "2024-10-15T00:00:00Z",
-    supplier: "Fisher Scientific",
-    notes: "Highly flammable. Use with extreme caution.",
-    msdsUrl: "https://example.com/msds/methanol",
-  },
-  "3": {
-    id: "3",
-    name: "Sulfuric Acid",
-    formula: "H₂SO₄",
-    casNumber: "7664-93-9",
-    category: "Gen Solvents",
-    hazardLevel: "high",
-    storageConditions: "Store in acid cabinet with secondary containment.",
-    totalQuantity: 16,
-    unit: "L",
-    locations: [
-      { name: "Acid Storage", quantity: 12 },
-      { name: "Lab A", quantity: 4 },
-    ],
-    lastUpdated: "2023-11-15T09:20:00Z",
-    expiryDate: "2025-05-10T00:00:00Z",
-    supplier: "VWR International",
-    msdsUrl: "https://example.com/msds/sulfuric_acid",
-  },
-  "4": {
-    id: "4",
-    name: "Isohexane",
-    formula: "CH(CH3)3",
-    casNumber: "110-54-3",
-    category: "Hydrocarbons",
-    hazardLevel: "medium",
-    storageConditions: "Store in original container in a cool, dark place.",
-    totalQuantity: 4,
-    unit: "L",
-    locations: [
-      { name: "Main Storage", quantity: 3 },
-      { name: "Lab B", quantity: 1 },
-    ],
-    lastUpdated: "2023-11-22T14:15:00Z",
-    expiryDate: "2024-02-28T00:00:00Z",
-    supplier: "Sigma-Aldrich",
-    notes: "30% solution. Decomposition may build pressure in container.",
-    msdsUrl: "https://example.com/msds/hydrogen_peroxide",
-  },
-  "5": {
-    id: "5",
-    name: "Carbon Disulfide",
-    formula: "CS₂",
-    casNumber: "75-15-0",
-    category: "Gen Solvents",
-    hazardLevel: "medium",
-    storageConditions: "Store in a dry place. Keep container tightly closed.",
-    totalQuantity: 15,
-    unit: "kg",
-    locations: [
-      { name: "Base Storage", quantity: 10 },
-      { name: "Lab C", quantity: 5 },
-    ],
-    lastUpdated: "2023-11-19T11:30:00Z",
-    expiryDate: "2026-11-19T00:00:00Z",
-    supplier: "Fisher Scientific",
-    msdsUrl: "https://example.com/msds/sodium_hydroxide",
-  },
-  "6": {
-    id: "6",
-    name: "o-Xylene",
-    formula: "C₈H₁₀",
-    casNumber: "108-38-3",
-    category: "Aromatics",
-    hazardLevel: "medium",
-    storageConditions: "Store in a cool, well-ventilated place.",
-    totalQuantity: 16,
-    unit: "L",
-    locations: [
-      { name: "Main Storage", quantity: 10 },
-      { name: "Lab A", quantity: 6 },
-    ],
-    lastUpdated: "2023-11-17T16:45:00Z",
-    expiryDate: "2025-01-15T00:00:00Z",
-    supplier: "VWR International",
-    msdsUrl: "https://example.com/msds/ethyl_acetate",
-  },
-  "7": {
-    id: "7",
-    name: "Acetonitrile",
-    formula: "CH₃CN",
-    casNumber: "75-05-8",
-    category: "Gen Solvents",
-    hazardLevel: "high",
-    storageConditions: "Store in a cool, well-ventilated place.",
-    totalQuantity: 3,
-    unit: "L",
-    locations: [
-      { name: "Acid Storage", quantity: 2 },
-      { name: "Lab B", quantity: 1 },
-    ],
-    lastUpdated: "2023-11-21T13:10:00Z",
-    expiryDate: "2024-08-30T00:00:00Z",
-    supplier: "Sigma-Aldrich",
-    notes: "37% solution. Corrosive to metals and tissue.",
-    msdsUrl: "https://example.com/msds/hydrochloric_acid",
-  },
-};
+// // Mock chemical item data with additional details
+// const mockChemicalItems: Record<string, ChemicalItem> = {
+//   "1": {
+//     id: "1",
+//     name: "Acetone",
+//     formula: "C₃H₆O",
+//     casNumber: "67-64-1",
+//     category: "Gen Solvents",
+//     hazardLevel: "medium",
+//     storageConditions:
+//       "Store in a cool, well-ventilated area away from sources of ignition.",
+//     totalQuantity: 23,
+//     unit: "L",
+//     locations: [
+//       { name: "Main Storage", quantity: 15 },
+//       { name: "Lab A", quantity: 5 },
+//       { name: "Lab B", quantity: 3 },
+//     ],
+//     lastUpdated: "2023-11-20T10:30:00Z",
+//     expiryDate: "2024-11-20T00:00:00Z",
+//     supplier: "Sigma-Aldrich",
+//     msdsUrl: "https://example.com/msds/acetone",
+//   },
+//   "2": {
+//     id: "2",
+//     name: "Methanol",
+//     formula: "CH₃OH",
+//     casNumber: "67-56-1",
+//     category: "Gen Solvents",
+//     hazardLevel: "high",
+//     storageConditions:
+//       "Store in a cool, dry place away from sources of heat and ignition.",
+//     totalQuantity: 7,
+//     unit: "L",
+//     locations: [
+//       { name: "Main Storage", quantity: 4 },
+//       { name: "Lab C", quantity: 3 },
+//     ],
+//     lastUpdated: "2023-11-18T15:45:00Z",
+//     expiryDate: "2024-10-15T00:00:00Z",
+//     supplier: "Fisher Scientific",
+//     notes: "Highly flammable. Use with extreme caution.",
+//     msdsUrl: "https://example.com/msds/methanol",
+//   },
+//   "3": {
+//     id: "3",
+//     name: "Sulfuric Acid",
+//     formula: "H₂SO₄",
+//     casNumber: "7664-93-9",
+//     category: "Gen Solvents",
+//     hazardLevel: "high",
+//     storageConditions: "Store in acid cabinet with secondary containment.",
+//     totalQuantity: 16,
+//     unit: "L",
+//     locations: [
+//       { name: "Acid Storage", quantity: 12 },
+//       { name: "Lab A", quantity: 4 },
+//     ],
+//     lastUpdated: "2023-11-15T09:20:00Z",
+//     expiryDate: "2025-05-10T00:00:00Z",
+//     supplier: "VWR International",
+//     msdsUrl: "https://example.com/msds/sulfuric_acid",
+//   },
+//   "4": {
+//     id: "4",
+//     name: "Isohexane",
+//     formula: "CH(CH3)3",
+//     casNumber: "110-54-3",
+//     category: "Hydrocarbons",
+//     hazardLevel: "medium",
+//     storageConditions: "Store in original container in a cool, dark place.",
+//     totalQuantity: 4,
+//     unit: "L",
+//     locations: [
+//       { name: "Main Storage", quantity: 3 },
+//       { name: "Lab B", quantity: 1 },
+//     ],
+//     lastUpdated: "2023-11-22T14:15:00Z",
+//     expiryDate: "2024-02-28T00:00:00Z",
+//     supplier: "Sigma-Aldrich",
+//     notes: "30% solution. Decomposition may build pressure in container.",
+//     msdsUrl: "https://example.com/msds/hydrogen_peroxide",
+//   },
+//   "5": {
+//     id: "5",
+//     name: "Carbon Disulfide",
+//     formula: "CS₂",
+//     casNumber: "75-15-0",
+//     category: "Gen Solvents",
+//     hazardLevel: "medium",
+//     storageConditions: "Store in a dry place. Keep container tightly closed.",
+//     totalQuantity: 15,
+//     unit: "kg",
+//     locations: [
+//       { name: "Base Storage", quantity: 10 },
+//       { name: "Lab C", quantity: 5 },
+//     ],
+//     lastUpdated: "2023-11-19T11:30:00Z",
+//     expiryDate: "2026-11-19T00:00:00Z",
+//     supplier: "Fisher Scientific",
+//     msdsUrl: "https://example.com/msds/sodium_hydroxide",
+//   },
+//   "6": {
+//     id: "6",
+//     name: "o-Xylene",
+//     formula: "C₈H₁₀",
+//     casNumber: "108-38-3",
+//     category: "Aromatics",
+//     hazardLevel: "medium",
+//     storageConditions: "Store in a cool, well-ventilated place.",
+//     totalQuantity: 16,
+//     unit: "L",
+//     locations: [
+//       { name: "Main Storage", quantity: 10 },
+//       { name: "Lab A", quantity: 6 },
+//     ],
+//     lastUpdated: "2023-11-17T16:45:00Z",
+//     expiryDate: "2025-01-15T00:00:00Z",
+//     supplier: "VWR International",
+//     msdsUrl: "https://example.com/msds/ethyl_acetate",
+//   },
+//   "7": {
+//     id: "7",
+//     name: "Acetonitrile",
+//     formula: "CH₃CN",
+//     casNumber: "75-05-8",
+//     category: "Gen Solvents",
+//     hazardLevel: "high",
+//     storageConditions: "Store in a cool, well-ventilated place.",
+//     totalQuantity: 3,
+//     unit: "L",
+//     locations: [
+//       { name: "Acid Storage", quantity: 2 },
+//       { name: "Lab B", quantity: 1 },
+//     ],
+//     lastUpdated: "2023-11-21T13:10:00Z",
+//     expiryDate: "2024-08-30T00:00:00Z",
+//     supplier: "Sigma-Aldrich",
+//     notes: "37% solution. Corrosive to metals and tissue.",
+//     msdsUrl: "https://example.com/msds/hydrochloric_acid",
+//   },
+// };
 
 // Helper function to transform inventory data for the chart
 function transformInventoryData(data: DrumInventory[]): ChartDrumInventory[] {
@@ -303,7 +303,7 @@ function transformInventoryData(data: DrumInventory[]): ChartDrumInventory[] {
     newDrums: item.newStock,
     reproDrums: item.reproStock,
     threshold: item.threshold,
-    criticalThreshold: Math.ceil(item.threshold * 0.7), // 70% of threshold for demo
+    criticalThreshold: Math.ceil(item.threshold * 0.7),
     total: item.total,
     unit: "drums",
   }));
@@ -335,10 +335,10 @@ export default function ChemicalInventoryDashboard({
     key: "name",
     direction: "asc",
   });
-  const [selectedItem, setSelectedItem] = useState<DrumInventory | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [showLowStock, setShowLowStock] = useState(false);
   const [isChartExpanded, setIsChartExpanded] = useState(false);
-  const [activeView, setActiveView] = useState<"chart" | "table">("chart");
+  const [activeView, setActiveView] = useState<"chart" | "table">("table");
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Summary statistics
@@ -415,8 +415,8 @@ export default function ChemicalInventoryDashboard({
   // Apply filtering and sorting when search/sort/filter changes
   useEffect(() => {
     const filteredResult = applyFiltersAndSort();
-    setFilteredInventory(filteredResult);
-  }, [searchTerm, sortConfig, showLowStock]);
+    setFilteredInventory(filteredResult || []);
+  }, [searchTerm, sortConfig, showLowStock, inventory]);
 
   // Chemical group distribution data
   const stockStatusLabels = ["Hydrocarbons", "Gen Solvents", "Aromatics"];
@@ -797,7 +797,7 @@ export default function ChemicalInventoryDashboard({
                     <div className="col-span-1 text-right">Status</div>
                   </div>
 
-                  {filteredInventory.map((item, index) => {
+                  {filteredInventory.map((item) => {
                     const status = getInventoryStatusVariant(
                       item.total,
                       item.threshold,
@@ -805,11 +805,11 @@ export default function ChemicalInventoryDashboard({
                     );
                     return (
                       <div
-                        key={index}
+                        key={item.id}
                         className="grid grid-cols-12 items-center border-t p-3 text-sm cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => {
-                          console.log("clicked", item);
-                          setSelectedItem(item);
+                          console.log("selected material id:", item.id);
+                          setSelectedItemId(item.id);
                         }}
                       >
                         <div className="col-span-5 font-medium">
@@ -859,7 +859,7 @@ export default function ChemicalInventoryDashboard({
           </Card>
         </TabsContent>
 
-        {/* Inventory Tab Content - Would contain more detailed inventory views */}
+        {/* Inventory Tab Content - Placeholder */}
         <TabsContent value="inventory">
           <Card>
             <CardHeader>
@@ -878,7 +878,7 @@ export default function ChemicalInventoryDashboard({
           </Card>
         </TabsContent>
 
-        {/* Reports Tab Content - Would contain reporting features */}
+        {/* Reports Tab Content - Placeholder */}
         <TabsContent value="reports">
           <Card>
             <CardHeader>
@@ -898,36 +898,14 @@ export default function ChemicalInventoryDashboard({
         </TabsContent>
       </Tabs>
 
-      {/* Detail Panel (conditionally rendered) */}
-      {selectedItem && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+      {/* Detail Panel (conditionally rendered based on selectedItemId) */}
+      {selectedItemId && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
           <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] gap-4">
             <DetailPanel
-              item={{
-                id: selectedItem.id,
-                name: selectedItem.name,
-                formula: "N/A", // This would come from API in real app
-                casNumber: selectedItem.code,
-                category: selectedItem.category,
-                hazardLevel:
-                  selectedItem.total < selectedItem.threshold ? "high" : "low",
-                storageConditions: "Standard",
-                totalQuantity: selectedItem.total,
-                unit: "drums",
-                locations: [
-                  { name: "Main Storage", quantity: selectedItem.newStock },
-                  { name: "Repro Area", quantity: selectedItem.reproStock },
-                ],
-                lastUpdated: new Date().toISOString(),
-                expiryDate: new Date(
-                  Date.now() + 180 * 24 * 60 * 60 * 1000
-                ).toISOString(),
-                supplier: "Various Suppliers",
-                notes: `${selectedItem.category} category chemical. Used in manufacturing process.`,
-              }}
-              onClose={() => setSelectedItem(null)}
+              itemId={selectedItemId}
+              onClose={() => setSelectedItemId(null)}
               onEdit={handleEditItem}
-              onDelete={handleDeleteItem}
               onPrint={handlePrintItem}
               onExport={handleExportItem}
             />

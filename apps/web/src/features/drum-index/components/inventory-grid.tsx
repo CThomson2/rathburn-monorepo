@@ -290,10 +290,7 @@ const DrumInventoryGrid: React.FC = () => {
               {drum.item_name || "N/A"}
             </span>
             <span className="text-xs text-center text-slate-500 dark:text-slate-400">
-              #{drum.serial_number || "S/N N/A"}
-            </span>
-            <span className="text-xs text-center text-slate-400 dark:text-slate-500">
-              {drum.drum_status || "Status N/A"}
+              {drum.serial_number || "S/N N/A"}
             </span>
           </div>
         ))}

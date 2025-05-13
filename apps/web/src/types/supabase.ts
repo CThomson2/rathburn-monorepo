@@ -1300,6 +1300,13 @@ export type Database = {
             referencedColumns: ["material_id"]
           },
           {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_material_inventory_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "items_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -1348,25 +1355,37 @@ export type Database = {
           cas_number: string
           chemical_group: string
           code: string
+          default_expiry_date: string | null
           density: number | null
+          formula: string | null
           material_id: string
           name: string
+          storage_conditions: Json | null
+          threshold_stock: number | null
         }
         Insert: {
           cas_number: string
           chemical_group?: string
           code: string
+          default_expiry_date?: string | null
           density?: number | null
+          formula?: string | null
           material_id?: string
           name: string
+          storage_conditions?: Json | null
+          threshold_stock?: number | null
         }
         Update: {
           cas_number?: string
           chemical_group?: string
           code?: string
+          default_expiry_date?: string | null
           density?: number | null
+          formula?: string | null
           material_id?: string
           name?: string
+          storage_conditions?: Json | null
+          threshold_stock?: number | null
         }
         Relationships: []
       }
@@ -1530,7 +1549,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_material_inventory_summary: {
+        Row: {
+          category: string | null
+          code: string | null
+          id: string | null
+          name: string | null
+          new_stock: number | null
+          repro_stock: number | null
+          threshold: number | null
+          total_stock: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       receive_delivery: {
@@ -2153,6 +2184,13 @@ export type Database = {
             foreignKeyName: "session_scans_pod_id_fkey"
             columns: ["pod_id"]
             isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
             referencedRelation: "v_purchase_order_drum_details"
             referencedColumns: ["pod_id"]
           },
@@ -2268,6 +2306,13 @@ export type Database = {
             referencedRelation: "stocktake_scan_details"
             referencedColumns: ["supplier_id"]
           },
+          {
+            foreignKeyName: "stock_count_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
         ]
       }
       stocktake_scans: {
@@ -2350,6 +2395,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
             referencedColumns: ["supplier_id"]
           },
         ]
@@ -2482,6 +2534,13 @@ export type Database = {
             referencedRelation: "stocktake_scan_details"
             referencedColumns: ["supplier_id"]
           },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
         ]
       }
       v_batches: {
@@ -2546,6 +2605,59 @@ export type Database = {
           },
         ]
       }
+      v_drum_inventory_details: {
+        Row: {
+          batch_created_at: string | null
+          batch_id: string | null
+          batch_type: string | null
+          current_location: string | null
+          current_volume: number | null
+          drum_created_at: string | null
+          drum_id: string | null
+          drum_is_received: boolean | null
+          drum_status: string | null
+          drum_updated_at: string | null
+          item_id: string | null
+          item_name: string | null
+          label_is_printed: boolean | null
+          material_id: string | null
+          po_eta_date: string | null
+          po_id: string | null
+          po_number: string | null
+          po_order_date: string | null
+          po_status: string | null
+          pod_id: string | null
+          pol_id: string | null
+          pol_quantity: number | null
+          pol_unit_weight: number | null
+          serial_number: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_drums_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+        ]
+      }
       v_drums: {
         Row: {
           batch_type: string | null
@@ -2594,6 +2706,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "operation_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["drum_id"]
+          },
           {
             foreignKeyName: "operation_drums_drum_id_fkey"
             columns: ["drum_id"]

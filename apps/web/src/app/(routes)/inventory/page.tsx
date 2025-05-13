@@ -19,55 +19,34 @@ async function fetchDashboardData() {
     // Create Supabase client instance
     const supabase = createClient();
 
-    // Type assertion to allow querying of the vw_drum_inventory view
-    const client = supabase as unknown as SupabaseClient;
-
-    // Fetch inventory data directly from the view
-    const { data: rawInventoryData, error } = await client
-      .from("drum_inventory")
+    // Fetch inventory data directly from the new summary view
+    const { data: viewData, error } = await supabase
+      .schema("inventory")
+      .from("v_material_inventory_summary") // Qualify view with schema
       .select("*");
 
     if (error) throw error;
-    if (!rawInventoryData || rawInventoryData.length === 0)
-      throw new Error("No data returned from the database");
+    if (!viewData) {
+      throw new Error(
+        "No data returned from the inventory.v_material_inventory_summary view"
+      );
+    }
 
-    // Transform data for dashboard and pre-calculate colors
-    // Group by code to combine raw and repro rows for each material
-    const materialMap = new Map();
-
-    // First pass: create entries in the map for each unique material code
-    rawInventoryData.forEach((item: any) => {
-      if (!materialMap.has(item.code)) {
-        materialMap.set(item.code, {
-          id: item.code || "",
-          code: item.code,
-          name: item.name,
-          rawStock: 0,
-          reproStock: 0,
-          category: item.category,
-          threshold: item.threshold || 10,
-          total: 0,
-        });
-      }
-
-      // Update the appropriate stock value based on type
-      const material = materialMap.get(item.code);
-      if (item.type === "raw") {
-        material.rawStock = item.stock;
-      } else if (item.type === "repro") {
-        material.reproStock = item.stock;
-      }
-
-      // Update total (sum of raw and repro)
-      material.total = material.rawStock + material.reproStock;
-    });
-
-    // Convert map to array for the final transformed data
-    const transformedData = Array.from(materialMap.values());
+    // Transform data for dashboard
+    const transformedData = viewData.map((item: any) => ({
+      id: item.id, // material_id from the view
+      code: item.code,
+      name: item.name,
+      category: item.category, // chemical_group from the view
+      newStock: item.new_stock || 0,
+      reproStock: item.repro_stock || 0,
+      threshold: item.threshold || 10,
+      total: item.total_stock || 0,
+    }));
 
     return { drumInventoryData: transformedData };
   } catch (error) {
-    console.error("Error fetching inventory data:", error);
+    console.error("Error fetching material inventory summary data:", error);
     return { drumInventoryData: [] };
   }
 }

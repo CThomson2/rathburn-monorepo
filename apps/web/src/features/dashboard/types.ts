@@ -1,4 +1,4 @@
-export type Category = "Hydrocarbons" | "Gen Solvents" | "Aromatics" | "default";
+export type Category = "Hydrocarbons" | "Gen Solvents" | "Aromatics";
 
 export interface DrumInventory {
   id: string;
@@ -31,17 +31,18 @@ export interface ChemicalInventoryLocation {
 export interface ChemicalItem {
   id: string;
   name: string;
-  formula: string;
+  formula: string | null;
   casNumber: string;
   category: Category;
   hazardLevel: "low" | "medium" | "high";
-  storageConditions: string;
+  storageConditions: Record<string, any> | string | null;
   totalQuantity: number;
+  threshold: number;
   unit: string;
   locations: ChemicalInventoryLocation[];
-  lastUpdated: string;
-  expiryDate: string;
-  supplier: string;
+  lastUpdated: string | null;
+  default_expiry_date: string | null;
+  supplier: string | null;
   notes?: string;
   msdsUrl?: string;
   coaUrl?: string;

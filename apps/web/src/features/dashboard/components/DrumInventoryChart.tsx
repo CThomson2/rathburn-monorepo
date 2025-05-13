@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -116,58 +117,74 @@ export function DrumInventoryChart({
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={sortedData}
+            layout="vertical"
             margin={{
-              top: 20,
-              right: 30,
+              top: 5,
+              right: 50,
               left: 20,
-              bottom: 5,
+              bottom: 20,
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-            <XAxis dataKey="chemical" stroke="var(--chart-axis)" />
-            <YAxis stroke="var(--chart-axis)" />
+            <XAxis type="number" stroke="var(--chart-axis)" />
+            <YAxis
+              type="category"
+              dataKey="chemical"
+              stroke="var(--chart-axis)"
+              width={150}
+              tick={{ fontSize: 10 }}
+            />
             <Tooltip
-              formatter={(value, name) => {
-                if (name === "criticalThreshold" || name === "threshold") {
-                  return [
-                    `${value} ${data[0]?.unit || ""}`,
-                    name === "criticalThreshold"
-                      ? "Critical Threshold"
-                      : "Threshold",
-                  ];
-                }
-                return [
-                  `${value} ${data[0]?.unit || ""}`,
-                  name === "newDrums" ? "New" : "Repro",
-                ];
+              formatter={(value: any, name: string, props: any) => {
+                const unit = props.payload?.unit || "drums";
+                if (name === "newDrums") return [`${value} ${unit}`, "New"];
+                if (name === "reproDrums") return [`${value} ${unit}`, "Repro"];
+                return [value, name];
               }}
               contentStyle={{
                 backgroundColor: "var(--chart-tooltip-bg)",
                 borderColor: "var(--chart-tooltip-border)",
               }}
             />
-            <Legend />
-            <Bar dataKey="newDrums" name="New" fill="var(--chart-success)" />
+            <Legend verticalAlign="bottom" height={36} />
+            <Bar
+              dataKey="newDrums"
+              name="New"
+              stackId="a"
+              fill="var(--chart-success)"
+              barSize={CHART_BAR_HEIGHT}
+            />
             <Bar
               dataKey="reproDrums"
               name="Repro"
+              stackId="a"
               fill="var(--chart-hydrocarbon)"
+              barSize={CHART_BAR_HEIGHT}
             />
-            <Bar
-              dataKey="threshold"
-              name="Threshold"
-              fill="var(--chart-warning)"
-            />
-            <Bar
-              dataKey="criticalThreshold"
-              name="Critical Threshold"
-              fill="var(--chart-error)"
-            />
+
+            <ReferenceLine
+              x={data[0]?.threshold}
+              stroke="var(--chart-warning)"
+              strokeDasharray="3 3"
+            >
+              <Legend type="none" />
+              <Tooltip content={() => `Threshold: ${data[0]?.threshold}`} />
+            </ReferenceLine>
+            <ReferenceLine
+              x={data[0]?.criticalThreshold}
+              stroke="var(--chart-error)"
+              strokeDasharray="3 3"
+            >
+              <Legend type="none" />
+              <Tooltip
+                content={() => `Critical: ${data[0]?.criticalThreshold}`}
+              />
+            </ReferenceLine>
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Legend for thresholds */}
+      {/* Custom Legend for thresholds if ReferenceLine legend is hidden or not sufficient */}
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <div
@@ -184,25 +201,12 @@ export function DrumInventoryChart({
           <span>Repro Drums</span>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="h-3 w-6 border-r-2 border-dashed"
-            style={{ borderColor: "var(--chart-warning)" }}
-          ></div>
-          <span>Threshold</span>
+          <div className="w-4 h-0.5 bg-[var(--chart-warning)]"></div>
+          <span>Threshold ({data[0]?.threshold})</span>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: "var(--chart-error)" }}
-          ></div>
-          <span>Critical</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: "var(--chart-warning)" }}
-          ></div>
-          <span>Warning</span>
+          <div className="w-4 h-0.5 bg-[var(--chart-error)]"></div>
+          <span>Critical ({data[0]?.criticalThreshold})</span>
         </div>
       </div>
     </div>
