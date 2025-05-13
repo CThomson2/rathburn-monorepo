@@ -59,9 +59,9 @@ export default defineConfig(({ mode }): UserConfig => {
             react: ['react', 'react-dom', 'react/jsx-runtime'],
             three: ['three'],
           },
-          entryFileNames: `assets/[name].[hash].[timestamp].js`,
-          chunkFileNames: `assets/[name].[hash].[timestamp].js`,
-          assetFileNames: `assets/[name].[hash].[timestamp].[ext]`
+          entryFileNames: `assets/[name].[hash].js`,
+          chunkFileNames: `assets/[name].[hash].js`,
+          assetFileNames: `assets/[name].[hash].[ext]`
         },
         // In production, bundle the UI package
         external: isProd ? [] : [],

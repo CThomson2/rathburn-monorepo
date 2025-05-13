@@ -1,5 +1,5 @@
 // Service Worker for Barcode Scanner PWA
-const APP_VERSION = "1.0.0"; // Increment this for each new deployment
+const APP_VERSION = "1.1.2"; // Increment this for each new deployment
 const CACHE_NAME = `barcode-scanner-v${APP_VERSION}`;
 const ASSETS_TO_CACHE = [
   "/",

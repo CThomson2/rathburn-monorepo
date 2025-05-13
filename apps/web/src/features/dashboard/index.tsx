@@ -907,7 +907,6 @@ export default function ChemicalInventoryDashboard({
               onClose={() => setSelectedItemId(null)}
               onEdit={handleEditItem}
               onPrint={handlePrintItem}
-              onExport={handleExportItem}
             />
           </div>
         </div>
