@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/core/components/ui/dialog";
+import { Separator } from "@/core/components/ui/separator";
 import { Button } from "@/core/components/ui/button";
 import { Progress } from "@/core/components/ui/progress";
 import { Badge } from "@/core/components/ui/badge";
@@ -125,35 +126,7 @@ export function SessionReportDialog({
             </p>
           </div>
 
-          {/* Scanned Barcodes Grid */}
-          {sessionData.scannedBarcodes &&
-            sessionData.scannedBarcodes.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2 text-slate-200">
-                  Scanned Items:
-                </h3>
-                <div className="max-h-32 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-slate-750 rounded-md">
-                  {sessionData.scannedBarcodes.map((scan, index) => (
-                    <Badge
-                      key={scan.id || index} // Use scan.id if available, otherwise index
-                      variant="secondary"
-                      className="truncate bg-slate-600 text-slate-200 hover:bg-slate-500"
-                    >
-                      {scan.raw_barcode}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          {sessionData.scannedBarcodes &&
-            sessionData.scannedBarcodes.length === 0 && (
-              <p className="text-center text-slate-400">
-                No items were scanned in this session.
-              </p>
-            )}
-        </div>
-
-        <DialogFooter className="p-6 bg-slate-750 rounded-b-lg">
+          {/* Move the Continue button above the Scanned Items, as otherwise it is pushed off the bottom of the screen */}
           <Button
             onClick={onClose}
             className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 text-lg"
@@ -161,7 +134,38 @@ export function SessionReportDialog({
             <CheckCircle className="mr-2 h-5 w-5" />
             Continue
           </Button>
-        </DialogFooter>
+
+          <Separator className="my-4" />
+
+          <DialogFooter className="p-6 bg-slate-750 rounded-b-lg">
+            {/* Scanned Barcodes Grid */}
+            {sessionData.scannedBarcodes &&
+              sessionData.scannedBarcodes.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-slate-200">
+                    Scanned Items:
+                  </h3>
+                  <div className="max-h-32 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-slate-750 rounded-md">
+                    {sessionData.scannedBarcodes.map((scan, index) => (
+                      <Badge
+                        key={scan.id || index} // Use scan.id if available, otherwise index
+                        variant="secondary"
+                        className="truncate bg-slate-600 text-slate-200 hover:bg-slate-500"
+                      >
+                        {scan.raw_barcode}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            {sessionData.scannedBarcodes &&
+              sessionData.scannedBarcodes.length === 0 && (
+                <p className="text-center text-slate-400">
+                  No items were scanned in this session.
+                </p>
+              )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

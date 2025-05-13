@@ -1127,6 +1127,7 @@ export type Database = {
       }
       batches: {
         Row: {
+          batch_code: string | null
           batch_id: string
           batch_type: string
           created_at: string
@@ -1136,6 +1137,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          batch_code?: string | null
           batch_id?: string
           batch_type: string
           created_at?: string
@@ -1145,6 +1147,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          batch_code?: string | null
           batch_id?: string
           batch_type?: string
           created_at?: string
@@ -1444,6 +1447,7 @@ export type Database = {
           po_id: string
           pol_id: string
           quantity: number
+          status: string | null
           unit_weight: number | null
         }
         Insert: {
@@ -1452,6 +1456,7 @@ export type Database = {
           po_id: string
           pol_id?: string
           quantity: number
+          status?: string | null
           unit_weight?: number | null
         }
         Update: {
@@ -1460,6 +1465,7 @@ export type Database = {
           po_id?: string
           pol_id?: string
           quantity?: number
+          status?: string | null
           unit_weight?: number | null
         }
         Relationships: [
@@ -1585,6 +1591,7 @@ export type Database = {
         | "bulk"
       batch_type: "new" | "repro"
       drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
+      line_status_type: "pending" | "labelled" | "scanned"
       location_type: "os_stock" | "os_lab" | "ns_stock" | "ns_lab"
       scan_mode: "single" | "bulk"
     }
@@ -2002,7 +2009,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_transport_task: {
+        Args: { p_drum_id: string; p_created_by?: string }
+        Returns: {
+          job_id: string
+          op_id: string
+        }[]
+      }
     }
     Enums: {
       context_type: "distillation" | "warehouse"
@@ -2891,6 +2904,7 @@ export type Database = {
         | "process"
         | "context"
         | "cancel"
+        | "free_scan"
       scan_status_type: "success" | "error" | "ignored"
     }
     CompositeTypes: {
@@ -3041,6 +3055,7 @@ export const Constants = {
       ],
       batch_type: ["new", "repro"],
       drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
+      line_status_type: ["pending", "labelled", "scanned"],
       location_type: ["os_stock", "os_lab", "ns_stock", "ns_lab"],
       scan_mode: ["single", "bulk"],
     },
@@ -3088,6 +3103,7 @@ export const Constants = {
         "process",
         "context",
         "cancel",
+        "free_scan",
       ],
       scan_status_type: ["success", "error", "ignored"],
     },

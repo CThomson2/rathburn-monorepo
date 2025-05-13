@@ -13,6 +13,7 @@ import {
   Package,
   CheckCircle2,
   XCircle,
+  FileScan,
 } from "lucide-react";
 import {
   Card,
@@ -63,6 +64,7 @@ export function TransportView() {
     availableTasks,
     scannedDrumsForCurrentTask,
     activeTaskDrumDetails,
+    sessionType,
   } = useSessionStore();
 
   const [isDrumListOpen, setIsDrumListOpen] = useState(false);
@@ -87,23 +89,189 @@ export function TransportView() {
               Select a Purchase Order Line to start receiving drums.
             </p>
           </div>
-          <Button onClick={startSession} className="w-full max-w-xs">
+          <Button
+            onClick={() => startSession("task")}
+            className="w-full max-w-xs"
+          >
             Select Task
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => startSession("free_scan")}
+            className="w-full max-w-xs"
+          >
+            <FileScan className="mr-2 h-4 w-4" />
+            Start Free Scan
           </Button>
         </div>
       )}
 
-      {currentSessionId && currentActiveTaskDetails && (
+      {currentSessionId &&
+        sessionType === "task" &&
+        currentActiveTaskDetails && (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="p-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center space-x-2">
+                    <Truck className="h-5 w-5" />
+                    <span>
+                      PO #{currentActiveTaskDetails.poNumber} - Item:{" "}
+                      {currentActiveTaskDetails.item}
+                    </span>
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={endSession}
+                    disabled={isScanning && !currentSessionId}
+                  >
+                    End Session
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Supplier:</span>
+                    <span className="font-medium">
+                      {currentActiveTaskDetails.supplier}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Progress:</span>
+                      <Badge
+                        variant={
+                          scannedDrumsForCurrentTask.length ===
+                          currentActiveTaskDetails.totalQuantity
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {scannedDrumsForCurrentTask.length} /{" "}
+                        {currentActiveTaskDetails.totalQuantity} drums
+                      </Badge>
+                    </div>
+                    <Progress
+                      value={
+                        (scannedDrumsForCurrentTask.length /
+                          currentActiveTaskDetails.totalQuantity) *
+                        100
+                      }
+                      className="h-2"
+                    />
+                  </div>
+                </div>
+
+                <Collapsible
+                  open={isDrumListOpen}
+                  onOpenChange={setIsDrumListOpen}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between px-0 hover:bg-transparent"
+                    >
+                      <span>Show Drums ({activeTaskDrumDetails.length})</span>
+                      {isDrumListOpen ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2">
+                    <ScrollArea className="h-[150px] border rounded-md p-2">
+                      {activeTaskDrumDetails.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No drums associated with this task line yet.
+                        </p>
+                      ) : (
+                        <div className="space-y-1">
+                          {activeTaskDrumDetails.map((drum: DrumDetail) => (
+                            <Badge
+                              key={drum.pod_id}
+                              variant={
+                                drum.is_received ||
+                                (drum.serial_number !== null &&
+                                  scannedDrumsForCurrentTask.includes(
+                                    drum.serial_number
+                                  ))
+                                  ? "default"
+                                  : "outline"
+                              }
+                              className={`w-full justify-start truncate ${
+                                drum.is_received ||
+                                (drum.serial_number !== null &&
+                                  scannedDrumsForCurrentTask.includes(
+                                    drum.serial_number
+                                  ))
+                                  ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-700 dark:text-white dark:border-green-500"
+                                  : "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                              }`}
+                            >
+                              {drum.serial_number}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="p-4">
+                <CardTitle className="text-base flex items-center space-x-2">
+                  <ScanBarcode className="h-4 w-4" />
+                  <span>Drums Scanned This Session</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[calc(100vh-600px)] min-h-[100px]">
+                  {scannedDrumsForCurrentTask.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-24 text-center p-4">
+                      <Package className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Scan barcodes to receive drums.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {scannedDrumsForCurrentTask.map((serialNumber, index) => (
+                        <div
+                          key={`${currentActiveTaskDetails.id}-scanned-${serialNumber}-${index}`}
+                          className="flex items-center justify-between p-3"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <span className="font-mono text-xs">
+                              {serialNumber}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            #{index + 1}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+      {currentSessionId && sessionType === "free_scan" && (
         <div className="space-y-4">
           <Card>
             <CardHeader className="p-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center space-x-2">
-                  <Truck className="h-5 w-5" />
-                  <span>
-                    PO #{currentActiveTaskDetails.poNumber} - Item:{" "}
-                    {currentActiveTaskDetails.item}
-                  </span>
+                  <FileScan className="h-5 w-5" />
+                  <span>Free Scanning Session</span>
                 </CardTitle>
                 <Button
                   variant="outline"
@@ -116,94 +284,10 @@ export function TransportView() {
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-0 space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Supplier:</span>
-                  <span className="font-medium">
-                    {currentActiveTaskDetails.supplier}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Progress:</span>
-                    <Badge
-                      variant={
-                        scannedDrumsForCurrentTask.length ===
-                        currentActiveTaskDetails.totalQuantity
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {scannedDrumsForCurrentTask.length} /{" "}
-                      {currentActiveTaskDetails.totalQuantity} drums
-                    </Badge>
-                  </div>
-                  <Progress
-                    value={
-                      (scannedDrumsForCurrentTask.length /
-                        currentActiveTaskDetails.totalQuantity) *
-                      100
-                    }
-                    className="h-2"
-                  />
-                </div>
-              </div>
-
-              <Collapsible
-                open={isDrumListOpen}
-                onOpenChange={setIsDrumListOpen}
-              >
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between px-0 hover:bg-transparent"
-                  >
-                    <span>Show Drums ({activeTaskDrumDetails.length})</span>
-                    {isDrumListOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2">
-                  <ScrollArea className="h-[150px] border rounded-md p-2">
-                    {activeTaskDrumDetails.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No drums associated with this task line yet.
-                      </p>
-                    ) : (
-                      <div className="space-y-1">
-                        {activeTaskDrumDetails.map((drum: DrumDetail) => (
-                          <Badge
-                            key={drum.pod_id}
-                            variant={
-                              drum.is_received ||
-                              (drum.serial_number !== null &&
-                                scannedDrumsForCurrentTask.includes(
-                                  drum.serial_number
-                                ))
-                                ? "default"
-                                : "outline"
-                            }
-                            className={`w-full justify-start truncate ${
-                              drum.is_received ||
-                              (drum.serial_number !== null &&
-                                scannedDrumsForCurrentTask.includes(
-                                  drum.serial_number
-                                ))
-                                ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-700 dark:text-white dark:border-green-500"
-                                : "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-                            }`}
-                          >
-                            {drum.serial_number}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </CollapsibleContent>
-              </Collapsible>
+              <p className="text-sm text-muted-foreground">
+                You are in a free scanning session. All scanned barcodes will be
+                recorded without linking to a specific task.
+              </p>
             </CardContent>
           </Card>
 
@@ -211,23 +295,23 @@ export function TransportView() {
             <CardHeader className="p-4">
               <CardTitle className="text-base flex items-center space-x-2">
                 <ScanBarcode className="h-4 w-4" />
-                <span>Drums Scanned This Session</span>
+                <span>Barcodes Scanned This Session</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-600px)] min-h-[100px]">
+              <ScrollArea className="h-[calc(100vh-450px)] min-h-[100px]">
                 {scannedDrumsForCurrentTask.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-24 text-center p-4">
                     <Package className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      Scan barcodes to receive drums.
+                      Scan any barcode to record it.
                     </p>
                   </div>
                 ) : (
                   <div className="divide-y">
                     {scannedDrumsForCurrentTask.map((serialNumber, index) => (
                       <div
-                        key={`${currentActiveTaskDetails.id}-scanned-${serialNumber}-${index}`}
+                        key={`free-scan-${currentSessionId}-${serialNumber}-${index}`}
                         className="flex items-center justify-between p-3"
                       >
                         <div className="flex items-center space-x-2">
@@ -249,18 +333,20 @@ export function TransportView() {
         </div>
       )}
 
-      {currentSessionId && !currentActiveTaskDetails && (
-        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-          <Package className="h-12 w-12 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Session active, but task details are unavailable. Please check logs
-            or try ending and restarting the session.
-          </p>
-          <Button variant="outline" size="sm" onClick={endSession}>
-            End Session
-          </Button>
-        </div>
-      )}
+      {currentSessionId &&
+        sessionType === "task" &&
+        !currentActiveTaskDetails && (
+          <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+            <Package className="h-12 w-12 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Session active, but task details are unavailable. Please check
+              logs or try ending and restarting the session.
+            </p>
+            <Button variant="outline" size="sm" onClick={endSession}>
+              End Session
+            </Button>
+          </div>
+        )}
     </div>
   );
 }
