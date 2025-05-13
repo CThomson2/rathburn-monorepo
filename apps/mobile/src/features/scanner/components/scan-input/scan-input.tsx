@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { Info } from "lucide-react";
 
 interface ScanInputProps {
   onScan: (barcode: string) => void;
@@ -25,7 +26,7 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
   const [barcode, setBarcode] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [logMessages, setLogMessages] = useState<string[]>([]);
-
+  const [showLogs, setShowLogs] = useState(false);
   const addLogMessage = (message: string) => {
     // Keep only the last 20 messages to prevent the list from growing too large
     setLogMessages((prevMessages) => [message, ...prevMessages.slice(0, 19)]);
@@ -139,7 +140,7 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
     );
 
     // If Enter key is pressed, process the barcode stored in state
-    if (e.key === "Enter") {
+    if (e.key === "Enter" || e.key === "Backslash") {
       e.preventDefault(); // Prevent form submission or other default actions
       const currentBarcode = barcode.trim();
       if (currentBarcode.length >= 3) {
@@ -173,9 +174,45 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
     }
 
     const newValue = e.target.value;
+    // console.log("[ScanInput] Input changed (handleChange) FIRED: raw value:", newValue); // Keep this for debugging
+    addLogMessage(
+      `Input changed (handleChange) FIRED: raw value: "${newValue}"`
+    );
+
+    // Check for the backslash suffix from the hardware scanner
+    if (newValue.endsWith("\\")) {
+      e.preventDefault(); // Prevent any default action if applicable
+      const processedBarcode = newValue.slice(0, -1).trim(); // Remove suffix and trim
+
+      addLogMessage(
+        `Backslash suffix detected. Processed barcode: "${processedBarcode}"`
+      );
+
+      if (processedBarcode.length >= 3) {
+        onScan(processedBarcode);
+        setBarcode(""); // Clear the state
+        if (inputRef.current) {
+          inputRef.current.value = ""; // Directly clear the input element's value
+        }
+        addLogMessage(
+          `Barcode sent due to suffix: "${processedBarcode}". Input cleared.`
+        );
+      } else {
+        addLogMessage(
+          `Suffix detected, but barcode too short: "${processedBarcode}". Input cleared.`
+        );
+        setBarcode(""); // Still clear the state
+        if (inputRef.current) {
+          inputRef.current.value = ""; // Directly clear the input element's value
+        }
+      }
+      return; // Important: Stop further processing in this handler
+    }
+
+    // If no suffix, update state as usual for manual input or timeout processing
     setBarcode(newValue);
     // console.log("[ScanInput] Input changed (handleChange) FIRED:", newValue);
-    addLogMessage(`Input changed (handleChange) FIRED: ${newValue}`);
+    // addLogMessage(`Input changed (handleChange) FIRED: ${newValue}`); // Already logged above with raw value
   };
 
   // Handle blur events - only refocus if still active
@@ -254,39 +291,58 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
         disabled={!isActive}
       />
       {/* Visual logger */}
-      {/* <ul
+      {/* Button opens modal with logs */}
+      <button
+        onClick={() => setShowLogs(!showLogs)}
         style={{
           position: "fixed",
-          top: "80px",
-          left: "10px",
+          top: "10px",
           right: "10px",
-          bottom: "120px",
-          // maxHeight: "400px",
-          overflowY: "auto",
-          backgroundColor: "rgba(0,0,0,0.7)",
+          zIndex: 10000,
+          backgroundColor: "rgba(0,0,255,0.4)",
           color: "white",
-          padding: "10px",
-          zIndex: 10000, // Ensure it's on top
-          listStyleType: "none",
-          fontSize: "12px",
+          padding: "8px",
           borderRadius: "5px",
           opacity: 0.8,
         }}
-        aria-live="polite" // Announce changes to screen readers
       >
-        {logMessages.map((msg, index) => (
-          <li
-            key={index}
-            style={{
-              borderBottom: "1px solid #555",
-              paddingBottom: "3px",
-              marginBottom: "3px",
-            }}
-          >
-            {msg}
-          </li>
-        ))}
-      </ul> */}
+        <Info size={16} />
+      </button>
+      {showLogs && (
+        <ul
+          style={{
+            position: "fixed",
+            top: "80px",
+            left: "10px",
+            right: "10px",
+            bottom: "120px",
+            // maxHeight: "400px",
+            overflowY: "auto",
+            backgroundColor: "rgba(0,0,0,0.7)",
+            color: "white",
+            padding: "10px",
+            zIndex: 10000, // Ensure it's on top
+            listStyleType: "none",
+            fontSize: "12px",
+            borderRadius: "5px",
+            opacity: 0.8,
+          }}
+          aria-live="polite" // Announce changes to screen readers
+        >
+          {logMessages.map((msg, index) => (
+            <li
+              key={index}
+              style={{
+                borderBottom: "1px solid #555",
+                paddingBottom: "3px",
+                marginBottom: "3px",
+              }}
+            >
+              {msg}
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

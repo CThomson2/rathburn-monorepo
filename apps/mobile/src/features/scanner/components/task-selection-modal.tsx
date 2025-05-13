@@ -57,17 +57,17 @@ export function TaskSelectionModal() {
       open={showTaskSelectionModal}
       onOpenChange={closeTaskSelectionModal}
     >
-      <AlertDialogContent className="sm:max-w-[425px]">
-        <AlertDialogHeader>
+      <AlertDialogContent className="sm:max-w-[425px] flex flex-col h-[calc(100vh-80px)] max-h-[600px]">
+        <AlertDialogHeader className="flex-shrink-0">
           <AlertDialogTitle>Select Transport Task</AlertDialogTitle>
           <AlertDialogDescription>
             Choose a purchase order to start receiving drums into stock.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <ScrollArea className="h-[400px] w-full pr-4">
+        <ScrollArea className="flex-grow h-full w-full pr-4 my-4 min-h-[200px]">
           {isFetchingTasks ? (
-            <div className="flex items-center justify-center h-32">
+            <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : availableTasks.length === 0 ? (
@@ -136,7 +136,7 @@ export function TaskSelectionModal() {
           )}
         </ScrollArea>
 
-        <AlertDialogFooter>
+        <AlertDialogFooter className="flex-shrink-0">
           <AlertDialogCancel onClick={closeTaskSelectionModal}>
             Cancel
           </AlertDialogCancel>

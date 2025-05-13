@@ -69,8 +69,8 @@ export function SessionReportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700 text-white shadow-2xl rounded-lg p-0">
-        <DialogHeader className="p-6 bg-slate-700 rounded-t-lg flex flex-row items-center justify-between">
+      <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700 text-white shadow-2xl rounded-lg p-0 [&>button]:hidden">
+        <DialogHeader className="p-4 bg-slate-700 rounded-t-lg flex flex-row items-center justify-between">
           <DialogTitle className="text-2xl font-bold flex items-center">
             <Award className="mr-3 h-8 w-8 text-yellow-400" />
             Session Complete!
