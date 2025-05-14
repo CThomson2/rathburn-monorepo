@@ -53,6 +53,14 @@ function getStatusBadgeVariant(
   }
 }
 
+/**
+ * RealtimeScanLogSidebar component for displaying a list of recent scans.
+ *
+ * It will fetch initial scans from the database if not provided and
+ * subscribe to the "session_scans_feed" channel to receive real-time updates.
+ *
+ * @property {SessionScanData[]} [initialScans] - Initial scans to display (optional)
+ */
 const RealtimeScanLogSidebar = ({
   initialScans,
 }: RealtimeScanLogSidebarProps) => {
