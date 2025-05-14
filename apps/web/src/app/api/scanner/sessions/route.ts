@@ -15,17 +15,14 @@ export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
 // --- GET Handler (Check for Active Session) ---
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const requestOrigin = request.headers.get('origin');
-  // Use the shared CORS header generator
   const headers = getCorsHeaders(requestOrigin, 'GET, POST, OPTIONS');
-  let supabase = createClient(); // Default client, will be replaced if auth successful
+  let supabase = createClient();
 
   try {
     console.log(`[API Sessions GET] Request from origin: ${requestOrigin}`);
     
-    // --- Authenticate User using validateAuth ---
     const authHeader = request.headers.get('authorization');
     let user = null;
-    let authError = null;
     let token = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -33,43 +30,35 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         user = authResult.user;
         token = authResult.token;
         if (!user) {
-            authError = { message: 'Invalid token provided' };
+            return NextResponse.json({ error: 'Invalid token provided' }, { status: 401, headers });
         }
     } else {
-        authError = { message: 'Authorization header missing or invalid' };
+        return NextResponse.json({ error: 'Authorization header missing or invalid' }, { status: 401, headers });
     }
 
-    if (authError || !user) {
-      console.error('[API Sessions GET] Auth error:', authError?.message || 'No user found');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers });
-    }
-    // --- End Authentication ---
-
-    // Create an authenticated client that will pass the token with each request
     if (token) {
         const authClient = createAuthenticatedClient(token);
         if (authClient) {
-            supabase = authClient; // Replace the default client with the authenticated one
+            supabase = authClient;
             console.log('[API Sessions GET] Using authenticated Supabase client');
         } else {
             console.warn('[API Sessions GET] Failed to create authenticated client, using default');
         }
     }
 
-    // Get device ID - Prefer header, fall back to hardcoded for dev
-    // TODO: Remove hardcoded fallback eventually
-    const deviceId = request.headers.get('X-Device-ID') || process.env.NEXT_PUBLIC_DEVICE_ID;
+    const clientDeviceId = request.headers.get('X-Device-ID');
 
-    if (!deviceId) {
-       console.warn('[API Sessions GET] Device ID missing.');
+    if (!clientDeviceId) {
+       console.warn('[API Sessions GET] Device ID missing (X-Device-ID header).');
        return NextResponse.json({ error: 'Device ID is required (X-Device-ID header)' }, { status: 400, headers });
     }
-    console.log(`[API Sessions GET] Checking active session for User: ${user.id}, Device: ${deviceId}`);
+    console.log(`[API Sessions GET] Checking active session for User: ${user.id}, Device: ${clientDeviceId}`);
 
     const { data: activeSession, error: queryError } = await supabase
       .from('sessions')
-      .select('id')
-      .eq('device_id', deviceId)
+      .select('id, name, device_id, metadata, location, started_at, status, created_by') // Ensure all needed fields are selected
+      .eq('device_id', clientDeviceId) // Match the device ID from header
+      .eq('created_by', user.id)      // Match the authenticated user ID
       .eq('status', 'in_progress')
       .maybeSingle();
 
@@ -79,10 +68,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     if (activeSession) {
-      console.log(`[API Sessions GET] Active session found: ${activeSession.id}`);
-      return NextResponse.json({ success: true, session: { id: activeSession.id } }, { status: 200, headers });
+      console.log(`[API Sessions GET] Active session found: ${activeSession.id} for device ${activeSession.device_id}`);
+      // Ensure the returned session object structure matches CheckActiveSessionResponse in session-store.ts
+      return NextResponse.json({ 
+        success: true, 
+        session: {
+            id: activeSession.id,
+            name: activeSession.name,
+            location: activeSession.location, // Assuming location is directly on the session table
+            metadata: activeSession.metadata,
+            started_at: activeSession.started_at,
+            device_id: activeSession.device_id // Explicitly include device_id
+        }
+      }, { status: 200, headers });
     } else {
-      console.log('[API Sessions GET] No active session found.');
+      console.log('[API Sessions GET] No active session found for this user and device.');
       return NextResponse.json({ success: true, session: null }, { status: 200, headers });
     }
   } catch (error) {

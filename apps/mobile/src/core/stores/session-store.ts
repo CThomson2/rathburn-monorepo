@@ -82,10 +82,11 @@ interface CheckActiveSessionResponse {
   success: boolean;
   session?: { 
     id: string; 
+    name?: string | null; // Make name nullable if it can be
+    device_id: string | null; // Expect device_id directly
     location: Location | null; 
-    name?: string; 
-    metadata?: SessionMetadata | null; // Use SessionMetadata
-    started_at?: string; // Add started_at here if your API returns it
+    metadata?: SessionMetadata | null; 
+    started_at?: string | null; // Make started_at nullable if it can be
   }; 
   error?: string;
 }
@@ -135,7 +136,8 @@ const DEVICE_ID_STORAGE_KEY = 'app_device_id';
 // Function to generate a simple UUID (v4)
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 }
@@ -395,7 +397,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   syncSessionStateOnMount: async () => {
     console.log("[SessionStore] Syncing session state on mount...");
     set({ isInitializing: true });
-    const clientGeneratedDeviceId = getDeviceId(); // Get the unique device ID for this client
+    const clientGeneratedDeviceId = getDeviceId();
     console.log("[SessionStore] Current client device ID for sync:", clientGeneratedDeviceId);
 
     const { data: { session: authTokenSession }, error: authErr } = await supabase.auth.getSession();
@@ -415,36 +417,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       });
       const result: CheckActiveSessionResponse = await response.json();
 
-      if (response.ok && result.success && result.session && typeof result.session.id === 'string') {
+      if (response.ok && result.success && result.session && result.session.id) {
         const activeSessionFromServer = result.session;
-        const serverSessionDeviceId = (typeof activeSessionFromServer.metadata === 'object' && activeSessionFromServer.metadata !== null && 'device_id' in activeSessionFromServer.metadata) 
-                                      ? (activeSessionFromServer.metadata as any).device_id 
-                                      : null; // Attempt to get device_id from session metadata if backend includes it.
-                                            // Alternatively, if the API returns a device_id field directly on the session, use that.
-                                            // For now, we assume it *might* be in metadata OR that the API implicitly filters by some means.
-                                            // The most robust check is against a device_id field on the session object itself if available.
-                                            // If the API strictly returns THE session for THIS device, this check is simpler.
+        console.log('[SessionStore] Session from server:', activeSessionFromServer);
 
-        console.log('[SessionStore] Session from server:', activeSessionFromServer, 'Server session device_id hint:', serverSessionDeviceId);
-
-        // IMPORTANT: We need to ensure this activeSessionFromServer is meant for *this specific device*.
-        // The SQL trigger handles conflicts *on insert*, but sync needs to be careful.
-        // If the API `/api/scanner/sessions` doesn't filter by device_id, we must do it here.
-        // Assuming `activeSessionFromServer.device_id` would be the field if the API provides it directly.
-        // For now, let's assume the current API returns *any* active session for the user.
-        // We will only resume if the session from the server has a device_id in its metadata
-        // that matches our clientGeneratedDeviceId OR if the session object itself has a device_id field matching.
-        // For this example, I'm assuming the backend session object might have `activeSessionFromServer.device_id`
-        // If not, and it's in metadata, that path is also partially handled above with serverSessionDeviceId.
-        
-        // This is a placeholder for how device_id is actually returned by your GET /api/scanner/sessions. 
-        // Adjust `actualDeviceIdOnSessionObject` based on your API response structure.
-        const actualDeviceIdOnSessionObject = (activeSessionFromServer as Session).device_id || serverSessionDeviceId;
-
-        if (actualDeviceIdOnSessionObject === clientGeneratedDeviceId) {
+        // Directly compare the device_id from the server session with the client's device_id
+        if (activeSessionFromServer.device_id === clientGeneratedDeviceId) {
           console.log(`[SessionStore] Active session ${activeSessionFromServer.id} found for THIS device (${clientGeneratedDeviceId}). Syncing state.`);
           const metadata = (typeof activeSessionFromServer.metadata === 'object' && activeSessionFromServer.metadata !== null) 
-                           ? activeSessionFromServer.metadata as unknown as SessionMetadata 
+                           ? activeSessionFromServer.metadata
                            : null;
           const activeSessionType: SessionType = metadata?.type === 'free_scan' ? 'free_scan' : (metadata?.task_id ? 'task' : null);
           
@@ -454,8 +435,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             currentSessionName: activeSessionFromServer.name || null,
             currentSessionTaskId: activeSessionType === 'task' ? metadata?.task_id || null : null,
             sessionType: activeSessionType,
-            currentLocation: activeSessionFromServer.location ?? state.currentLocation,
-            sessionStartTime: activeSessionFromServer.started_at ? new Date(activeSessionFromServer.started_at) : new Date(),
+            currentLocation: activeSessionFromServer.location ?? state.currentLocation, // Ensure location can be null
+            sessionStartTime: activeSessionFromServer.started_at ? new Date(activeSessionFromServer.started_at) : new Date(), // Handle potentially null started_at
             lastScanMessage: 'Resumed active session.',
             isScanning: true,
             scannedDrumsForCurrentTask: [] 
@@ -466,11 +447,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             set({ activeTaskDrumDetails: [] });
           }
         } else {
-          console.log(`[SessionStore] Active session ${activeSessionFromServer.id} found, but for different device (${actualDeviceIdOnSessionObject}). Not resuming on this device (${clientGeneratedDeviceId}).`);
+          console.log(`[SessionStore] Active session ${activeSessionFromServer.id} found, but for different device (${activeSessionFromServer.device_id}). Not resuming on this device (${clientGeneratedDeviceId}).`);
           set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, sessionType: null, lastScanMessage: 'Ready (no active session for this device).', isScanning: false });
         }
       } else {
-        console.log("[SessionStore] No active session found for user. Initializing as ready.");
+        console.log("[SessionStore] No active session found for user from API. Initializing as ready.");
         set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, sessionType: null, lastScanMessage: 'Ready.', isScanning: false });
       }
     } catch (error: unknown) {
