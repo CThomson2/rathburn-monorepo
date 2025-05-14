@@ -23,13 +23,30 @@ interface SessionScanData {
   metadata?: Json | null;
 }
 
+/**
+ * Index function for fetching and displaying initial session scans.
+ *
+ * This function establishes a Supabase client to interact with the database.
+ * It fetches the latest session scans from the "session_scans" table, optionally
+ * joining the "user_profiles" table to include user email information. The data
+ * is ordered by the creation date in descending order and limited to the latest
+ * 20 entries for initial display purposes.
+ *
+ * If an error occurs during the data fetching process, it logs the error and
+ * handles it appropriately, potentially returning an empty array or an error state.
+ *
+ * The fetched data is then transformed to match the expected structure for components
+ * like RealtimeFeedCentered or RealtimeScanLogSidebar. The function returns a JSX
+ * element containing a container with a Lamp component.
+ */
+
 export default async function Index() {
   const supabase = createServiceClient();
 
   // Fetch initial scans from the new public.session_scans table
   const { data: initialScans, error } = await supabase
     .from("session_scans") // UPDATED table name
-    .select("*, user_profiles(email)") // Example of joining user_profiles if you have it and want email
+    .select("*") // Example of joining user_profiles if you have it and want email
     // If user_profiles table is not set up or desired, use .select("*")
     .order("created_at", { ascending: false })
     .limit(20); // Fetch a bit more for the sidebar initially
@@ -47,9 +64,6 @@ export default async function Index() {
       user_email: (scan as any).user_profiles?.email || null,
     })) || [];
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
   return (
     <div className="container mx-auto py-6">
       <Lamp>
@@ -59,11 +73,6 @@ export default async function Index() {
           This page.tsx might display other content or a different view of scans.
           For now, I'll keep it, but its role might change.
         */}
-        <RealtimeFeedCentered
-          apiUrl={supabaseUrl}
-          apiKey={supabaseAnonKey}
-          initialScans={typedInitialScans} // Pass the correctly typed and potentially transformed scans
-        />
       </Lamp>
     </div>
   );

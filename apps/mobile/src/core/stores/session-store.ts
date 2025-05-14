@@ -50,6 +50,10 @@ interface SessionMetadata {
   task_id: string | null; // This is pol_id
   po_id?: string | null; // Optional parent po_id for context
   location?: Location | null;
+  auto_completed: boolean;
+  new_session_id?: string | null;
+  auto_completed_at?: string | null;
+  auto_completed_reason?: string | null;
 }
 
 interface SessionReportData {
@@ -131,7 +135,7 @@ const DEVICE_ID_STORAGE_KEY = 'app_device_id';
 // Function to generate a simple UUID (v4)
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 }
@@ -317,7 +321,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     const deviceIdToUse = getDeviceId(); // Uses VITE_DEVICE_ID or nil UUID
     const currentTaskDetails = sessionType === 'task' ? get().availableTasks.find(task => task.id === selectedTaskId) : null;
 
-    let sessionMetadata: SessionMetadata;
+    let sessionMetadata: Pick<SessionMetadata, "type" | "task_id" | "po_id" | "location">;
     let sessionName: string;
 
     if (sessionType === 'free_scan') {
@@ -435,7 +439,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         
         // This is a placeholder for how device_id is actually returned by your GET /api/scanner/sessions. 
         // Adjust `actualDeviceIdOnSessionObject` based on your API response structure.
-        const actualDeviceIdOnSessionObject = (activeSessionFromServer as any).device_id || serverSessionDeviceId;
+        const actualDeviceIdOnSessionObject = (activeSessionFromServer as Session).device_id || serverSessionDeviceId;
 
         if (actualDeviceIdOnSessionObject === clientGeneratedDeviceId) {
           console.log(`[SessionStore] Active session ${activeSessionFromServer.id} found for THIS device (${clientGeneratedDeviceId}). Syncing state.`);
