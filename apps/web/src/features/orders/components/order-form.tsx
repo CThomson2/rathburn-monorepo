@@ -12,13 +12,12 @@ import {
   ChevronsUpDown,
   RefreshCcw,
 } from "lucide-react";
+import { createOrder, getNextPONumber } from "@/app/actions/orders";
 import {
-  createOrder,
   fetchSuppliers,
-  fetchItemsBySupplier,
   searchItemsBySupplier,
-  getNextPONumber,
-} from "@/app/actions/orders";
+  fetchItemsBySupplier,
+} from "@/app/actions/suppliers";
 // import { useToast } from "@/components/ui/use-toast";
 import { useToast } from "@/hooks/use-toast";
 import {

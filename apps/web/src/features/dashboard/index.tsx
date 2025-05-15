@@ -13,6 +13,7 @@ import {
   RefreshCw,
   AlertCircle,
   Clock,
+  Layers,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,7 @@ import { PieChart } from "./components/PieChart";
 import { LineChart } from "./components/LineChart";
 import { DrumInventoryChart } from "./components/DrumInventoryChart";
 import { DetailPanel } from "./components/DetailPanel";
+import { BatchesOverview } from "./components/BatchesOverview";
 
 // Import theme utilities
 import {
@@ -76,223 +78,6 @@ import {
   getCategoryColor,
   getInventoryStatusVariant,
 } from "./utils/theme-colors";
-
-// Mock data for development
-// const mockInventoryData: DrumInventory[] = [
-//   {
-//     id: "1",
-//     code: "ACT",
-//     name: "Acetone",
-//     category: "Gen Solvents",
-//     newStock: 15,
-//     reproStock: 8,
-//     threshold: 10,
-//     total: 23,
-//   },
-//   {
-//     id: "2",
-//     code: "MET",
-//     name: "Methanol",
-//     category: "Gen Solvents",
-//     newStock: 5,
-//     reproStock: 2,
-//     threshold: 12,
-//     total: 7,
-//   },
-//   {
-//     id: "3",
-//     code: "SFA",
-//     name: "Sulfuric Acid",
-//     category: "Gen Solvents",
-//     newStock: 12,
-//     reproStock: 4,
-//     threshold: 8,
-//     total: 16,
-//   },
-//   {
-//     id: "4",
-//     code: "IHX",
-//     name: "Isohexane",
-//     category: "Hydrocarbons",
-//     newStock: 3,
-//     reproStock: 1,
-//     threshold: 5,
-//     total: 4,
-//   },
-//   {
-//     id: "5",
-//     code: "CS2",
-//     name: "Carbon Disulfide",
-//     category: "Gen Solvents",
-//     newStock: 10,
-//     reproStock: 5,
-//     threshold: 7,
-//     total: 15,
-//   },
-//   {
-//     id: "6",
-//     code: "OXY",
-//     name: "o-Xylene",
-//     category: "Aromatics",
-//     newStock: 9,
-//     reproStock: 7,
-//     threshold: 10,
-//     total: 16,
-//   },
-//   {
-//     id: "7",
-//     code: "ACN",
-//     name: "Acetonitrile",
-//     category: "Gen Solvents",
-//     newStock: 2,
-//     reproStock: 1,
-//     threshold: 8,
-//     total: 3,
-//   },
-// ];
-
-// // Mock chemical item data with additional details
-// const mockChemicalItems: Record<string, ChemicalItem> = {
-//   "1": {
-//     id: "1",
-//     name: "Acetone",
-//     formula: "C₃H₆O",
-//     casNumber: "67-64-1",
-//     category: "Gen Solvents",
-//     hazardLevel: "medium",
-//     storageConditions:
-//       "Store in a cool, well-ventilated area away from sources of ignition.",
-//     totalQuantity: 23,
-//     unit: "L",
-//     locations: [
-//       { name: "Main Storage", quantity: 15 },
-//       { name: "Lab A", quantity: 5 },
-//       { name: "Lab B", quantity: 3 },
-//     ],
-//     lastUpdated: "2023-11-20T10:30:00Z",
-//     expiryDate: "2024-11-20T00:00:00Z",
-//     supplier: "Sigma-Aldrich",
-//     msdsUrl: "https://example.com/msds/acetone",
-//   },
-//   "2": {
-//     id: "2",
-//     name: "Methanol",
-//     formula: "CH₃OH",
-//     casNumber: "67-56-1",
-//     category: "Gen Solvents",
-//     hazardLevel: "high",
-//     storageConditions:
-//       "Store in a cool, dry place away from sources of heat and ignition.",
-//     totalQuantity: 7,
-//     unit: "L",
-//     locations: [
-//       { name: "Main Storage", quantity: 4 },
-//       { name: "Lab C", quantity: 3 },
-//     ],
-//     lastUpdated: "2023-11-18T15:45:00Z",
-//     expiryDate: "2024-10-15T00:00:00Z",
-//     supplier: "Fisher Scientific",
-//     notes: "Highly flammable. Use with extreme caution.",
-//     msdsUrl: "https://example.com/msds/methanol",
-//   },
-//   "3": {
-//     id: "3",
-//     name: "Sulfuric Acid",
-//     formula: "H₂SO₄",
-//     casNumber: "7664-93-9",
-//     category: "Gen Solvents",
-//     hazardLevel: "high",
-//     storageConditions: "Store in acid cabinet with secondary containment.",
-//     totalQuantity: 16,
-//     unit: "L",
-//     locations: [
-//       { name: "Acid Storage", quantity: 12 },
-//       { name: "Lab A", quantity: 4 },
-//     ],
-//     lastUpdated: "2023-11-15T09:20:00Z",
-//     expiryDate: "2025-05-10T00:00:00Z",
-//     supplier: "VWR International",
-//     msdsUrl: "https://example.com/msds/sulfuric_acid",
-//   },
-//   "4": {
-//     id: "4",
-//     name: "Isohexane",
-//     formula: "CH(CH3)3",
-//     casNumber: "110-54-3",
-//     category: "Hydrocarbons",
-//     hazardLevel: "medium",
-//     storageConditions: "Store in original container in a cool, dark place.",
-//     totalQuantity: 4,
-//     unit: "L",
-//     locations: [
-//       { name: "Main Storage", quantity: 3 },
-//       { name: "Lab B", quantity: 1 },
-//     ],
-//     lastUpdated: "2023-11-22T14:15:00Z",
-//     expiryDate: "2024-02-28T00:00:00Z",
-//     supplier: "Sigma-Aldrich",
-//     notes: "30% solution. Decomposition may build pressure in container.",
-//     msdsUrl: "https://example.com/msds/hydrogen_peroxide",
-//   },
-//   "5": {
-//     id: "5",
-//     name: "Carbon Disulfide",
-//     formula: "CS₂",
-//     casNumber: "75-15-0",
-//     category: "Gen Solvents",
-//     hazardLevel: "medium",
-//     storageConditions: "Store in a dry place. Keep container tightly closed.",
-//     totalQuantity: 15,
-//     unit: "kg",
-//     locations: [
-//       { name: "Base Storage", quantity: 10 },
-//       { name: "Lab C", quantity: 5 },
-//     ],
-//     lastUpdated: "2023-11-19T11:30:00Z",
-//     expiryDate: "2026-11-19T00:00:00Z",
-//     supplier: "Fisher Scientific",
-//     msdsUrl: "https://example.com/msds/sodium_hydroxide",
-//   },
-//   "6": {
-//     id: "6",
-//     name: "o-Xylene",
-//     formula: "C₈H₁₀",
-//     casNumber: "108-38-3",
-//     category: "Aromatics",
-//     hazardLevel: "medium",
-//     storageConditions: "Store in a cool, well-ventilated place.",
-//     totalQuantity: 16,
-//     unit: "L",
-//     locations: [
-//       { name: "Main Storage", quantity: 10 },
-//       { name: "Lab A", quantity: 6 },
-//     ],
-//     lastUpdated: "2023-11-17T16:45:00Z",
-//     expiryDate: "2025-01-15T00:00:00Z",
-//     supplier: "VWR International",
-//     msdsUrl: "https://example.com/msds/ethyl_acetate",
-//   },
-//   "7": {
-//     id: "7",
-//     name: "Acetonitrile",
-//     formula: "CH₃CN",
-//     casNumber: "75-05-8",
-//     category: "Gen Solvents",
-//     hazardLevel: "high",
-//     storageConditions: "Store in a cool, well-ventilated place.",
-//     totalQuantity: 3,
-//     unit: "L",
-//     locations: [
-//       { name: "Acid Storage", quantity: 2 },
-//       { name: "Lab B", quantity: 1 },
-//     ],
-//     lastUpdated: "2023-11-21T13:10:00Z",
-//     expiryDate: "2024-08-30T00:00:00Z",
-//     supplier: "Sigma-Aldrich",
-//     notes: "37% solution. Corrosive to metals and tissue.",
-//     msdsUrl: "https://example.com/msds/hydrochloric_acid",
-//   },
-// };
 
 // Helper function to transform inventory data for the chart
 function transformInventoryData(data: DrumInventory[]): ChartDrumInventory[] {
@@ -338,7 +123,9 @@ export default function ChemicalInventoryDashboard({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [showLowStock, setShowLowStock] = useState(false);
   const [isChartExpanded, setIsChartExpanded] = useState(false);
-  const [activeView, setActiveView] = useState<"chart" | "table">("table");
+  const [activeView, setActiveView] = useState<"chart" | "table" | "batches">(
+    "table"
+  );
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Summary statistics
@@ -757,7 +544,7 @@ export default function ChemicalInventoryDashboard({
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="outline"
+                  variant={activeView === "chart" ? "default" : "outline"}
                   size="sm"
                   className="gap-1"
                   onClick={() => setActiveView("chart")}
@@ -766,7 +553,7 @@ export default function ChemicalInventoryDashboard({
                   <span className="hidden sm:inline">Chart</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={activeView === "table" ? "default" : "outline"}
                   size="sm"
                   className="gap-1"
                   onClick={() => setActiveView("table")}
@@ -774,27 +561,40 @@ export default function ChemicalInventoryDashboard({
                   <FileText className="h-4 w-4" />
                   <span className="hidden sm:inline">Table</span>
                 </Button>
+                <Button
+                  variant={activeView === "batches" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => setActiveView("batches")}
+                >
+                  <Layers className="h-4 w-4" />
+                  <span className="hidden sm:inline">Batches</span>
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {filteredInventory.length === 0 ? (
+              {filteredInventory.length === 0 && activeView !== "batches" ? (
                 <div className="text-center py-16 text-muted-foreground">
                   No matching inventory items found.
                 </div>
               ) : activeView === "chart" ? (
                 <DrumInventoryChart
                   data={transformInventoryData(filteredInventory)}
-                  // title="Chemical Inventory"
-                  // description="Drums by chemical, showing new and reprocessed"
                 />
-              ) : (
+              ) : activeView === "table" ? (
                 <div className="rounded-md border">
-                  <div className="grid grid-cols-12 bg-muted/50 p-3 text-xs font-medium text-muted-foreground">
-                    <div className="col-span-5">Chemical</div>
-                    <div className="col-span-2 text-right">New</div>
-                    <div className="col-span-2 text-right">Repro</div>
-                    <div className="col-span-2 text-right">Total</div>
-                    <div className="col-span-1 text-right">Status</div>
+                  <div className="grid grid-cols-12 bg-muted/50 text-xs font-medium text-muted-foreground">
+                    <div className="col-span-6 p-3">Chemical</div>
+                    <div className="col-span-1 p-3 text-right">Virgin</div>
+                    <div className="col-span-1 p-3 text-right">Repro</div>
+                    <div className="col-span-1 p-3 text-right pr-4">Total</div>
+                    <div className="col-span-1 p-3 text-right pl-4 bg-slate-100 dark:bg-slate-800">
+                      En route
+                    </div>
+                    <div className="col-span-1 p-3 text-right bg-slate-100 dark:bg-slate-800">
+                      Distilling
+                    </div>
+                    <div className="col-span-1 p-3 text-right">Status</div>
                   </div>
 
                   {filteredInventory.map((item) => {
@@ -806,25 +606,31 @@ export default function ChemicalInventoryDashboard({
                     return (
                       <div
                         key={item.id}
-                        className="grid grid-cols-12 items-center border-t p-3 text-sm cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="grid grid-cols-12 items-center border-t text-sm cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => {
                           console.log("selected material id:", item.id);
                           setSelectedItemId(item.id);
                         }}
                       >
-                        <div className="col-span-5 font-medium">
+                        <div className="col-span-6 p-3 font-medium">
                           {item.name}
                         </div>
-                        <div className="col-span-2 text-right">
+                        <div className="col-span-1 p-3 text-right">
                           {item.newStock}
                         </div>
-                        <div className="col-span-2 text-right">
+                        <div className="col-span-1 p-3 text-right">
                           {item.reproStock}
                         </div>
-                        <div className="col-span-2 text-right font-medium">
+                        <div className="col-span-1 p-3 text-right font-medium pr-4">
                           {item.total}
                         </div>
-                        <div className="col-span-1 text-right">
+                        <div className="col-span-1 p-3 text-right pl-4 bg-slate-100 dark:bg-slate-800">
+                          {item.pending_stock}
+                        </div>
+                        <div className="col-span-1 p-3 text-right bg-slate-100 dark:bg-slate-800">
+                          {item.processing_stock}
+                        </div>
+                        <div className="col-span-1 p-3 text-right">
                           {status === "error" && (
                             <Badge
                               variant="destructive"
@@ -854,7 +660,9 @@ export default function ChemicalInventoryDashboard({
                     );
                   })}
                 </div>
-              )}
+              ) : activeView === "batches" ? (
+                <BatchesOverview />
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>

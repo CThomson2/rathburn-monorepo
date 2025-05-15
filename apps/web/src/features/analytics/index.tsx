@@ -42,6 +42,15 @@ interface MaterialCount {
   status: "not_started" | "in_progress" | "completed";
 }
 
+/**
+ * Real-time inventory scanning dashboard
+ *
+ * Displays summary cards, material counts table, and recent scans feed
+ *
+ * Uses Server-Sent Events (SSE) to receive real-time updates
+ *
+ * @returns {JSX.Element} The component
+ */
 export default function StockTakeDashboard() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [materialCounts, setMaterialCounts] = useState<MaterialCount[]>([]);

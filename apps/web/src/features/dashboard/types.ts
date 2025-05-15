@@ -7,6 +7,8 @@ export interface DrumInventory {
   category: Category;
   newStock: number;
   reproStock: number;
+  pending_stock: number;
+  processing_stock: number;
   threshold: number;
   total: number;
 }

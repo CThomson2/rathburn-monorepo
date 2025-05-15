@@ -20,7 +20,7 @@ import {
 import {
   createProductionJob,
   fetchAvailableBatchesByItem,
-} from "@/app/(routes)/production/actions/production";
+} from "@/app/actions/production";
 import { fetchItems } from "@/app/actions/orders";
 import { useToast } from "@/components/ui/use-toast";
 /**

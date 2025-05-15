@@ -40,6 +40,8 @@ async function fetchDashboardData() {
       category: item.category, // chemical_group from the view
       newStock: item.new_stock || 0,
       reproStock: item.repro_stock || 0,
+      pending_stock: item.pending_stock || 0,
+      processing_stock: item.processing_stock || 0,
       threshold: item.threshold || 10,
       total: item.total_stock || 0,
     }));

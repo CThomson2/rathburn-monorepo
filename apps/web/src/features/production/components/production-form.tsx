@@ -33,11 +33,10 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   createProductionJob,
-  fetchSuppliers,
-  fetchItemsBySupplier,
   fetchStills,
   fetchAvailableBatchesByItem,
-} from "@/app/(routes)/production/actions/production"; // Corrected path
+} from "@/app/actions/production"; // Corrected path
+import { fetchSuppliers, fetchItemsBySupplier } from "@/app/actions/suppliers";
 
 interface Supplier {
   id: string;

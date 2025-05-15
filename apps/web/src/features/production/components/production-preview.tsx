@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
-import { fetchProductionJobs } from "@/app/(routes)/production/actions/production"; // Corrected path
+import { fetchProductionJobs } from "@/app/actions/production"; // Corrected path
 import { Loader2 } from "lucide-react";
 import {
   Table,

@@ -37,6 +37,31 @@ Reviewers: Craig, Rafa
 - [ ] Create new labels for the Toluene and n-Propanol (currently have older labels from a month ago). Same for the Pentane in the old site.
 - [ ] Set the drums that Craig couldn't reach to be scanned in the DB. E.g. ICC Acetonitrile (17/20 scanned), remainder of the GeoCentric Hexane 99%.
 
+## New Order Form
+
+- [ ] Remove the restricted supplier list and allow all suppliers to be selected
+  - [ ]
+- [ ] Change ETA to a date range picker (or just two dates in the UI for start and end of the ETA bracket)
+
+## Web App
+
+### Home Page
+
+> Bento Grid Layout
+
+- Release Notes
+- Account (Settings)
+- Inventory KPIs
+- User Guides
+- Link to Mobile App
+- Quick Links to key pages
+- Documents
+- Top full-width section with active distillations labelled by still code
+- Task management section with list of tasks / checklist
+- Process flow chart (expand modal) and view stage of any end-to-end business process (customer order -> raw material purchase -> production -> warehousing -> dispatch)
+
+###
+
 ---
 
 Other Notes

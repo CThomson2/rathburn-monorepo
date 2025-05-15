@@ -5,7 +5,7 @@ import { createClient } from "@/core/lib/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
 import { ScanStatus, ScanType } from '@/types/scanner';
 
-export type SessionType = 'task' | 'free_scan' | null;
+export type SessionType = 'task' | 'free_scan' | 'production_task' | null;
 
 type Location = Database["inventory"]["Enums"]["location_type"];
 
@@ -40,15 +40,31 @@ export interface DrumDetail {
   serial_number: string | null;
   pol_id: string | null;
   is_received: boolean | null;
-  item_name: string | null; // Added for context, though it will be the same for all drums in this task
-  // Add other fields from the view if needed for display
+  item_name: string | null; 
+}
+
+// New interface for Production Tasks from the RPC
+export interface ProductionTask {
+  job_id: string;
+  item_name: string;
+  status: string; // job_status type from DB
+  planned_start: string; // timestamptz
+  priority: number;
+  input_batch_id: string;
+  batch_code: string | null;
+  still_code: string | null;
+  raw_volume: number | null;
+  totalQuantity?: number; 
+  processedQuantity?: number; 
+  remainingQuantity?: number;
 }
 
 // Define an interface for the session metadata
 interface SessionMetadata {
-  type: 'transport_receiving' | 'free_scan' | string; // Made more specific
-  task_id: string | null; // This is pol_id
+  type: 'transport_receiving' | 'free_scan' | 'production_input' | string; // Added production_input
+  task_id: string | null; // This is pol_id for transport, job_id for production
   po_id?: string | null; // Optional parent po_id for context
+  op_id?: string | null; // Optional operation_id for production context
   location?: Location | null;
   auto_completed: boolean;
   new_session_id?: string | null;
@@ -108,23 +124,31 @@ interface SessionState {
   sessionReportData: SessionReportData | null;
 
   availableTasks: PurchaseOrderLineTask[];
-  selectedTaskId: string | null; // This will be pol_id
+  availableProductionTasks: ProductionTask[]; // New state for production tasks
+  selectedTaskId: string | null; 
+  selectedProductionJobId: string | null; // New state for selected production job
   showTaskSelectionModal: boolean;
+  taskSelectionModalType: 'transport' | 'production' | null; // To control modal content
   isFetchingTasks: boolean;
-  scannedDrumsForCurrentTask: string[]; // Tracks serial numbers for the active task
-  activeTaskDrumDetails: DrumDetail[]; // Detailed drum info for the active task from the view
+  isFetchingProductionTasks: boolean; // Specific loading state
+  scannedDrumsForCurrentTask: string[];
+  activeTaskDrumDetails: DrumDetail[];
+  activeProductionJobDrums: Array<{drum_id: string, serial_number: string, volume_transferred: number}>; // Drums linked to current production job/op
 
   setCurrentLocation: (location: Location | null) => void;
   syncSessionStateOnMount: () => Promise<void>;
   fetchPurchaseOrderTasks: () => Promise<void>;
-  fetchActiveTaskDrumDetails: (polId: string) => Promise<void>; // New action
-  selectTask: (taskId: string) => void; // taskId will be pol_id
-  openTaskSelectionModal: () => void;
+  fetchProductionTasks: () => Promise<void>; // New action
+  fetchActiveTaskDrumDetails: (polId: string) => Promise<void>; 
+  fetchActiveProductionJobDrums: (jobId: string, opId?: string) => Promise<void>; // New action
+  selectTask: (taskId: string) => void; 
+  selectProductionJob: (jobId: string) => void; // New action
+  openTaskSelectionModal: (type: 'transport' | 'production') => void; // Modified
   closeTaskSelectionModal: () => void;
-  startSession: (type: 'task' | 'free_scan') => void; // Modified to accept type
+  startSession: (type: 'task' | 'free_scan' | 'production_task') => void; // Modified
   confirmStartSession: () => Promise<void>;
-  endSession: () => Promise<void>; // endSession might need to be async if it calls API
-  processScan: (barcode: string) => Promise<void>; // No detailed ScanResponse needed by caller
+  endSession: () => Promise<void>; 
+  processScan: (barcode: string) => Promise<void>; 
   closeSessionReport: () => void;
 }
 
@@ -181,11 +205,16 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   showSessionReport: false,
   sessionReportData: null,
   availableTasks: [],
+  availableProductionTasks: [], // Init
   selectedTaskId: null,
+  selectedProductionJobId: null, // Init
   showTaskSelectionModal: false,
+  taskSelectionModalType: null, // Init
   isFetchingTasks: false,
+  isFetchingProductionTasks: false, // Init
   scannedDrumsForCurrentTask: [],
-  activeTaskDrumDetails: [], // Initialize
+  activeTaskDrumDetails: [], 
+  activeProductionJobDrums: [], // Init
 
   setCurrentLocation: (location) => set({ currentLocation: location }),
 
@@ -243,15 +272,32 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
-  // TODO: Yet to be implemented
   fetchProductionTasks: async () => {
     console.log("[SessionStore] Fetching production tasks...");
-    set({ isFetchingTasks: true });
+    set({ isFetchingProductionTasks: true });
     try {
-      // const supabase = createClient();
+      const supabase = createClient();
+      // Explicitly type the expected RPC response
+      const { data, error } = await supabase.rpc('get_schedulable_production_jobs') as { 
+        data: Array<Omit<ProductionTask, 'totalQuantity' | 'processedQuantity' | 'remainingQuantity'>> | null; 
+        error: PostgrestError | null 
+      };
+
+      if (error) {
+        console.error("[SessionStore] Error fetching production tasks from RPC:", error);
+        throw error;
+      }
+      
+      const tasks: ProductionTask[] = (data || []).map((job: Omit<ProductionTask, 'totalQuantity' | 'processedQuantity' | 'remainingQuantity'>) => ({
+        ...job,
+        totalQuantity: job.raw_volume ? Math.ceil(job.raw_volume / 200) : 0, 
+        processedQuantity: 0, // Placeholder
+        remainingQuantity: job.raw_volume ? Math.ceil(job.raw_volume / 200) : 0, // Placeholder
+      })); 
+      set({ availableProductionTasks: tasks, isFetchingProductionTasks: false });
     } catch (error) {
       console.error("[SessionStore] Failed to fetch production tasks:", error);
-      set({ isFetchingTasks: false, availableTasks: [] });
+      set({ isFetchingProductionTasks: false, availableProductionTasks: [] });
     }
   },
 
@@ -279,38 +325,62 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
-  selectTask: (taskId) => set({ selectedTaskId: taskId }),
+  fetchActiveProductionJobDrums: async (jobId: string, opId?: string) => {
+    if (!jobId) return;
+    console.log(`[SessionStore] Fetching drums for production job: ${jobId}` + (opId ? `, op: ${opId}` : ''));
+    // This would typically fetch from production.operation_drums joined with inventory.drums
+    // For now, it's a placeholder if not immediately needed for the first scan step.
+    // const supabase = createClient();
+    // const {data, error} = await supabase.from('operation_drums').select('*, drums(serial_number)').eq('op_id', relevant_op_id);
+    set({ activeProductionJobDrums: [] }); // Placeholder
+  },
 
-  openTaskSelectionModal: () => {
-    set({ showTaskSelectionModal: true });
-    if (get().availableTasks.length === 0 && !get().isFetchingTasks) {
+  selectTask: (taskId) => set({ selectedTaskId: taskId }),
+  selectProductionJob: (jobId) => set({ selectedProductionJobId: jobId }), // New setter
+
+  openTaskSelectionModal: (type) => {
+    set({ showTaskSelectionModal: true, taskSelectionModalType: type });
+    if (type === 'transport' && get().availableTasks.length === 0 && !get().isFetchingTasks) {
       get().fetchPurchaseOrderTasks();
+    } else if (type === 'production' && get().availableProductionTasks.length === 0 && !get().isFetchingProductionTasks) {
+      get().fetchProductionTasks();
     }
   },
 
-  closeTaskSelectionModal: () => set({ showTaskSelectionModal: false, selectedTaskId: null, sessionType: get().currentSessionId ? get().sessionType : null }), // Preserve sessionType if session active
+  closeTaskSelectionModal: () => set({ 
+    showTaskSelectionModal: false, 
+    selectedTaskId: null, 
+    selectedProductionJobId: null, // Reset production job selection too
+    taskSelectionModalType: null,
+    sessionType: get().currentSessionId ? get().sessionType : null 
+  }), 
   
   startSession: (type) => {
-    set({ sessionType: type });
+    set({ sessionType: type }); // Set the overall sessionType first
     if (type === 'task') {
-      get().openTaskSelectionModal();
+      get().openTaskSelectionModal('transport');
+    } else if (type === 'production_task') {
+      get().openTaskSelectionModal('production');
     } else { // 'free_scan'
-      // For free scan, we bypass task selection and directly attempt to start the session.
-      // confirmStartSession will handle the logic based on the new sessionType.
       get().confirmStartSession(); 
     }
   },
 
   confirmStartSession: async () => {
-    const { selectedTaskId, currentLocation, sessionType } = get(); // Added sessionType
+    const { selectedTaskId, selectedProductionJobId, currentLocation, sessionType } = get(); 
 
     if (sessionType === 'task' && !selectedTaskId) {
-      console.warn("[SessionStore] No task selected to start task session.");
-      set({showTaskSelectionModal: false, sessionType: null}); // Close modal and reset sessionType if no task selected for task session
+      console.warn("[SessionStore] No transport task selected to start session.");
+      set({showTaskSelectionModal: false, sessionType: null}); 
+      return;
+    }
+    if (sessionType === 'production_task' && !selectedProductionJobId) {
+      console.warn("[SessionStore] No production job selected to start session.");
+      set({showTaskSelectionModal: false, sessionType: null}); 
       return;
     }
 
-    console.log(`[SessionStore] Confirming start session for type: ${sessionType}, task (pol_id): ${selectedTaskId}`);
+    console.log(`[SessionStore] Confirming start session for type: ${sessionType}, task: ${selectedTaskId}, production_job: ${selectedProductionJobId}`);
     set({ 
       isScanning: true, 
       lastScanStatus: 'idle', 
@@ -327,10 +397,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       return;
     }
 
-    const deviceIdToUse = getDeviceId(); // Uses VITE_DEVICE_ID or nil UUID
-    const currentTaskDetails = sessionType === 'task' ? get().availableTasks.find(task => task.id === selectedTaskId) : null;
+    const deviceIdToUse = getDeviceId(); 
+    const currentTransportTaskDetails = sessionType === 'task' ? get().availableTasks.find(task => task.id === selectedTaskId) : null;
+    const currentProductionJobDetails = sessionType === 'production_task' ? get().availableProductionTasks.find(job => job.job_id === selectedProductionJobId) : null;
 
-    let sessionMetadata: Pick<SessionMetadata, "type" | "task_id" | "po_id" | "location">;
+    let sessionMetadata: Pick<SessionMetadata, "type" | "task_id" | "po_id" | "op_id" | "location">; // Added op_id
     let sessionName: string;
 
     if (sessionType === 'free_scan') {
@@ -338,19 +409,31 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         type: 'free_scan',
         task_id: null,
         po_id: null,
+        op_id: null, // Null for free_scan
         location: currentLocation || null,
       };
       sessionName = 'Free Scanning Session';
-    } else if (sessionType === 'task') {
+    } else if (sessionType === 'task' && currentTransportTaskDetails) { // Check currentTransportTaskDetails too
       sessionMetadata = {
-        type: 'transport_receiving', // Default for task-based unless specified otherwise
-        task_id: selectedTaskId, // selectedTaskId will be non-null here due to earlier check
-        po_id: currentTaskDetails?.po_id || null,
+        type: 'transport_receiving', 
+        task_id: selectedTaskId, 
+        po_id: currentTransportTaskDetails?.po_id || null,
+        op_id: null, // Null for transport tasks
         location: currentLocation || null,
       };
-      sessionName = `PO Line: ${currentTaskDetails?.item || selectedTaskId}`;
+      sessionName = `PO Line: ${currentTransportTaskDetails?.item || selectedTaskId}`;
+    } else if (sessionType === 'production_task' && currentProductionJobDetails) { // Check currentProductionJobDetails
+      sessionMetadata = {
+        type: 'production_input',
+        task_id: selectedProductionJobId, // job_id is the task_id here
+        po_id: null, // Not applicable for production jobs
+        // op_id: find first pending op for this job_id or null - for future, more granular tracking
+        op_id: null, // Placeholder for now
+        location: currentLocation || null,
+      };
+      sessionName = `Prod. Job: ${currentProductionJobDetails?.item_name || selectedProductionJobId}`;
     } else {
-      console.error("[SessionStore] Invalid sessionType for confirmStartSession:", sessionType);
+      console.error("[SessionStore] Invalid sessionType or missing task details for confirmStartSession:", sessionType);
       set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: 'Invalid session type.', sessionType: null });
       return;
     }
@@ -379,18 +462,20 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         set({
           currentSessionId: sessionData.id,
           currentSessionName: sessionData.name,
-          currentSessionTaskId: sessionType === 'task' ? metadata.task_id : null, // Only set for task sessions
-          sessionType: sessionType, // Persist the session type
-          isScanning: true, // Session is active for scanning
+          currentSessionTaskId: sessionType === 'task' ? metadata.task_id : null, 
+          selectedProductionJobId: sessionType === 'production_task' ? metadata.task_id : null, // Store job_id if production
+          sessionType: sessionType, 
+          isScanning: true, 
           sessionStartTime: new Date(),
           lastScanMessage: `Session for ${sessionData.name} started.`,
           scannedDrumsForCurrentTask: [], // Reset for new session
-          selectedTaskId: null, // Clear selection
         });
         if (sessionType === 'task' && metadata.task_id) {
-          get().fetchActiveTaskDrumDetails(metadata.task_id); // Fetch drums for the new session's task
+          get().fetchActiveTaskDrumDetails(metadata.task_id);
+        } else if (sessionType === 'production_task' && metadata.task_id) {
+          get().fetchActiveProductionJobDrums(metadata.task_id); // Fetch drums/details for production job
         } else {
-          set({ activeTaskDrumDetails: [] }); // Ensure empty for free_scan
+          set({ activeTaskDrumDetails: [], activeProductionJobDrums: [] }); 
         }
       } else {
         throw new Error("Session data or metadata not returned/valid after insert.");
@@ -442,17 +527,21 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         if (activeSessionFromServer.device_id === clientGeneratedDeviceId) {
           console.log(`[SessionStore] Active session ${activeSessionFromServer.id} found for THIS device (${clientGeneratedDeviceId}). Syncing state.`);
           const metadata = (typeof activeSessionFromServer.metadata === 'object' && activeSessionFromServer.metadata !== null) 
-                           ? activeSessionFromServer.metadata
+                           ? activeSessionFromServer.metadata as SessionMetadata // Added cast here
                            : null;
-          const activeSessionType: SessionType = metadata?.type === 'free_scan' ? 'free_scan' : (metadata?.task_id ? 'task' : null);
+          const activeSessionType: SessionType = 
+            metadata?.type === 'free_scan' ? 'free_scan' :
+            (metadata?.type === 'transport_receiving' && metadata?.task_id ? 'task' :
+            (metadata?.type === 'production_input' && metadata?.task_id ? 'production_task' : null));
           
           set(state => ({
             isInitializing: false,
             currentSessionId: activeSessionFromServer.id,
             currentSessionName: activeSessionFromServer.name || null,
             currentSessionTaskId: activeSessionType === 'task' ? metadata?.task_id || null : null,
+            selectedProductionJobId: activeSessionType === 'production_task' ? metadata?.task_id || null : null,
             sessionType: activeSessionType,
-            currentLocation: activeSessionFromServer.location ?? state.currentLocation, // Ensure location can be null
+            currentLocation: activeSessionFromServer.location ?? state.currentLocation, 
             sessionStartTime: activeSessionFromServer.started_at ? new Date(activeSessionFromServer.started_at) : new Date(), // Handle potentially null started_at
             lastScanMessage: 'Resumed active session.',
             isScanning: true,
@@ -460,25 +549,27 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           }));
           if (activeSessionType === 'task' && metadata?.task_id) {
             get().fetchActiveTaskDrumDetails(metadata.task_id);
+          } else if (activeSessionType === 'production_task' && metadata?.task_id) {
+            get().fetchActiveProductionJobDrums(metadata.task_id); // Fetch for production job
           } else {
-            set({ activeTaskDrumDetails: [] });
+            set({ activeTaskDrumDetails: [], activeProductionJobDrums: [] }); 
           }
         } else {
           console.log(`[SessionStore] Active session ${activeSessionFromServer.id} found, but for different device (${activeSessionFromServer.device_id}). Not resuming on this device (${clientGeneratedDeviceId}).`);
-          set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, sessionType: null, lastScanMessage: 'Ready (no active session for this device).', isScanning: false });
+          set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null, lastScanMessage: 'Ready (no active session for this device).', isScanning: false });
         }
       } else {
         console.log("[SessionStore] No active session found for user from API. Initializing as ready.");
-        set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, sessionType: null, lastScanMessage: 'Ready.', isScanning: false });
+        set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null, lastScanMessage: 'Ready.', isScanning: false });
       }
     } catch (error: unknown) {
       console.error('[SessionStore] Error during initial session state sync:', error);
-      set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: 'Error syncing.', isScanning: false });
+      set({ isInitializing: false, currentSessionId: null, currentLocation: null, currentSessionName: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: 'Error syncing.', isScanning: false });
     }
   },
 
   endSession: async () => {
-    const { currentSessionId, currentSessionName, sessionStartTime, currentSessionTaskId, currentLocation, sessionType } = get(); // Added sessionType
+    const { currentSessionId, currentSessionName, sessionStartTime, currentSessionTaskId, selectedProductionJobId, currentLocation, sessionType } = get(); 
     if (!currentSessionId) {
       set({ lastScanMessage: 'No active session to end.' });
       return;
@@ -491,7 +582,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (authErr || !token) {
       console.error("[SessionStore] Auth error ending session:", authErr);
       // Still end locally
-      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: 'Auth error. Session ended locally.', scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [] });
+      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: 'Auth error. Session ended locally.', scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [], activeProductionJobDrums: [] });
       return;
     }
 
@@ -526,25 +617,33 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           sessionName: currentSessionName || undefined,
         };
         set({
-          isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, sessionType: null, // Reset sessionType
+          isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null, // Reset sessionType
           lastScanStatus: 'idle', lastScanMessage: result.message || 'Session ended.',
-          showSessionReport: true, sessionReportData: reportData, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: []
+          showSessionReport: true, sessionReportData: reportData, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [], activeProductionJobDrums: []
         });
       } else {
         console.error(`[SessionStore] Failed to end session ${currentSessionId} on server:`, result.error || `Status ${apiResponse.status}`);
         // Still end locally but indicate server error
-        set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Server error: ${result.error || `Status ${apiResponse.status}`}`, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [] });
+        set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Server error: ${result.error || `Status ${apiResponse.status}`}`, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [], activeProductionJobDrums: [] });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error ending session';
       console.error('[SessionStore] Error in endSession:', message);
-      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Client error: ${message}`, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [] });
+      set({ isScanning: false, currentSessionId: null, currentSessionName: null, sessionStartTime: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null, lastScanStatus: 'error', lastScanMessage: `Ended locally. Client error: ${message}`, scannedDrumsForCurrentTask: [], activeTaskDrumDetails: [], activeProductionJobDrums: [] });
     }
   },
 
-  // TODO: Add location logic to front end session logic and always pass location to the scan
   processScan: async (barcode: string) => {
-    const { currentSessionId, currentSessionTaskId, scannedDrumsForCurrentTask, activeTaskDrumDetails, currentLocation, sessionType } = get(); // Added sessionType
+    const { 
+      currentSessionId, 
+      currentSessionTaskId, 
+      selectedProductionJobId, // Added
+      scannedDrumsForCurrentTask, 
+      activeTaskDrumDetails, 
+      activeProductionJobDrums, // Added
+      currentLocation, 
+      sessionType 
+    } = get(); 
     const supabase = createClient(); // Get supabase client instance
     const { data: { user }, error: userError } = await supabase.auth.getUser(); // Get user earlier for logging
 
@@ -554,14 +653,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({ lastScanStatus: 'error', lastScanMessage: noSessionMsg });
       if (user) {
         await supabase.from('session_scans').insert({
-          session_id: null, // No currentSessionId here
+          session_id: null, 
           raw_barcode: barcode,
           scan_status: 'error' as ScanStatus,
-          scan_action: sessionType === 'free_scan' ? 'free_scan' : 'process' as ScanType, 
+          scan_action: sessionType === 'free_scan' ? 'free_scan' : (sessionType === 'production_task' ? 'production_input' : 'process') as ScanType, 
           error_message: noSessionMsg,
           user_id: user.id,
           device_id: getDeviceId(),
-          pol_id: sessionType === 'task' ? currentSessionTaskId : null, // Only relevant for task
+          pol_id: sessionType === 'task' ? currentSessionTaskId : null, 
+          // Add job_id or op_id for production if relevant at this stage
         });
       }
       return;
@@ -572,10 +672,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const authErrorMsg = 'Authentication error.';
       set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: authErrorMsg });
       await supabase.from('session_scans').insert({
-        session_id: currentSessionId, // Session ID might be available
+        session_id: currentSessionId, 
         raw_barcode: barcode,
         scan_status: 'error' as ScanStatus,
-        scan_action: sessionType === 'free_scan' ? 'free_scan' : 'process' as ScanType,
+        scan_action: sessionType === 'free_scan' ? 'free_scan' : (sessionType === 'production_task' ? 'production_input' : 'process') as ScanType,
         error_message: authErrorMsg,
         user_id: user?.id || undefined,
         device_id: getDeviceId(),
@@ -597,9 +697,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           error_message: null,
           user_id: user.id,
           device_id: getDeviceId(),
-          pol_id: null,
+          pol_id: null, // Not for free_scan
           pod_id: null,
           item_name: null,
+          // job_id: null, // Explicitly null for free_scan
+          // op_id: null, // Explicitly null for free_scan
         };
         const { error: logError } = await supabase.from('session_scans').insert(logEntry);
         if (logError) {
@@ -623,7 +725,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       return; // Important: End execution for free_scan type here
     }
 
-    // Task-based Scan Logic (existing logic starts here)
+    // Task-based Scan Logic (existing logic for transport_receiving)
     if (sessionType === 'task') {
       if (!currentSessionTaskId) {
         console.warn("[SessionStore] processScan (task) called without active task ID.");
@@ -651,7 +753,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             session_id: currentSessionId,
             raw_barcode: barcode,
             scan_status: 'error' as ScanStatus,
-            scan_action: 'check_in' as ScanType, // TODO: Add more if checks for barcodes in process, transport tasks etc.
+            scan_action: 'check_in' as ScanType, 
             error_message: message,
             user_id: user.id,
             device_id: getDeviceId(),
@@ -772,6 +874,166 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           }
 
           // Ensure scanning state is set to false if not already done
+          if (get().isScanning) {
+            set({ isScanning: false });
+          }
+      }
+    }
+
+    // New: Production Task Scan Logic
+    if (sessionType === 'production_task') {
+      if (!selectedProductionJobId) {
+        console.warn("[SessionStore] processScan (production) called without active job ID.");
+        const noJobMsg = 'No active production job for scan.';
+        set({ lastScanStatus: 'error', lastScanMessage: noJobMsg });
+        await supabase.from('session_scans').insert({
+          session_id: currentSessionId,
+          raw_barcode: barcode,
+          scan_status: 'error' as ScanStatus,
+          scan_action: 'production_input' as ScanType, 
+          error_message: noJobMsg,
+          user_id: user.id,
+          device_id: getDeviceId(),
+          job_id: null, 
+        });
+        return;
+      }
+
+      if (activeProductionJobDrums.some(d => d.serial_number === barcode)) {
+         const message = `Drum ${barcode} already assigned to this production job.`;
+         set({ lastScanStatus: 'error', lastScanMessage: message });
+         await supabase.from('session_scans').insert({
+            session_id: currentSessionId,
+            raw_barcode: barcode,
+            scan_status: 'error' as ScanStatus,
+            scan_action: 'production_input' as ScanType, 
+            error_message: message,
+            user_id: user.id,
+            device_id: getDeviceId(),
+            job_id: selectedProductionJobId
+          });
+        return;
+      }
+
+      set({ isScanning: true, lastScanMessage: `Assigning ${barcode} to job ${selectedProductionJobId.slice(0,8)}...` });
+      
+      let scanResult: { status: ScanStatus; message: string; drum_id?: string | null; item_name?: string | null; op_id_for_log?: string | null; error?: PostgrestError | Error | null } = {
+        status: 'error',
+        message: 'Production scan processing failed unexpectedly.',
+        op_id_for_log: null,
+        error: null,
+      };
+      // Declare opData outside try to be available in finally
+      let opDataForLog: {op_id: string; op_type: string} | null = null;
+
+      try {
+        // 1. Find the drum_id from inventory.drums by serial_number
+        const { data: drumInvData, error: drumInvError } = await supabase
+          .schema('inventory')
+          .from('drums')
+          // Corrected join path: drums -> batches -> items
+          .select(`
+            drum_id, 
+            batch_id, 
+            batches (
+              item_id,
+              items ( name )
+            )
+          `)
+          .eq('serial_number', barcode)
+          .single();
+
+        if (drumInvError || !drumInvData) {
+          const msg = drumInvError ? 'DB error finding drum.' : `Drum ${barcode} not found in inventory.`;
+          scanResult = { ...scanResult, status: 'error', message: msg, error: drumInvError || new Error(msg) };
+          throw scanResult.error;
+        }
+        
+        const drumId = drumInvData.drum_id;
+        const itemNameFromDrum = drumInvData.batches?.items?.name || 'Unknown Item';
+        scanResult.item_name = itemNameFromDrum; // Store for logging
+
+        // 2. Find the relevant op_id 
+        const { data: opData, error: opError } = await supabase
+          .schema('production')
+          .from('operations')
+          .select('op_id, op_type')
+          .eq('job_id', selectedProductionJobId)
+          .in('status', ['pending', 'active']) 
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+        
+        if (opError || !opData) {
+          const msg = opError ? 'DB error finding operation.' : `No suitable pending/active operation for job ${selectedProductionJobId.slice(0,8)}.`;
+          scanResult = { ...scanResult, status: 'error', message: msg, error: opError || new Error(msg) };
+          throw scanResult.error;
+        }
+        opDataForLog = opData; // Assign to outer scope variable for finally block
+        scanResult.op_id_for_log = opData.op_id;
+
+
+        // 3. Insert into production.operation_drums
+        const volumeToTransfer = 200; 
+        const { error: opDrumError } = await supabase
+          .schema('production')
+          .from('operation_drums')
+          .insert({
+            op_id: opData.op_id,
+            drum_id: drumId,
+            scan_id: -1, // Placeholder for required non-nullable integer scan_id
+            volume_transferred: volumeToTransfer 
+          });
+
+        if (opDrumError) {
+          scanResult = { ...scanResult, status: 'error', message: 'DB error assigning drum to operation.', error: opDrumError };
+          throw opDrumError;
+        }
+
+        // 4. Optionally update inventory.drums.status
+        await supabase.schema('inventory').from('drums').update({ status: 'pre_production' }).eq('drum_id', drumId);
+
+        scanResult = { ...scanResult, status: 'success', message: `Drum ${barcode} assigned to operation ${opData.op_type} for job.`, drum_id: drumId };
+        
+        set(state => ({
+          isScanning: false,
+          lastScanStatus: 'success',
+          lastScanMessage: scanResult.message,
+          activeProductionJobDrums: [...state.activeProductionJobDrums, { drum_id: drumId, serial_number: barcode, volume_transferred: volumeToTransfer }],
+        }));
+
+      } catch (error) {
+        console.error("Error processing production scan:", error);
+        if(scanResult.status !== 'error') { // If error was not set by one of the specific checks
+            scanResult = { ...scanResult, status: 'error', message: `Failed to process production scan for ${barcode}.`, error: error instanceof Error ? error : new Error(String(error)) };
+        }
+        set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: scanResult.message });
+      } finally {
+          try {
+              const logEntry = {
+                  session_id: currentSessionId,
+                  raw_barcode: barcode,
+                  scan_status: scanResult.status,
+                  scan_action: 'production_input' as ScanType, 
+                  error_message: scanResult.status === 'error' ? scanResult.message : null,
+                  user_id: user.id, 
+                  device_id: getDeviceId(),
+                  pol_id: null, 
+                  pod_id: null, 
+                  item_name: scanResult.item_name, 
+                  job_id: selectedProductionJobId, 
+                  op_id: scanResult.op_id_for_log, // Use op_id_for_log from scanResult
+                  drum_id: scanResult.drum_id || null, 
+              };
+              const { error: logError } = await supabase.from('session_scans').insert(logEntry);
+              if (logError) {
+                  console.error("[SessionStore] CRITICAL: Failed to log production scan result to public.session_scans:", logError, logEntry);
+              } else {
+                   console.log("[SessionStore] Production scan result logged to public.session_scans:", logEntry);
+              }
+          } catch (logCatchError) {
+               console.error("[SessionStore] CRITICAL: Exception during production scan logging:", logCatchError);
+          }
           if (get().isScanning) {
             set({ isScanning: false });
           }

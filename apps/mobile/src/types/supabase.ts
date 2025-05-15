@@ -1538,6 +1538,8 @@ export type Database = {
           id: string | null
           name: string | null
           new_stock: number | null
+          pending_stock: number | null
+          processing_stock: number | null
           repro_stock: number | null
           threshold: number | null
           total_stock: number | null
@@ -2837,6 +2839,20 @@ export type Database = {
       get_purchase_order_drums: {
         Args: { p_po_id: string }
         Returns: Json[]
+      }
+      get_schedulable_production_jobs: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          job_id: string
+          item_name: string
+          status: Database["production"]["Enums"]["job_status"]
+          planned_start: string
+          priority: number
+          input_batch_id: string
+          batch_code: string
+          still_code: string
+          raw_volume: number
+        }[]
       }
       increment_stock_count: {
         Args: { p_supplier_id: string; p_material_id: string }
