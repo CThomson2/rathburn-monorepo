@@ -68,7 +68,7 @@ export function BatchesTableDisplay({ batches }: BatchesTableDisplayProps) {
                   </Button>
                 </TableCell>
                 <TableCell className="font-medium">
-                  {batch.batch_code || batch.batch_id}
+                  {batch.batch_code || batch.batch_id.slice(0, 8)}
                 </TableCell>
                 <TableCell>
                   {batch.material_name || batch.item_name || "N/A"}

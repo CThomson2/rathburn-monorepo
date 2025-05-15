@@ -32,6 +32,7 @@ export interface RpcPendingPurchaseOrderLine {
   eta_date: string | null;
   item: string; // This is i.name
   quantity: number; // This is pol.quantity
+  received_count: number;
 }
 
 // Interface for the data fetched from the new SQL view v_purchase_order_drum_details
@@ -340,9 +341,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   openTaskSelectionModal: (type) => {
     set({ showTaskSelectionModal: true, taskSelectionModalType: type });
-    if (type === 'transport' && get().availableTasks.length === 0 && !get().isFetchingTasks) {
-      get().fetchPurchaseOrderTasks();
-    } else if (type === 'production' && get().availableProductionTasks.length === 0 && !get().isFetchingProductionTasks) {
+    if (type === 'production' && get().availableProductionTasks.length === 0 && !get().isFetchingProductionTasks) {
       get().fetchProductionTasks();
     }
   },
@@ -497,15 +496,21 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
     if (authErr || !token) {
       console.error('[SessionStore] Auth error syncing state:', authErr);
-      set({ isInitializing: false, lastScanStatus: 'idle', lastScanMessage: 'Auth error.', currentSessionId: null, currentLocation: null, currentSessionTaskId: null, sessionType: null });
+      set({ isInitializing: false, lastScanStatus: 'idle', lastScanMessage: 'Auth error.', currentSessionId: null, currentLocation: null, currentSessionTaskId: null, selectedProductionJobId: null, sessionType: null });
       return;
     }
 
     try {
+      const headersForSync = {
+        'Authorization': `Bearer ${token}`,
+        'X-Device-ID': clientGeneratedDeviceId
+      };
+      console.log('[SessionStore] Headers for sync API call:', JSON.stringify(headersForSync)); // Log the headers
+
       // This API call is to your custom backend endpoint, not directly to Supabase tables here
       const response = await fetch(`${import.meta.env.VITE_API_URL}${SESSIONS_API_ENDPOINT}`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: headersForSync,
       });
       const result: CheckActiveSessionResponse = await response.json();
 

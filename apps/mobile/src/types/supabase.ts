@@ -2268,6 +2268,7 @@ export type Database = {
           device_id: string | null
           ended_at: string | null
           id: string
+          location: string | null
           metadata: Json | null
           name: string
           notes: string | null
@@ -2281,6 +2282,7 @@ export type Database = {
           device_id?: string | null
           ended_at?: string | null
           id?: string
+          location?: string | null
           metadata?: Json | null
           name: string
           notes?: string | null
@@ -2294,6 +2296,7 @@ export type Database = {
           device_id?: string | null
           ended_at?: string | null
           id?: string
+          location?: string | null
           metadata?: Json | null
           name?: string
           notes?: string | null

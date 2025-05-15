@@ -9,13 +9,13 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/core/components/ui/alert-dialog";
-import { Button } from "@/core/components/ui/button";
 import { Progress } from "@/core/components/ui/progress";
 import {
   useSessionStore,
   PurchaseOrderLineTask,
   ProductionTask,
 } from "@/core/stores/session-store";
+import { usePurchaseOrderTasks } from "../hooks/use-tasks";
 import { Badge } from "@/core/components/ui/badge";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
 import {
@@ -41,28 +41,31 @@ export function TaskSelectionModal() {
   const {
     showTaskSelectionModal,
     closeTaskSelectionModal,
-    availableTasks, // For transport tasks
     availableProductionTasks, // For production tasks
     selectedTaskId,
     selectedProductionJobId,
     selectTask,
     selectProductionJob,
     confirmStartSession,
-    isFetchingTasks,
     isFetchingProductionTasks,
-    fetchPurchaseOrderTasks,
     fetchProductionTasks,
     taskSelectionModalType, // 'transport' | 'production' | null
   } = useSessionStore();
 
+  // Use TanStack Query hook for fetching transport tasks
+  const {
+    data: transportTasksFromQuery,
+    isLoading: isLoadingTransportTasks,
+    error: transportTasksError,
+  } = usePurchaseOrderTasks({
+    // Ensure the query is only enabled when the modal is open for transport tasks
+    // This prevents fetching when the modal is closed or for other types
+    enabled: showTaskSelectionModal && taskSelectionModalType === "transport",
+  });
+
   useEffect(() => {
+    // Fetch production tasks when modal is shown for production
     if (
-      showTaskSelectionModal &&
-      taskSelectionModalType === "transport" &&
-      !isFetchingTasks
-    ) {
-      fetchPurchaseOrderTasks();
-    } else if (
       showTaskSelectionModal &&
       taskSelectionModalType === "production" &&
       !isFetchingProductionTasks
@@ -72,20 +75,20 @@ export function TaskSelectionModal() {
   }, [
     showTaskSelectionModal,
     taskSelectionModalType,
-    fetchPurchaseOrderTasks,
     fetchProductionTasks,
-    isFetchingTasks,
     isFetchingProductionTasks,
   ]);
 
   const isLoading =
     taskSelectionModalType === "transport"
-      ? isFetchingTasks
+      ? isLoadingTransportTasks
       : isFetchingProductionTasks;
+
   const tasksToDisplay =
     taskSelectionModalType === "transport"
-      ? availableTasks
+      ? transportTasksFromQuery || [] // Use data from hook, default to empty array if undefined
       : availableProductionTasks;
+
   const currentSelection =
     taskSelectionModalType === "transport"
       ? selectedTaskId
@@ -107,6 +110,12 @@ export function TaskSelectionModal() {
     taskSelectionModalType === "transport"
       ? "Choose a purchase order line to start receiving drums."
       : "Choose a scheduled production job to start assigning drums.";
+
+  if (transportTasksError) {
+    // Handle or display error for transport tasks
+    console.error("Error fetching transport tasks:", transportTasksError);
+    // Optionally render an error message in the modal
+  }
 
   return (
     <AlertDialog

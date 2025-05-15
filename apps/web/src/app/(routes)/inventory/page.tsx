@@ -69,9 +69,9 @@ export default async function BatchesPage() {
         <ChemicalInventoryDashboard initialData={drumInventoryData} />
       </div>
 
-      <Suspense fallback={<BatchesContentSkeleton />}>
+      {/* <Suspense fallback={<BatchesContentSkeleton />}>
         <BatchesContent />
-      </Suspense>
+      </Suspense> */}
     </div>
   );
 }

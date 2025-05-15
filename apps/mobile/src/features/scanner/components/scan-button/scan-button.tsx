@@ -39,7 +39,7 @@ export function ScanButton({ className }: ScanButtonProps) {
           description: "Session end initiated.",
         });
       } else {
-        await startSession();
+        await startSession("free_scan");
         toast({
           title: "Session Started",
           description: "Session start initiated.",

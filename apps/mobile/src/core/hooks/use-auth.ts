@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/core/lib/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
+import { useSessionStore } from "@/core/stores/session-store";
 
 /**
  * Hook for managing client-side authentication state and actions for mobile app
@@ -18,6 +19,7 @@ export function useAuth() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { endSession, currentSessionId } = useSessionStore();
 
   // Get initial auth state and set up listeners
   useEffect(() => {
@@ -151,6 +153,13 @@ export function useAuth() {
     try {
       console.log("[AUTH] Signing out...");
       
+      // End active scanning session if one exists
+      if (currentSessionId) {
+        console.log("[AUTH] Attempting to end active scanning session before sign out...");
+        await endSession();
+        console.log("[AUTH] Active scanning session ended or attempt completed.");
+      }
+      
       // Clear localStorage auth data
       localStorage.removeItem("userId");
       localStorage.removeItem("userName");
@@ -179,7 +188,7 @@ export function useAuth() {
       console.error("[AUTH] Unexpected error during sign out:", err);
       throw err;
     }
-  }, [navigate]);
+  }, [navigate, endSession, currentSessionId]);
 
   return {
     user,

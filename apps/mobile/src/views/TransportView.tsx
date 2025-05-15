@@ -143,21 +143,23 @@ export function TransportView() {
                       <span className="text-muted-foreground">Progress:</span>
                       <Badge
                         variant={
-                          scannedDrumsForCurrentTask.length ===
+                          currentActiveTaskDetails.receivedQuantity ===
                           currentActiveTaskDetails.totalQuantity
                             ? "default"
                             : "secondary"
                         }
                       >
-                        {scannedDrumsForCurrentTask.length} /{" "}
+                        {currentActiveTaskDetails.receivedQuantity} /{" "}
                         {currentActiveTaskDetails.totalQuantity} drums
                       </Badge>
                     </div>
                     <Progress
                       value={
-                        (scannedDrumsForCurrentTask.length /
-                          currentActiveTaskDetails.totalQuantity) *
-                        100
+                        currentActiveTaskDetails.totalQuantity > 0
+                          ? (currentActiveTaskDetails.receivedQuantity /
+                              currentActiveTaskDetails.totalQuantity) *
+                            100
+                          : 0
                       }
                       className="h-2"
                     />
