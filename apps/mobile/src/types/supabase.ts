@@ -1103,7 +1103,7 @@ export type Database = {
           created_at: string
           item_id: string
           po_id: string | null
-          total_volume: number
+          qty_drums: number
           updated_at: string
         }
         Insert: {
@@ -1113,7 +1113,7 @@ export type Database = {
           created_at?: string
           item_id: string
           po_id?: string | null
-          total_volume?: number
+          qty_drums?: number
           updated_at?: string
         }
         Update: {
@@ -1123,7 +1123,7 @@ export type Database = {
           created_at?: string
           item_id?: string
           po_id?: string | null
-          total_volume?: number
+          qty_drums?: number
           updated_at?: string
         }
         Relationships: [
@@ -2600,8 +2600,8 @@ export type Database = {
           item_name: string | null
           material_name: string | null
           po_number: string | null
+          qty_drums: number | null
           supplier_name: string | null
-          total_volume: number | null
           updated_at: string | null
         }
         Relationships: []
@@ -2620,8 +2620,8 @@ export type Database = {
           item_name: string | null
           material_name: string | null
           po_number: string | null
+          qty_drums: number | null
           supplier_name: string | null
-          total_volume: number | null
           updated_at: string | null
         }
         Relationships: []
@@ -2837,7 +2837,19 @@ export type Database = {
       }
       get_pending_purchase_orders: {
         Args: Record<PropertyKey, never>
-        Returns: Json[]
+        Returns: {
+          pol_id: string
+          po_id: string
+          po_number: string
+          supplier: string
+          order_date: string
+          status: string
+          line_status: string
+          eta_date: string
+          item: string
+          quantity: number
+          received_count: number
+        }[]
       }
       get_purchase_order_drums: {
         Args: { p_po_id: string }

@@ -6,7 +6,7 @@
  */
 
 import { withSupabaseClient } from "./supabase/client";
-import { Database, Tables } from "@/types/models/supabase";
+import { Database, Tables } from "@/types/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
 import {

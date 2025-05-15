@@ -75,7 +75,7 @@ export function BatchesTableDisplay({ batches }: BatchesTableDisplayProps) {
                 </TableCell>
                 <TableCell>{batch.supplier_name || "N/A"}</TableCell>
                 <TableCell className="text-right">
-                  {batch.total_volume || 0} L
+                  {batch.qty_drums || 0} L
                 </TableCell>
                 <TableCell>
                   {batch.batch_type && (

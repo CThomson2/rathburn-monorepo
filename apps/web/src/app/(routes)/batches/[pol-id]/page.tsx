@@ -34,7 +34,7 @@ interface BatchData {
   material_name: string | null;
   chemical_group: string | null;
   supplier_name: string | null;
-  total_volume: number | null;
+  qty_drums: number | null;
   created_at: string; // Batch creation date
   updated_at: string | null;
   po_number: string | null;
@@ -141,7 +141,7 @@ export default async function BatchDetailsPage({
     drum_count,
     drums_in_stock,
     chemical_group,
-    total_volume,
+    qty_drums,
   } = batchDetails;
 
   const receivedPercentage =
@@ -244,11 +244,11 @@ export default async function BatchDetailsPage({
                 value={chemical_group}
               />
             )}
-            {typeof total_volume === "number" && (
+            {typeof qty_drums === "number" && (
               <InfoItem
                 icon={<Info className="h-5 w-5 text-muted-foreground" />}
                 label="Total Volume"
-                value={total_volume}
+                value={qty_drums}
               />
             )}
           </div>

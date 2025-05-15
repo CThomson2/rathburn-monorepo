@@ -140,25 +140,43 @@ export function ProductionForm({
   };
 
   const validateForm = (): boolean => {
-    if (!selectedSupplier) return toast.error("Supplier is required.");
-    if (!selectedItem) return toast.error("Material item is required.");
-    if (!selectedBatch) return toast.error("Input batch is required.");
-    if (!plannedDate) return toast.error("Planned date is required.");
-    if (!selectedStill) return toast.error("Distillation still is required.");
-    if (!rawVolume || isNaN(Number(rawVolume)) || Number(rawVolume) <= 0) {
-      return toast.error("Valid raw material volume is required.");
+    if (!selectedSupplier) {
+      toast.error("Supplier is required.");
+      return false;
     }
-    if (Number(rawVolume) > selectedBatch.drums_in_stock * 200) {
-      return toast.error(
+    if (!selectedItem) {
+      toast.error("Material item is required.");
+      return false;
+    }
+    if (!selectedBatch) {
+      toast.error("Input batch is required.");
+      return false;
+    }
+    if (!plannedDate) {
+      toast.error("Planned date is required.");
+      return false;
+    }
+    if (!selectedStill) {
+      toast.error("Distillation still is required.");
+      return false;
+    }
+    if (!rawVolume || isNaN(Number(rawVolume)) || Number(rawVolume) <= 0) {
+      toast.error("Valid raw material volume is required.");
+      return false;
+    }
+    if (selectedBatch && Number(rawVolume) > selectedBatch.drums_in_stock * 200) {
+      toast.error(
         `Volume exceeds available stock in batch (${
           selectedBatch.drums_in_stock * 200
         }L).`
       );
+      return false;
     }
-    if (Number(rawVolume) > selectedStill.max_capacity * 200) {
-      return toast.error(
+    if (selectedStill && Number(rawVolume) > selectedStill.max_capacity * 200) {
+      toast.error(
         `Volume exceeds still capacity (${selectedStill.max_capacity * 200}L).`
       );
+      return false;
     }
     return true;
   };

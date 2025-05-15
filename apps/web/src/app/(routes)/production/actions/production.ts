@@ -8,7 +8,6 @@ import {
   getProgressFromStatus,
   getPriorityFromJob,
 } from "@/features/production/types";
-import { fetchSuppliers, fetchItemsBySupplier } from "@/app/actions/orders";
 
 /***************************
  * READ ACTIONS
@@ -331,8 +330,3 @@ export async function createProductionJob(formData: FormData): Promise<{
 /***************************
  * SHARED DROPDOWN HELPERS
  ***************************/
-
-// We simply re-export the supplier & item helpers from orders actions so the
-// production form can import from a single location.
-
-export { fetchSuppliers, fetchItemsBySupplier } from "@/app/actions/orders";

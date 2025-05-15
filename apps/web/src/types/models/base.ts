@@ -4,25 +4,7 @@
  * to make the transition smoother.
  */
 
-import { Prisma } from "@prisma/client/index";
-import { Database, Tables } from "@/types/models/supabase";
-
-// Re-export Prisma namespace for advanced type operations (legacy)
-export { Prisma };
-
-// Legacy Prisma types - these will be deprecated in future
-export type PrismaDrums = Prisma.stock_drumGetPayload<{}>;
-export type PrismaNewDrums = Prisma.stock_newGetPayload<{}>;
-export type PrismaReproDrums = Prisma.stock_reproGetPayload<{}>;
-export type PrismaOrders = Prisma.stock_orderGetPayload<{}>;
-export type PrismaTransactions = Prisma.log_drum_scanGetPayload<{}>;
-export type PrismaRawMaterials = Prisma.raw_materialsGetPayload<{}>;
-export type PrismaProducts = Prisma.ref_productGetPayload<{}>;
-export type PrismaProductPrices = Prisma.product_pricesGetPayload<{}>;
-export type PrismaBottleSizes = Prisma.bottle_sizesGetPayload<{}>;
-export type PrismaChemicalGroups = Prisma.chemical_group_kindGetPayload<{}>;
-export type PrismaDistillations = Prisma.distillation_recordGetPayload<{}>;
-export type PrismaBatches = Prisma.BatchPayload;
+import { Database, Tables } from "@/types/supabase";
 
 // New Supabase-based types that should be used for new development
 // These provide a cleaner way to access table types

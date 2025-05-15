@@ -10,7 +10,7 @@ export interface BatchDataFromView {
   item_name: string | null; // This might be the product name if different from material_name
   material_name: string | null; // The actual chemical/material name
   supplier_name: string | null;
-  total_volume: number | null;
+  qty_drums: number | null;
   batch_type: string | null; // e.g., 'New', 'Repro'
   created_at: string; // Timestamp of batch creation
   drum_count: number | null; // Total number of drums associated with the batch
@@ -25,7 +25,7 @@ export async function fetchActiveBatches(): Promise<BatchDataFromView[]> {
   const { data, error } = await supabase
     .from('v_batches_with_drums') // This view is in the public schema by default
     .select('*')
-    .gt('total_volume', 0) // Filter for total_volume > 0
+    .gt('qty_drums', 0) // Filter for qty_drums > 0
     .order('created_at', { ascending: false }); // Optional: order by creation date
 
   if (error) {
