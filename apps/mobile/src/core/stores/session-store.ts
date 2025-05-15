@@ -234,33 +234,21 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const tasks: PurchaseOrderLineTask[] = [];
       if (rpcData) {
         for (const line of rpcData) {
-          const { data: drumsData, error: drumsError } = await supabase
-            .schema('inventory')
-            .from('purchase_order_drums')
-            .select('serial_number, is_received', { count: 'exact' })
-            .eq('pol_id', line.pol_id)
-            .eq('is_received', true)
-            .order('serial_number', { ascending: false });
-          
-          let receivedCount = 0;
-          if (drumsError) {
-            console.warn(`[SessionStore] Error fetching received drums for pol_id ${line.pol_id}:`, drumsError);
-          } else {
-            receivedCount = drumsData?.length || 0;
-          }
+          // Directly use received_count from the RPC data
+          const receivedCount = line.received_count;
 
-          console.log(`[SessionStore] Task Check: PO: ${line.po_number}, Item: ${line.item}, Line Quantity: ${line.quantity}, Received Count: ${receivedCount}`);
+          console.log(`[SessionStore] Task Check: PO: ${line.po_number}, Item: ${line.item}, Line Quantity: ${line.quantity}, Received Count (from RPC): ${receivedCount}`);
 
           // Only add tasks that are not yet fully completed
           if (line.quantity - receivedCount > 0) {
             tasks.push({
-              id: line.pol_id, 
+              id: line.pol_id,
               po_id: line.po_id,
               poNumber: line.po_number,
               supplier: line.supplier,
               item: line.item,
               totalQuantity: line.quantity,
-              receivedQuantity: receivedCount,
+              receivedQuantity: receivedCount, // Use received_count from RPC
               remainingQuantity: line.quantity - receivedCount,
             });
           }
@@ -339,9 +327,22 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   selectTask: (taskId) => set({ selectedTaskId: taskId }),
   selectProductionJob: (jobId) => set({ selectedProductionJobId: jobId }), // New setter
 
-  openTaskSelectionModal: (type) => {
+/*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * Opens the task selection modal for the given type.
+   * If the type is 'production', it also fetches production tasks if none are available.
+   * @param {string} type 'transport' | 'production'
+   */
+/*******  915366ac-73b8-417f-8e91-dd1015ebe315  *******/  openTaskSelectionModal: (type) => {
     set({ showTaskSelectionModal: true, taskSelectionModalType: type });
-    if (type === 'production' && get().availableProductionTasks.length === 0 && !get().isFetchingProductionTasks) {
+    if (type === 'transport') {
+      // Fetch transport tasks if the list is empty and not already fetching
+      if (get().availableTasks.length === 0 && !get().isFetchingTasks) {
+        console.log("[SessionStore] Opening transport task modal, fetching tasks via Zustand...");
+        get().fetchPurchaseOrderTasks();
+      }
+    } else if (type === 'production' && get().availableProductionTasks.length === 0 && !get().isFetchingProductionTasks) {
+      console.log("[SessionStore] Opening production task modal, fetching tasks via Zustand...");
       get().fetchProductionTasks();
     }
   },
