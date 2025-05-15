@@ -32,7 +32,7 @@ export async function fetchProductionJobs(): Promise<ProductionJobOrderType[]> {
          planned_end,
          created_at,
          updated_at,
-         items:item_id ( name, suppliers:supplier_id ( name ) ),
+         items:jobs_item_id_fkey ( name, suppliers:supplier_id ( name ) ),
          batches:input_batch_id ( batch_code ),
          operations!job_id ( 
            op_id, 

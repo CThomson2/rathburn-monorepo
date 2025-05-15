@@ -80,3 +80,26 @@ This document explains the refactoring process for UI components in the Rathburn
 - Expand the shared package with more configurable components
 - Add storybook documentation for the shared UI components
 - Set up automated tests to ensure components render consistently across platforms
+
+
+
+An (integer) number of drums, in this batch, currently in stock
+
+I did some rapid development recently, making a new feature revolving around the user workflow of shcheduling production (distillation) processes (the app is for internal company use). I worked on it with a colleague, and there are a few issues with the system design for this feature, though I think it's just a case of ironing out a few small wrinkles - type errors, DB naming conflicts etc.
+
+So, this feature encompasses both the web app and mobile app, as well as database functionality. You will need to use the Supabase MCP server to list the DB tables, query it to get an understanding of the logic and functionality, constraints etc.
+
+This feature is in the form of a workflow, which is initiiated in a user form (UI) on the nextJS web app. The components for this are in web/src/features/production/components. (please ignore the adjacent folder "<...>/production/production", this is irrelevant. Just the production/components folder is what we're focusing on.
+
+The barrel export file:@index.ts shows which components are used. The producrtion UI features are in two places:
+- the global layout sidebnar, @app-sidebar.tsx . Specifically, the "Production" dropdown in the sidebar menu. Right now, the only one of the three items in the production sidebar section that is active is the "schedule_distillation". When clicked, this opens a 3-step modal: @create-job-modal.tsx  (three views to click through). 
+
+You'll see the term "job" a lot in the code for this feature. This means a production job, which is an operation in the physical business for transporting and distilling our raw materials. This is the "entry point" table in the supabase `production` schema. We will focus on this schema mainly, though others will be involved later. Always list tables from `public` too when using supabase as some functions and views are defined in public even if they relate to the production schema.
+
+The production form (@production-form.tsx ) is used to generate (insert) a new record into the `jobs` table, and I think it will also insert record(s) into the `operations` table (which is a child table of `jobs`). (When I use table names assume it's `production` schema here).
+
+We are now moving into discussion on the `inventory` schema too. The inventory schema contains tables representing our stock, i.e. the stock that will be scheduled for a production run. There are interlinking relations between these schemas. See `inveetnrory.batches`, `inventory.drums`. The user who fills out the production schedule form will specify a specific `item` to be produced. `invetntory.items` is a reference table (constant, fixed data for our purposees). `items` is a table listing every single distinct raw material item. By `item`, I mean that we can habe two records for the material Acetone, if each is manufactured by a different one of our suppliers. `items` records are unique by the combined index (material_id, supplier_id).
+
+`batches` is a table of actual batches in stock (batches of raw materials/drums). This is a dynamic table, changing as inventory levels change. It has a `total_volume` field.
+
+**Important point on `total_volume`**:

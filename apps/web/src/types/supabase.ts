@@ -1806,6 +1806,13 @@ export type Database = {
             referencedColumns: ["op_id"]
           },
           {
+            foreignKeyName: "distillation_details_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: true
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["op_id"]
+          },
+          {
             foreignKeyName: "distillation_details_still_id_fkey"
             columns: ["still_id"]
             isOneToOne: false
@@ -1848,7 +1855,15 @@ export type Database = {
           status?: Database["production"]["Enums"]["job_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jobs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["item_id"]
+          },
+        ]
       }
       operation_drums: {
         Row: {
@@ -1878,6 +1893,13 @@ export type Database = {
             columns: ["op_id"]
             isOneToOne: false
             referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+          {
+            foreignKeyName: "operation_drums_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
             referencedColumns: ["op_id"]
           },
         ]
@@ -1927,6 +1949,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["job_id"]
           },
+          {
+            foreignKeyName: "operations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["job_id"]
+          },
         ]
       }
       qc_results: {
@@ -1962,6 +1991,13 @@ export type Database = {
             referencedRelation: "operations"
             referencedColumns: ["op_id"]
           },
+          {
+            foreignKeyName: "qc_results_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["op_id"]
+          },
         ]
       }
       split_operations: {
@@ -1989,6 +2025,13 @@ export type Database = {
             columns: ["parent_op_id"]
             isOneToOne: false
             referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+          {
+            foreignKeyName: "split_operations_parent_op_id_fkey"
+            columns: ["parent_op_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
             referencedColumns: ["op_id"]
           },
         ]
@@ -2025,7 +2068,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_operation_schedule: {
+        Row: {
+          batch_code: string | null
+          code: string | null
+          created_at: string | null
+          current_volume: number | null
+          drum_id: string | null
+          ended_at: string | null
+          input_batch_id: string | null
+          item_id: string | null
+          item_name: string | null
+          job_id: string | null
+          job_status: Database["production"]["Enums"]["job_status"] | null
+          max_capacity: number | null
+          op_id: string | null
+          op_status: Database["production"]["Enums"]["op_status"] | null
+          op_type: Database["production"]["Enums"]["op_type"] | null
+          planned_end: string | null
+          planned_start: string | null
+          priority: number | null
+          raw_volume: number | null
+          scheduled_start: string | null
+          serial_number: string | null
+          started_at: string | null
+          still_id: number | null
+          supplier_name: string | null
+          updated_at: string | null
+          volume_transferred: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distillation_details_still_id_fkey"
+            columns: ["still_id"]
+            isOneToOne: false
+            referencedRelation: "stills"
+            referencedColumns: ["still_id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_distillation_job: {
