@@ -1402,6 +1402,7 @@ export type Database = {
           pol_id: string
           serial_number: string
           unit_weight: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string
@@ -1412,6 +1413,7 @@ export type Database = {
           pol_id: string
           serial_number: string
           unit_weight?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string
@@ -1422,6 +1424,7 @@ export type Database = {
           pol_id?: string
           serial_number?: string
           unit_weight?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1449,6 +1452,7 @@ export type Database = {
           quantity: number
           status: string | null
           unit_weight: number | null
+          updated_at: string | null
         }
         Insert: {
           cost?: number | null
@@ -1458,6 +1462,7 @@ export type Database = {
           quantity: number
           status?: string | null
           unit_weight?: number | null
+          updated_at?: string | null
         }
         Update: {
           cost?: number | null
@@ -1467,6 +1472,7 @@ export type Database = {
           quantity?: number
           status?: string | null
           unit_weight?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1570,6 +1576,10 @@ export type Database = {
       }
     }
     Functions: {
+      get_batch_id_from_pol: {
+        Args: { p_pol_id: string }
+        Returns: string
+      }
       receive_delivery: {
         Args: { p_po_id: string; p_item_id: string; p_qty: number }
         Returns: string
@@ -2750,6 +2760,7 @@ export type Database = {
           pol_id: string | null
           received_drums_for_line: number | null
           serial_number: string | null
+          status: string | null
           supplier_name: string | null
           total_drums_for_line: number | null
         }
@@ -2853,6 +2864,7 @@ export type Database = {
           pol_id: string
           serial_number: string
           unit_weight: string | null
+          updated_at: string | null
         }[]
       }
       query_batches_view: {

@@ -13,6 +13,7 @@ interface DrumLabelData {
   purchaseOrderId: string;
   purchaseOrderLineId: string;
   unitWeight: number;
+  materialCode: string;
 }
 
 interface PurchaseOrderLineForLabel {
@@ -78,7 +79,11 @@ export async function fetchDrumLabelData(
             po_id,
             unit_weight,
             items!inner (
-              name
+              name,
+              material_id,
+              materials!inner (
+                code
+              )
             ),
             purchase_orders!inner (
               po_number,
@@ -106,14 +111,15 @@ export async function fetchDrumLabelData(
       console.log(data);
 
       // Transform the data into the format needed for labels
-      return data.map((drum) => ({
+      return data.map((drum: any) => ({
         serialNumber: drum.serial_number,
+        // @ts-expect-error Supabase types may incorrectly infer array due to join
         materialName: drum.purchase_order_lines.items.name,
-        supplierName:
-          drum.purchase_order_lines.purchase_orders.suppliers.name,
+        supplierName: drum.purchase_order_lines.purchase_orders.suppliers.name,
         purchaseOrderId: drum.purchase_order_lines.po_id,
         purchaseOrderLineId: drum.pol_id,
         unitWeight: drum.purchase_order_lines.unit_weight,
+        materialCode: drum.purchase_order_lines.items.materials.code,
       }));
     } catch (error) {
       console.error("[DB] Error in fetchDrumLabelData:", error);

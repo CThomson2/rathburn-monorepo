@@ -158,8 +158,8 @@ export async function GET(
       });
 
       // QR frame + code
-      const qrX = PAGE_WIDTH - 110;
-      const qrY = PAGE_HEIGHT - (180 + margin);
+      const qrX = PAGE_WIDTH - 130;
+      const qrY = PAGE_HEIGHT - (200 + margin);
       const qrImage = await pdfDoc.embedPng(qrCodeBuffer);
       if (qrFrameImage) {
         const frameDim = qrFrameImage.scale(1);
@@ -229,29 +229,32 @@ export async function GET(
       const bDim = barcodeImg.scale(1);
       const bW = Math.min(PAGE_WIDTH * 0.6, bDim.width);
       const bH = 50;
-      const bX = (PAGE_WIDTH - bW) / 2; // Center horizontally
-      const bY = 40; // Moved up from 20 to 40
+      const bX = margin + 65;
+      const bY = 45;
 
       // Draw the barcode without border
       page.drawImage(barcodeImg, { x: bX, y: bY, width: bW, height: bH });
 
       // Draw the serial number text clearly below the barcode
-      const serialText = drum.serialNumber;
-      const serialTextWidth = boldFont.widthOfTextAtSize(serialText, 14);
+      const serialText = drum.materialCode
+        ? `${drum.materialCode}-${drum.serialNumber}`
+        : drum.serialNumber;
+      const serialTextSize = 18;
+      const serialTextWidth = boldFont.widthOfTextAtSize(serialText, serialTextSize);
       page.drawText(serialText, {
-        x: (PAGE_WIDTH - serialTextWidth) / 2, // Center the text
-        y: bY - 20, // Position below the barcode
-        size: 14,
+        x: bX + (bW - serialTextWidth) / 2,
+        y: bY - serialTextSize - 5,
+        size: serialTextSize,
         font: boldFont,
       });
 
       // Draw unit info to the right
-      page.drawText(`Unit ${unitNumber}/${totalUnits}`, {
-        x: PAGE_WIDTH - 100,
-        y: bY - 20,
-        size: 9,
-        font,
-      });
+      // page.drawText(`Unit ${unitNumber}/${totalUnits}`, {
+      //   x: PAGE_WIDTH - 100,
+      //   y: bY - 20,
+      //   size: 9,
+      //   font,
+      // });
     }
 
     // Serialize the PDF

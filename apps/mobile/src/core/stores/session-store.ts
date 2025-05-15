@@ -22,7 +22,7 @@ export interface PurchaseOrderLineTask {
 }
 
 // Interface for the actual shape of the objects returned by the get_pending_purchase_orders RPC
-interface RpcPendingPurchaseOrderLine {
+export interface RpcPendingPurchaseOrderLine {
   pol_id: string; // Essential for unique task ID
   po_id: string;
   po_number: string;
@@ -145,7 +145,7 @@ function generateUUID() {
 function getDeviceId(): string {
   let deviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
   if (!deviceId) {
-    deviceId = import.meta.env.VITE_DEVICE_ID || generateUUID();
+    deviceId = (import.meta.env.VITE_DEVICE_ID || generateUUID()) as string;
     localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
     console.log('[SessionStore] New Device ID generated and stored:', deviceId);
   } else {
@@ -158,7 +158,7 @@ function getDeviceId(): string {
       // localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
     }
   }
-  return deviceId;
+  return deviceId as string;
 }
 
 // type InventoryTables = Database['inventory']['Tables'];
@@ -209,7 +209,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             .from('purchase_order_drums')
             .select('serial_number, is_received', { count: 'exact' })
             .eq('pol_id', line.pol_id)
-            .eq('is_received', true);
+            .eq('is_received', true)
+            .order('serial_number', { ascending: false });
           
           let receivedCount = 0;
           if (drumsError) {
@@ -217,16 +218,22 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           } else {
             receivedCount = drumsData?.length || 0;
           }
-          tasks.push({
-            id: line.pol_id, 
-            po_id: line.po_id,
-            poNumber: line.po_number,
-            supplier: line.supplier,
-            item: line.item,
-            totalQuantity: line.quantity,
-            receivedQuantity: receivedCount,
-            remainingQuantity: line.quantity - receivedCount,
-          });
+
+          console.log(`[SessionStore] Task Check: PO: ${line.po_number}, Item: ${line.item}, Line Quantity: ${line.quantity}, Received Count: ${receivedCount}`);
+
+          // Only add tasks that are not yet fully completed
+          if (line.quantity - receivedCount > 0) {
+            tasks.push({
+              id: line.pol_id, 
+              po_id: line.po_id,
+              poNumber: line.po_number,
+              supplier: line.supplier,
+              item: line.item,
+              totalQuantity: line.quantity,
+              receivedQuantity: receivedCount,
+              remainingQuantity: line.quantity - receivedCount,
+            });
+          }
         }
       }
       set({ availableTasks: tasks, isFetchingTasks: false });
@@ -420,6 +427,16 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       if (response.ok && result.success && result.session && result.session.id) {
         const activeSessionFromServer = result.session;
         console.log('[SessionStore] Session from server:', activeSessionFromServer);
+
+         // IMPORTANT: We need to ensure this activeSessionFromServer is meant for *this specific device*.
+        // The SQL trigger handles conflicts *on insert*, but sync needs to be careful.
+        // If the API `/api/scanner/sessions` doesn't filter by device_id, we must do it here.
+        // Assuming `activeSessionFromServer.device_id` would be the field if the API provides it directly.
+        // For now, let's assume the current API returns *any* active session for the user.
+        // We will only resume if the session from the server has a device_id in its metadata
+        // that matches our clientGeneratedDeviceId OR if the session object itself has a device_id field matching.
+        // For this example, I'm assuming the backend session object might have `activeSessionFromServer.device_id`
+        // If not, and it's in metadata, that path is also partially handled above with serverSessionDeviceId.
 
         // Directly compare the device_id from the server session with the client's device_id
         if (activeSessionFromServer.device_id === clientGeneratedDeviceId) {
