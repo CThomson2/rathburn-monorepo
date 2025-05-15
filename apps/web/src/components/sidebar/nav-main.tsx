@@ -18,12 +18,18 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { OrderModalTrigger } from "@/features/orders/components/order-modal-trigger";
+import { ModalTrigger } from "@/components/sidebar/modal-trigger";
 
 export type SidebarItemAction = {
   title: string;
   url?: string;
-  action?: "place_order" | "log_details" | "print_labels";
+  action?:
+    | "place_order"
+    | "log_details"
+    | "print_labels"
+    | "schedule_distillation"
+    | "manage_production"
+    | "transport_stock";
 };
 
 export interface NavMainProps {
@@ -61,11 +67,11 @@ export function NavMain({ items }: NavMainProps) {
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       {subItem.action ? (
-                        <OrderModalTrigger actionType={subItem.action}>
+                        <ModalTrigger actionType={subItem.action}>
                           <SidebarMenuSubButton>
                             <span>{subItem.title}</span>
                           </SidebarMenuSubButton>
-                        </OrderModalTrigger>
+                        </ModalTrigger>
                       ) : (
                         <SidebarMenuSubButton asChild>
                           <Link href={subItem.url || "#"}>

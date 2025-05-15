@@ -1034,36 +1034,6 @@ export type Database = {
         }
         Relationships: []
       }
-      stills: {
-        Row: {
-          code: string
-          is_operational: boolean
-          is_vacuum: boolean
-          max_capacity: number
-          notes: string | null
-          power_rating_kw: number
-          still_id: number
-        }
-        Insert: {
-          code: string
-          is_operational: boolean
-          is_vacuum: boolean
-          max_capacity: number
-          notes?: string | null
-          power_rating_kw: number
-          still_id?: number
-        }
-        Update: {
-          code?: string
-          is_operational?: boolean
-          is_vacuum?: boolean
-          max_capacity?: number
-          notes?: string | null
-          power_rating_kw?: number
-          still_id?: number
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -1576,7 +1546,7 @@ export type Database = {
       }
     }
     Functions: {
-      get_batch_id_from_pol: {
+      get_batch_id_from_pol_id: {
         Args: { p_pol_id: string }
         Returns: string
       }
@@ -1833,6 +1803,13 @@ export type Database = {
             referencedRelation: "operations"
             referencedColumns: ["op_id"]
           },
+          {
+            foreignKeyName: "distillation_details_still_id_fkey"
+            columns: ["still_id"]
+            isOneToOne: false
+            referencedRelation: "stills"
+            referencedColumns: ["still_id"]
+          },
         ]
       }
       jobs: {
@@ -2014,11 +1991,52 @@ export type Database = {
           },
         ]
       }
+      stills: {
+        Row: {
+          code: string
+          is_operational: boolean
+          is_vacuum: boolean
+          max_capacity: number
+          notes: string | null
+          power_rating_kw: number
+          still_id: number
+        }
+        Insert: {
+          code: string
+          is_operational: boolean
+          is_vacuum: boolean
+          max_capacity: number
+          notes?: string | null
+          power_rating_kw: number
+          still_id?: number
+        }
+        Update: {
+          code?: string
+          is_operational?: boolean
+          is_vacuum?: boolean
+          max_capacity?: number
+          notes?: string | null
+          power_rating_kw?: number
+          still_id?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_distillation_job: {
+        Args: {
+          p_item_id: string
+          p_batch_id: string
+          p_planned_start: string
+          p_still_id: number
+          p_raw_volume: number
+          p_priority?: number
+        }
+        Returns: string
+      }
       create_transport_task: {
         Args: { p_drum_id: string; p_created_by?: string }
         Returns: {
@@ -2593,6 +2611,7 @@ export type Database = {
           drum_count: number | null
           drums_in_stock: number | null
           input_recorded_at: string | null
+          item_id: string | null
           item_name: string | null
           material_name: string | null
           po_number: string | null
@@ -2864,31 +2883,6 @@ export type Database = {
           pol_id: string
           serial_number: string
           unit_weight: string | null
-          updated_at: string | null
-        }[]
-      }
-      query_batches_view: {
-        Args: {
-          p_search?: string
-          p_batch_type?: string
-          p_chemical_group?: string
-          p_date_from?: string
-          p_date_to?: string
-        }
-        Returns: {
-          batch_code: string | null
-          batch_id: string | null
-          batch_type: string | null
-          chemical_group: string | null
-          created_at: string | null
-          drum_count: number | null
-          drums_in_stock: number | null
-          input_recorded_at: string | null
-          item_name: string | null
-          material_name: string | null
-          po_number: string | null
-          supplier_name: string | null
-          total_volume: number | null
           updated_at: string | null
         }[]
       }

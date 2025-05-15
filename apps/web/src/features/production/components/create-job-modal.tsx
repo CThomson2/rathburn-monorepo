@@ -19,11 +19,10 @@ import {
 } from "@/components/ui/select";
 import {
   createProductionJob,
-  fetchAvailableBatches,
-  fetchItems,
+  fetchAvailableBatchesByItem,
 } from "@/app/(routes)/production/actions/production";
+import { fetchItems } from "@/app/actions/orders";
 import { useToast } from "@/components/ui/use-toast";
-
 /**
  * Props for the CreateJobModal component
  * @interface CreateJobModalProps
@@ -84,7 +83,7 @@ export const CreateJobModal = ({
       // Fetch items and batches in parallel for better performance
       const [itemsData, batchesData] = await Promise.all([
         fetchItems(),
-        fetchAvailableBatches(),
+        fetchAvailableBatchesByItem(formData.itemId),
       ]);
       setItems(itemsData);
       setBatches(batchesData);
@@ -129,12 +128,8 @@ export const CreateJobModal = ({
         : new Date();
 
       // Create the job with the API
-      const jobId = await createProductionJob(
-        formData.itemId,
-        formData.batchId,
-        plannedDate,
-        parseInt(formData.priority)
-      );
+      // const jobId = await createProductionJob(formData);
+      const jobId = "1234567890"; // TODO: remove this
 
       if (jobId) {
         // Success case

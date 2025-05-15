@@ -1,0 +1,101 @@
+diff --git a/apps/web/src/app/page.tsx b/apps/web/src/app/page.tsx
+index b05e387..7e17c20 100644
+--- a/apps/web/src/app/page.tsx
++++ b/apps/web/src/app/page.tsx
+@@ -1,7 +1,12 @@
++"use client";
++
++import { useState } from "react";
+ import { createClient, createServiceClient } from "@/lib/supabase/server";
+ import { Lamp } from "@/components/layout/lamp-view";
+ import { RealtimeFeedCentered } from "@/components/realtime/centered-feed";
+ import { Database, Json } from "@/types/supabase";
++import { BentoGrid } from "@/components/layout/bento-grid";
++import { OrderModal } from "@/features/orders/components/order-modal";
+ 
+ // Updated interface to match public.session_scans
+ interface SessionScanData {
+@@ -23,49 +28,19 @@ interface SessionScanData {
+   metadata?: Json | null;
+ }
+ 
+-/**
+- * Index function for fetching and displaying initial session scans.
+- *
+- * This function establishes a Supabase client to interact with the database.
+- * It fetches the latest session scans from the "session_scans" table, optionally
+- * joining the "user_profiles" table to include user email information. The data
+- * is ordered by the creation date in descending order and limited to the latest
+- * 20 entries for initial display purposes.
+- *
+- * If an error occurs during the data fetching process, it logs the error and
+- * handles it appropriately, potentially returning an empty array or an error state.
+- *
+- * The fetched data is then transformed to match the expected structure for components
+- * like RealtimeFeedCentered or RealtimeScanLogSidebar. The function returns a JSX
+- * element containing a container with a Lamp component.
+- */
+-
+-export default async function Index() {
+-  const supabase = createServiceClient();
+-
+-  // Fetch initial scans from the new public.session_scans table
+-  const { data: initialScans, error } = await supabase
+-    .from("session_scans") // UPDATED table name
+-    .select("*") // Example of joining user_profiles if you have it and want email
+-    // If user_profiles table is not set up or desired, use .select("*")
+-    .order("created_at", { ascending: false })
+-    .limit(20); // Fetch a bit more for the sidebar initially
++export default function IndexPage() {
++  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+ 
+-  if (error) {
+-    console.error("Error fetching initial session scans:", error);
+-    // Handle error appropriately, maybe pass an empty array or an error state
+-  }
++  const handleOpenOrderModal = () => {
++    setIsOrderModalOpen(true);
++  };
+ 
+-  // Transform data if necessary to match the expected structure for RealtimeFeedCentered
+-  // or RealtimeScanLogSidebar. For now, assuming direct compatibility or minor adjustments.
+-  const typedInitialScans: SessionScanData[] =
+-    initialScans?.map((scan) => ({
+-      ...(scan as any), // Cast to any to handle potential joined fields like user_profiles
+-      user_email: (scan as any).user_profiles?.email || null,
+-    })) || [];
++  // Placeholder KPI data - replace with actual data fetching if needed
++  const placeholderTotalDrums = 125; // Example value
++  const placeholderItemsBelowThreshold = 15; // Example value
+ 
+   return (
+-    <div className="container mx-auto py-6">
++    <div className="container mx-auto">
+       <Lamp>
+         {/* 
+           The RealtimeFeedCentered component was for the previous feed. 
+@@ -73,6 +48,24 @@ export default async function Index() {
+           This page.tsx might display other content or a different view of scans.
+           For now, I'll keep it, but its role might change.
+         */}
++        {/* <RealtimeFeedCentered
++          apiUrl={supabaseUrl}
++          apiKey={supabaseAnonKey}
++          initialScans={typedInitialScans} // Pass the correctly typed and potentially transformed scans
++        /> */}
++
++        {/* Add BentoGrid below Lamp */}
++        <BentoGrid
++          onOpenOrderModal={handleOpenOrderModal}
++          totalDrums={placeholderTotalDrums}
++          itemsBelowThreshold={placeholderItemsBelowThreshold}
++        />
++
++        {/* Add OrderModal */}
++        <OrderModal
++          open={isOrderModalOpen}
++          onOpenChange={setIsOrderModalOpen}
++        />
+       </Lamp>
+     </div>
+   );

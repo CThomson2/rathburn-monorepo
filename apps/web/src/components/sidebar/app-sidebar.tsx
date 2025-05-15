@@ -88,15 +88,15 @@ const data = {
       items: [
         {
           title: "Schedule Distillation",
-          url: "#",
+          action: "schedule_distillation" as const,
         },
         {
           title: "Transport Stock",
-          url: "#",
+          action: "transport_stock" as const,
         },
         {
           title: "Manage Production",
-          url: "#",
+          action: "manage_production" as const,
         },
       ],
     },
@@ -106,20 +106,16 @@ const data = {
       icon: Boxes,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Drums",
+          url: "/drums",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "Batches",
+          url: "/batches",
         },
         {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
+          title: "Solvents",
+          url: "/solvents",
         },
       ],
     },
@@ -159,21 +155,21 @@ const data = {
     },
   ],
   projects: [
-    {
-      name: "Initial Stock Count",
-      url: "#",
-      icon: ScanBarcode,
-    },
-    {
-      name: "Business Data Review",
-      url: "#",
-      icon: DatabaseZapIcon,
-    },
-    {
-      name: "Training",
-      url: "#",
-      icon: GraduationCap,
-    },
+    // {
+    //   name: "Initial Stock Count",
+    //   url: "#",
+    //   icon: ScanBarcode,
+    // },
+    // {
+    //   name: "Business Data Review",
+    //   url: "#",
+    //   icon: DatabaseZapIcon,
+    // },
+    // {
+    //   name: "Training",
+    //   url: "#",
+    //   icon: GraduationCap,
+    // },
     {
       name: "Database",
       url: process.env.NEXT_PUBLIC_SUPABASE_URL

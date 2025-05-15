@@ -2,324 +2,220 @@
 
 import { executeServerDbOperation } from "@/lib/database";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Order, mapJobStatusToOrderStatus, getProgressFromStatus, getPriorityFromJob } from "@/features/production/types";
+import {
+  Order,
+  mapJobStatusToOrderStatus,
+  getProgressFromStatus,
+  getPriorityFromJob,
+} from "@/features/production/types";
+import { fetchSuppliers, fetchItemsBySupplier } from "@/app/actions/orders";
+
+/***************************
+ * READ ACTIONS
+ ***************************/
 
 /**
- * Fetches all production jobs from the database
- * 
- * @returns {Promise<Order[]>} Array of production orders formatted for the UI
- * @description Retrieves all production jobs with their related operations and drum information,
- *              then transforms them into the Order format expected by the UI components
+ * Returns a list of upcoming / recent production jobs.
+ * Joins helper tables to give the UI meaningful strings.
  */
 export async function fetchProductionJobs(): Promise<Order[]> {
-  try {
-    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
-      // Fetch jobs using an RPC function that accesses the view
-      const { data: jobs, error } = await supabase
-      .schema('production')
-      .from('jobs')
-      // .rpc('get_production_jobs')
-      .select(`
-        job_id,
-        item_id,
-        input_batch_id,
-        status,
-        priority,
-        planned_start,
-        planned_end,
-        created_at,
-        updated_at,
-        items:item_id (
-          name,
-          suppliers:supplier_id (
-            name
-          )
-        ),
-        operations!job_id (
-          op_id,
-          op_type,
-          status,
-          scheduled_start,
-          started_at,
-          ended_at,
-          operation_drums!op_id (
-            drum_id,
-            drums!drum_id (
-              serial_number,
-              current_volume,
-              current_location,
-              locations!current_location (
-                name
-              )
-            )
-          )
-        )
-      `)
-      // .select('*')
-      .order('created_at', { ascending: false });
-        
-      // If the RPC function is not available, you need to create it first:
-      // CREATE OR REPLACE FUNCTION get_production_jobs()
-      // RETURNS SETOF ui.v_production_jobs
-      // LANGUAGE sql
-      // SECURITY DEFINER
-      // AS $$
-      //   SELECT * FROM ui.v_production_jobs ORDER BY created_at DESC;
-      // $$;
+  return executeServerDbOperation(async (supabase: SupabaseClient) => {
+    // A simple query for now – can be replaced with a dedicated view later.
+    const { data: jobs, error } = await supabase
+      .schema("production")
+      .from("jobs")
+      .select(
+        `job_id,
+         item_id,
+         input_batch_id,
+         status,
+         priority,
+         planned_start,
+         planned_end,
+         created_at,
+         updated_at,
+         items:item_id ( name, suppliers:supplier_id ( name ) ),
+         batches:input_batch_id ( batch_code ),
+         operations!job_id ( op_id, op_type, status, scheduled_start, started_at, ended_at )`
+      )
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        // console.error('Error fetching production jobs:', error);
-        return [];
-      }
+    if (error || !jobs) {
+      console.error("[fetchProductionJobs]", error);
+      return [];
+    }
 
-      // Transform the database data into the Order type expected by the UI
-      return jobs.map((job: any) => {
-        // Count the drums across all operations and ensure uniqueness
-        const allDrums = job.operations?.flatMap((op: any) => op.operation_drums || []) || [];
-        const uniqueDrumIds = new Set(allDrums.map((d: any) => d.drum_id));
-        
-        return {
-          id: `ORD-${job.job_id.substring(0, 8)}`,
-          itemName: job.item_name || 'Unknown Item',
-          supplier: job.supplier_name || 'Unknown Supplier',
-          quantity: job.drum_quantity || 0,
-          scheduledDate: job.planned_start || job.created_at,
-          status: mapJobStatusToOrderStatus(job.status),
-          progress: getProgressFromStatus(job.status),
-          priority: getPriorityFromJob(job),
-          // Format drum information for UI display
-          drums: allDrums.map((drumOp: any) => ({
-            id: drumOp.drum_id,
-            serial: drumOp.drums?.serial_number || 'Unknown',
-            volume: drumOp.drums?.current_volume || 0,
-            location: drumOp.drums?.locations?.name || 'Unknown Location'
-          })),
-          // Create task list from operations
-          tasks: job.operations?.map((op: any) => ({
-            name: `${op.op_type.charAt(0).toUpperCase() + op.op_type.slice(1)} operation`,
-            completed: op.status === 'completed',
-            assignedTo: '' // No assigned user in the current data model
-          })) || [],
-          // Generate timeline events from operation start/end timestamps
-          timeline: job.operations
-            ?.filter((op: any) => op.started_at || op.ended_at)
-            .flatMap((op: any) => {
-              const events = [];
-              if (op.started_at) {
-                events.push({
-                  event: `${op.op_type} started`,
-                  timestamp: op.started_at,
-                  user: 'System'
-                });
-              }
-              if (op.ended_at) {
-                events.push({
-                  event: `${op.op_type} completed`,
-                  timestamp: op.ended_at,
-                  user: 'System'
-                });
-              }
-              return events;
-            })
-            .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) || []
-        };
-      });
-    });
-  } catch (error) {
-    console.error('Unexpected error fetching jobs:', error);
-    return [];
-  }
+    return jobs.map((job: any) => ({
+      id: `JOB-${job.job_id.slice(0, 8)}`,
+      itemName: job.items?.name ?? "Unknown Item",
+      supplier: job.items?.suppliers?.name ?? "Unknown Supplier",
+      quantity: 0, // placeholder until operation_drums implemented
+      scheduledDate: job.planned_start ?? job.created_at,
+      status: mapJobStatusToOrderStatus(job.status),
+      progress: getProgressFromStatus(job.status),
+      priority: getPriorityFromJob(job),
+      drums: [],
+      tasks: job.operations?.map((op: any) => ({
+        name: `${op.op_type}`,
+        completed: op.status === "completed",
+        assignedTo: "",
+      })) ?? [],
+      timeline:
+        job.operations
+          ?.filter((op: any) => op.started_at || op.ended_at)
+          .flatMap((op: any) => {
+            const events = [] as any[];
+            if (op.started_at) {
+              events.push({
+                event: `${op.op_type} started`,
+                timestamp: op.started_at,
+                user: "system",
+              });
+            }
+            if (op.ended_at) {
+              events.push({
+                event: `${op.op_type} completed`,
+                timestamp: op.ended_at,
+                user: "system",
+              });
+            }
+            return events;
+          })
+          .sort((a: any, b: any) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          ) ?? [],
+    }));
+  });
+}
+
+/** Fetch all operational stills for dropdown */
+export async function fetchStills(): Promise<
+  Array<{ still_id: number; code: string; max_capacity: number }>
+> {
+  return executeServerDbOperation(async (supabase) => {
+    const { data, error } = await supabase
+      .schema("production")
+      .from("stills")
+      .select("still_id, code, max_capacity")
+      .eq("is_operational", true)
+      .order("code");
+
+    if (error) {
+      console.error("[fetchStills]", error);
+      return [];
+    }
+    return data as Array<{ still_id: number; code: string; max_capacity: number }>;
+  });
 }
 
 /**
- * Creates a new production job
- * 
- * @param {string} itemId - The ID of the item to be produced
- * @param {string} batchId - The ID of the input batch to use
- * @param {Date} plannedStart - The planned start date for the job
- * @param {number} priority - The priority level (1-10, default: 5)
- * @returns {Promise<string|null>} The ID of the created job or null if creation failed
- * @description Creates a new production job record and initializes the required operations
+ * Returns batches containing the requested item with drums currently in stock.
  */
-export async function createProductionJob(
-  itemId: string,
-  batchId: string,
-  plannedStart: Date,
-  priority: number = 5
-): Promise<string | null> {
+export async function fetchAvailableBatchesByItem(
+  itemId: string
+): Promise<
+  Array<{ batch_id: string; batch_code: string | null; drums_in_stock: number }>
+> {
+  if (!itemId) return [];
+  return executeServerDbOperation(async (supabase) => {
+    const { data, error } = await supabase
+      .from("v_batches_with_drums")
+      .select("batch_id, batch_code, drums_in_stock")
+      .eq("item_id", itemId)
+      .gt("drums_in_stock", 0);
+
+    if (error) {
+      console.error("[fetchAvailableBatchesByItem]", error);
+      return [];
+    }
+    return data as Array<{ batch_id: string; batch_code: string | null; drums_in_stock: number }>;
+  });
+}
+
+/***************************
+ * WRITE ACTIONS
+ ***************************/
+
+interface ProductionFormData {
+  itemId: string;
+  batchId: string;
+  plannedDate: string; // ISO string
+  stillId: number;
+  rawVolume: number;
+  priority?: number;
+}
+
+/**
+ * Parse formData sent from ProductionForm (client component)
+ */
+function parseProductionFormData(formData: FormData): ProductionFormData | null {
   try {
-    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
-      // Insert the new job record
-      const { data, error } = await supabase
-        .from('production.jobs')
-        .insert({
-          item_id: itemId,
-          input_batch_id: batchId,
-          planned_start: plannedStart.toISOString(),
-          priority: priority,
-          status: 'scheduled'
-        })
-        .select('job_id')
-        .single();
-      
-      if (error) {
-        console.error('Error creating production job:', error);
-        return null;
-      }
+    const itemId = formData.get("itemId") as string;
+    const batchId = formData.get("batchId") as string;
+    const plannedDate = formData.get("plannedDate") as string;
+    const stillIdStr = formData.get("stillId") as string;
+    const rawVolumeStr = formData.get("rawVolume") as string;
+    const priorityStr = formData.get("priority") as string | null;
 
-      // Create initial transport operation for this job
-      if (data?.job_id) {
-        await createInitialOperations(supabase, data.job_id);
-        return data.job_id;
-      }
-
+    if (!itemId || !batchId || !plannedDate || !stillIdStr || !rawVolumeStr) {
       return null;
-    });
-  } catch (error) {
-    console.error('Unexpected error creating job:', error);
+    }
+
+    return {
+      itemId,
+      batchId,
+      plannedDate,
+      stillId: parseInt(stillIdStr, 10),
+      rawVolume: parseFloat(rawVolumeStr),
+      priority: priorityStr ? parseInt(priorityStr, 10) : undefined,
+    };
+  } catch (err) {
+    console.error("[parseProductionFormData]", err);
     return null;
   }
 }
 
 /**
- * Creates the initial set of operations for a new job
- * 
- * @param {SupabaseClient} supabase - The Supabase client instance
- * @param {string} jobId - The ID of the job to create operations for
- * @returns {Promise<boolean>} Success status of the operation creation
- * @description Sets up the initial transport operation required for a new production job
+ * Server action – creates a new distillation job via the DB function.
  */
-async function createInitialOperations(supabase: SupabaseClient, jobId: string): Promise<boolean> {
-  try {
-    // Create transport operation as the first step in the production process
-    const { error } = await supabase
-      .from('production.operations')
-      .insert({
-        job_id: jobId,
-        op_type: 'transport',
-        status: 'pending'
+export async function createProductionJob(formData: FormData): Promise<{
+  success: boolean;
+  jobId?: string;
+  message?: string;
+}> {
+  const parsed = parseProductionFormData(formData);
+  if (!parsed) {
+    return { success: false, message: "Missing or invalid form fields" };
+  }
+
+  const { itemId, batchId, plannedDate, stillId, rawVolume, priority } = parsed;
+
+  return executeServerDbOperation(async (supabase) => {
+    const { data, error } = await supabase
+      .schema("production")
+    .rpc("create_distillation_job", {
+        p_item_id: itemId,
+        p_batch_id: batchId,
+        p_planned_start: plannedDate,
+        p_still_id: stillId,
+        p_raw_volume: rawVolume,
+        p_priority: priority ?? 10,
       });
 
     if (error) {
-      console.error('Error creating initial operations:', error);
-      return false;
+      console.error("[createProductionJob]", error);
+      return { success: false, message: error.message };
     }
 
-    return true;
-  } catch (error) {
-    console.error('Unexpected error creating operations:', error);
-    return false;
-  }
+    return { success: true, jobId: data as string };
+  });
 }
 
-/**
- * Updates an existing production job
- * 
- * @param {string} jobId - The ID of the job to update
- * @param {Object} updates - The fields to update
- * @param {string} [updates.status] - New job status
- * @param {number} [updates.priority] - New priority level
- * @param {Date} [updates.planned_start] - New planned start date
- * @returns {Promise<boolean>} Success status of the update operation
- * @description Updates specified fields of an existing production job
- */
-export async function updateProductionJob(
-  jobId: string,
-  updates: {
-    status?: string;
-    priority?: number;
-    planned_start?: Date;
-  }
-): Promise<boolean> {
-  try {
-    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
-      // Build update object with only the fields that need to be updated
-      const updateData: any = {};
-      
-      if (updates.status) updateData.status = updates.status;
-      if (updates.priority !== undefined) updateData.priority = updates.priority;
-      if (updates.planned_start) updateData.planned_start = updates.planned_start.toISOString();
-      
-      const { error } = await supabase
-        .from('production.jobs')
-        .update(updateData)
-        .eq('job_id', jobId);
-      
-      if (error) {
-        console.error('Error updating production job:', error);
-        return false;
-      }
+/***************************
+ * SHARED DROPDOWN HELPERS
+ ***************************/
 
-      return true;
-    });
-  } catch (error) {
-    console.error('Unexpected error updating job:', error);
-    return false;
-  }
-}
+// We simply re-export the supplier & item helpers from orders actions so the
+// production form can import from a single location.
 
-/**
- * Fetches available batches that can be used for new jobs
- * 
- * @returns {Promise<any[]>} Array of available batches with drum information
- * @description Retrieves batches that have drums in stock and can be used for production
- */
-export async function fetchAvailableBatches() {
-  try {
-    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
-      // Only fetch batches that have at least one drum in stock
-      const { data, error } = await supabase
-        .from('ui.v_batches_with_drums')
-        .select('*')
-        .gt('drums_in_stock', 0);
-      
-      if (error) {
-        console.error('Error fetching available batches:', error);
-        return [];
-      }
-
-      return data;
-    });
-  } catch (error) {
-    console.error('Unexpected error fetching batches:', error);
-    return [];
-  }
-}
-
-/**
- * Fetches all items for job creation
- * 
- * @returns {Promise<any[]>} Array of inventory items with supplier and material information
- * @description Retrieves all inventory items that can be used in production jobs
- */
-export async function fetchItems() {
-  try {
-    return await executeServerDbOperation(async (supabase: SupabaseClient) => {
-      // Fetch items with their related supplier and material information
-      const { data, error } = await supabase
-        .from('inventory.items')
-        .select(`
-          item_id,
-          name,
-          supplier:supplier_id (
-            supplier_id,
-            name
-          ),
-          material:material_id (
-            material_id,
-            name
-          )
-        `);
-      
-      if (error) {
-        console.error('Error fetching items:', error);
-        return [];
-      }
-
-      return data;
-    });
-  } catch (error) {
-    console.error('Unexpected error fetching items:', error);
-    return [];
-  }
-}
+export { fetchSuppliers, fetchItemsBySupplier };

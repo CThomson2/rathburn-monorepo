@@ -73,6 +73,10 @@ const DrumInventoryGrid: React.FC = () => {
   const [page, setPage] = useState(1);
   const [selectedDrum, setSelectedDrum] = useState<DrumDetailView | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedLocationName, setSelectedLocationName] = useState<
+    string | null
+  >(null);
+  const [isAssigning, setIsAssigning] = useState(false);
   const supabase = createClient();
 
   const fetchDrums = useCallback(
@@ -209,9 +213,79 @@ const DrumInventoryGrid: React.FC = () => {
     setPage(1);
   };
 
-  const handleDrumClick = (drum: DrumDetailView) => {
+  const handleDrumClick = async (drum: DrumDetailView) => {
     setSelectedDrum(drum);
     setIsDrawerOpen(true);
+
+    // Fetch location name for the selected drum (if location_id present)
+    if (drum.current_location) {
+      try {
+        const { data, error } = await supabase
+          .schema("inventory")
+          .from("locations")
+          .select("name")
+          .eq("location_id", drum.current_location)
+          .single();
+
+        if (error) {
+          console.error("Error fetching location name:", error);
+          setSelectedLocationName(null);
+        } else {
+          setSelectedLocationName(
+            (data as { name: string } | null)?.name ?? null
+          );
+        }
+      } catch (err) {
+        console.error("Unexpected error fetching location name:", err);
+        setSelectedLocationName(null);
+      }
+    } else {
+      setSelectedLocationName(null);
+    }
+  };
+
+  const handleAssignToProductionRun = async () => {
+    if (!selectedDrum) {
+      alert("No drum selected.");
+      return;
+    }
+    setIsAssigning(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        alert("You must be logged in to assign a drum to production.");
+        console.error("User error:", userError);
+        setIsAssigning(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .schema("production")
+        .rpc("create_transport_task", {
+          p_drum_id: selectedDrum.drum_id,
+          p_created_by: user.id,
+        });
+
+      if (error) {
+        console.error("Error assigning drum to production run:", error);
+        alert(`Failed to assign drum: ${error.message}`);
+      } else {
+        alert(
+          `Drum ${selectedDrum.serial_number || selectedDrum.drum_id} assigned to production run. Job ID: ${data[0]?.job_id}, Op ID: ${data[0]?.op_id}`
+        );
+        // Optionally, you might want to update the UI or close the drawer
+        // For now, just log and alert
+        console.log("Assignment successful:", data);
+      }
+    } catch (rpcError) {
+      console.error("RPC error:", rpcError);
+      alert("An unexpected error occurred while assigning the drum.");
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   const handleDownloadLabel = async (polId: string | null) => {
@@ -372,7 +446,7 @@ const DrumInventoryGrid: React.FC = () => {
                         Location
                       </Label>
                       <p className="font-medium text-sm">
-                        {selectedDrum.current_location || "--"}
+                        {selectedLocationName || "--"}
                       </p>
                     </div>
                     <div>
@@ -389,9 +463,11 @@ const DrumInventoryGrid: React.FC = () => {
                   <Button
                     variant="outline"
                     className="w-full justify-between"
-                    disabled
+                    onClick={handleAssignToProductionRun}
+                    disabled={!selectedDrum || isAssigning}
                   >
-                    Assign to Production Run <span>&rarr;</span>
+                    {isAssigning ? "Assigning..." : "Assign to Production Run"}{" "}
+                    <span>&rarr;</span>
                   </Button>
                   <Button
                     variant="outline"
