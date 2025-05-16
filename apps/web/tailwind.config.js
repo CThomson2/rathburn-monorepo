@@ -64,6 +64,14 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          card: "hsl(var(--sidebar-card))",
+          cardForeground: "hsl(var(--sidebar-card-foreground))",
+          muted: "hsl(var(--sidebar-muted))",
+          mutedForeground: "hsl(var(--sidebar-muted-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

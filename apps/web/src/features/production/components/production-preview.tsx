@@ -86,7 +86,7 @@ export function ProductionPreview({ onCreateJob }: ProductionPreviewProps) {
             {data.map((job) => (
               <TableRow key={job.id}>
                 <TableCell className="font-medium text-slate-600">
-                  {job.id}
+                  {job.id.slice(0, 8)}
                 </TableCell>
                 <TableCell>{job.itemName}</TableCell>
                 <TableCell>{formatDate(job.scheduledDate)}</TableCell>

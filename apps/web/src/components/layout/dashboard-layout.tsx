@@ -155,7 +155,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </Suspense>
           </main>
         </div>
-        <div className="w-80 hidden lg:block border-l border-border overflow-y-auto bg-background">
+        <div className="w-120 hidden lg:block border-l border-border overflow-y-auto bg-sidebar">
           <RealtimeScanLogSidebar />
         </div>
       </div>

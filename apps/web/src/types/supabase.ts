@@ -2071,17 +2071,18 @@ export type Database = {
       v_operation_schedule: {
         Row: {
           batch_code: string | null
-          code: string | null
-          created_at: string | null
-          current_volume: number | null
+          drum_current_volume: number | null
           drum_id: string | null
+          drum_serial_number: string | null
           ended_at: string | null
           input_batch_id: string | null
           item_id: string | null
           item_name: string | null
+          job_created_at: string | null
           job_id: string | null
           job_status: Database["production"]["Enums"]["job_status"] | null
-          max_capacity: number | null
+          job_updated_at: string | null
+          op_created_at: string | null
           op_id: string | null
           op_status: Database["production"]["Enums"]["op_status"] | null
           op_type: Database["production"]["Enums"]["op_type"] | null
@@ -2090,11 +2091,11 @@ export type Database = {
           priority: number | null
           raw_volume: number | null
           scheduled_start: string | null
-          serial_number: string | null
           started_at: string | null
+          still_code: string | null
           still_id: number | null
+          still_max_capacity: number | null
           supplier_name: string | null
-          updated_at: string | null
           volume_transferred: number | null
         }
         Relationships: [
@@ -2258,7 +2259,6 @@ export type Database = {
           raw_barcode: string
           scan_action: Database["public"]["Enums"]["scan_action_type"]
           scan_status: Database["public"]["Enums"]["scan_status_type"]
-          scanned_at: string
           session_id: string | null
           user_id: string | null
         }
@@ -2275,7 +2275,6 @@ export type Database = {
           raw_barcode: string
           scan_action: Database["public"]["Enums"]["scan_action_type"]
           scan_status: Database["public"]["Enums"]["scan_status_type"]
-          scanned_at?: string
           session_id?: string | null
           user_id?: string | null
         }
@@ -2292,7 +2291,6 @@ export type Database = {
           raw_barcode?: string
           scan_action?: Database["public"]["Enums"]["scan_action_type"]
           scan_status?: Database["public"]["Enums"]["scan_status_type"]
-          scanned_at?: string
           session_id?: string | null
           user_id?: string | null
         }

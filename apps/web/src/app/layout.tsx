@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
+import { authRoutes } from "@/types/auth";
+
 import "@/styles/globals.css";
 
 export const dynamic = "force-dynamic";
@@ -46,13 +48,9 @@ export const metadata: Metadata = {
 };
 
 function isAuthPage(pathname: string) {
-  const isAuth =
-    pathname.startsWith("/sign-in") ||
-    pathname.startsWith("/sign-up") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/auth/callback") ||
-    pathname.includes("(auth-pages)");
+  const isAuth = Object.values(authRoutes).some((route) =>
+    pathname.startsWith(route)
+  );
 
   console.log(`[LAYOUT DEBUG] Pathname: ${pathname}, isAuth: ${isAuth}`);
 

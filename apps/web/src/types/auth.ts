@@ -2,6 +2,15 @@
 // ideally, we want to keep these api related types in sync
 // with the backend instead of manually writing them out
 
+export const authRoutes = {
+  authGroup: "(auth-pages)",
+  signIn: "/sign-in",
+  signUp: "/sign-up",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
+  callback: "/auth/callback",
+}
+
 export type BaseEntity = {
   id: string;
   createdAt: number;

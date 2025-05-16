@@ -22,6 +22,7 @@ import {
   DatabaseZapIcon,
   GraduationCap,
   LogOut,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,21 @@ const data = {
         {
           title: "Production Records",
           url: "/docs/production",
+        },
+      ],
+    },
+    {
+      title: "People",
+      url: "/people",
+      icon: Users,
+      items: [
+        {
+          title: "Employees",
+          url: "/people/employees",
+        },
+        {
+          title: "Communications",
+          url: "/people/comms",
         },
       ],
     },

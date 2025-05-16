@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { AnimatedOrderCard, OrdersToolbar } from "@/features/production";
 import { ProductionModal } from "@/features/production/components/production-modal";
 import { useToast } from "@/components/ui/use-toast";
-import { fetchProductionJobs } from "../../actions/production";
+import { fetchProductionJobs } from "@/app/actions/production";
 import type { Order as ProductionJobOrder } from "@/features/production/types";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
