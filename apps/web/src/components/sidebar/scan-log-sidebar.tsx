@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   RealtimeChannel,
   RealtimePostgresChangesPayload,
@@ -15,6 +21,7 @@ import {
   Search,
   Filter,
   ScanBarcode,
+  User,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,10 +33,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Database } from "@/types/supabase";
 
 // Define the interface for scan data from public.session_scans
-// Based on the supabase.ts provided:
-type SessionScanData = Database["public"]["Tables"]["session_scans"]["Row"];
-// Using a more explicit interface for clarity in the component:
-// interface SessionScanData { ... }
+// Base type with original fields
+type SessionScanBaseData = Database["public"]["Tables"]["session_scans"]["Row"];
+
+// Extended type for the view that includes the user email fields
+interface SessionScanData extends SessionScanBaseData {
+  user_email?: string | null;
+  user_email_name?: string | null;
+}
 
 // Remove apiUrl and apiKey, make initialScans optional (will fetch if not provided)
 interface RealtimeScanLogSidebarProps {
@@ -50,6 +61,25 @@ function getStatusColor(status: SessionScanData["scan_status"]): string {
   }
 }
 
+function getActionColor(type: string): string {
+  switch (type) {
+    case "check_in":
+      return "border-l-green-500";
+    case "transport":
+      return "border-l-blue-500";
+    case "free_scan":
+      return "border-l-slate-500";
+    case "context":
+      return "border-l-purple-500";
+    case "cancel":
+      return "border-l-red-500";
+    case "process":
+      return "border-l-yellow-500";
+    default:
+      return "border-l-slate-500";
+  }
+}
+
 function getStatusBadgeVariant(
   status: SessionScanData["scan_status"]
 ): "default" | "destructive" | "secondary" | "outline" | null | undefined {
@@ -67,15 +97,14 @@ function getStatusBadgeVariant(
 
 // Supported filter types
 type ScanStatus = "all" | "success" | "error" | "ignored";
-type ScanType =
+type ScanAction =
   | "all"
   | "check_in"
   | "transport"
   | "process"
   | "context"
   | "cancel"
-  | "free_scan"
-  | "production_input";
+  | "free_scan";
 
 /**
  * RealtimeScanLogSidebar component for displaying a list of recent scans.
@@ -98,8 +127,8 @@ const RealtimeScanLogSidebar = ({
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ScanStatus>("all");
-  const [typeFilter, setTypeFilter] = useState<ScanType>("all");
+  const [statusFilter, setStatusFilter] = useState<ScanStatus>("success");
+  const [actionFilter, setActionFilter] = useState<ScanAction>("all");
 
   // Use the imported createClient directly
   const supabase = useMemo(() => createClient(), []);
@@ -109,31 +138,33 @@ const RealtimeScanLogSidebar = ({
     async function fetchInitialScans() {
       if (!initialScans && supabase) {
         setIsLoadingInitial(true);
-        const { data, error: fetchError } = await supabase
-          .from("session_scans")
-          .select("*")
-          //   .select("*", "profiles(email)") // Keep the join if needed for user_email
-          .order("created_at", { ascending: false })
-          .limit(100)
-          .gte(
-            "created_at",
-            new Date(new Date().setDate(new Date().getDate() - 2)).toISOString()
-          );
+        try {
+          // Use a more type-safe approach with this SQL query
+          const { data, error: fetchError } = await supabase
+            .from("v_session_scans_with_user")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(100)
+            .gte(
+              "created_at",
+              new Date(
+                new Date().setDate(new Date().getDate() - 2)
+              ).toISOString()
+            );
 
-        if (fetchError) {
-          console.error("Error fetching initial scans:", fetchError.message);
-          setError("Failed to load initial scan data.");
+          if (fetchError) {
+            console.error("Error fetching initial scans:", fetchError.message);
+            setError("Failed to load initial scan data.");
+            setScans([]);
+          } else if (data) {
+            // Safely cast the data to our expected type
+            setScans(data as unknown as SessionScanData[]);
+            setError(null);
+          }
+        } catch (err) {
+          console.error("Exception fetching initial scans:", err);
+          setError("Failed to load scan data due to an unexpected error.");
           setScans([]);
-        } else {
-          // Map data similarly to how dashboard-layout did, if join is used
-          const mappedData =
-            data?.map((scan) => ({
-              ...scan,
-              // Adjust if profiles join isn't used or changes structure
-              user_email: (scan as any).profiles?.email || null,
-            })) || [];
-          setScans(mappedData);
-          setError(null);
         }
         setIsLoadingInitial(false);
       }
@@ -153,20 +184,14 @@ const RealtimeScanLogSidebar = ({
     const channelName = `session_scans_feed_${Date.now()}`;
     const channel = supabase
       .channel(channelName)
-      .on<
-        // Use the specific Table Row type for the payload
-        Database["public"]["Tables"]["session_scans"]["Row"]
-      >(
+      .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "session_scans",
+          table: "session_scans", // We still subscribe to the base table
         },
-        (payload) => {
-          // Type assertion for payload.new/old if needed, based on your exact type
-          type ScanRow = Database["public"]["Tables"]["session_scans"]["Row"];
-
+        async (payload: RealtimePostgresChangesPayload<any>) => {
           console.log(
             `RealtimeScanLogSidebar (${channelName}): Received payload:`,
             payload
@@ -181,28 +206,72 @@ const RealtimeScanLogSidebar = ({
           }
 
           if (payload.eventType === "INSERT" && payload.new) {
-            // Map the new scan data if necessary (e.g., for joined user_email)
-            const newScan = {
-              ...(payload.new as ScanRow),
-              user_email: (payload.new as any).profiles?.email || null,
-            };
-            setScans((prevScans) => [newScan, ...prevScans].slice(0, 100));
-            setError(null);
+            try {
+              // We need to fetch the complete row from the view to get the user_email
+              const { data: viewData, error: viewError } = await supabase
+                .from("v_session_scans_with_user")
+                .select("*")
+                .eq("id", payload.new.id)
+                .single();
+
+              if (viewError) {
+                console.error(
+                  "Error fetching inserted scan from view:",
+                  viewError
+                );
+              }
+
+              // Use the view data if available, otherwise fallback to the payload with no email
+              const newScan = viewData || {
+                ...payload.new,
+                user_email: null,
+                user_email_name: null,
+              };
+
+              setScans((prevScans) =>
+                [newScan as SessionScanData, ...prevScans].slice(0, 100)
+              );
+              setError(null);
+            } catch (err) {
+              console.error("Error processing INSERT realtime update:", err);
+            }
           } else if (payload.eventType === "UPDATE" && payload.new) {
-            const updatedScan = {
-              ...(payload.new as ScanRow),
-              user_email: (payload.new as any).profiles?.email || null,
-            };
-            setScans((prevScans) =>
-              prevScans.map((s) => (s.id === updatedScan.id ? updatedScan : s))
-            );
-            setError(null);
+            try {
+              // Similar approach for updates
+              const { data: viewData, error: viewError } = await supabase
+                .from("v_session_scans_with_user")
+                .select("*")
+                .eq("id", payload.new.id)
+                .single();
+
+              if (viewError) {
+                console.error(
+                  "Error fetching updated scan from view:",
+                  viewError
+                );
+              }
+
+              const updatedScan = viewData || {
+                ...payload.new,
+                user_email: null,
+                user_email_name: null,
+              };
+
+              setScans((prevScans) =>
+                prevScans.map((s) =>
+                  s.id === updatedScan.id ? (updatedScan as SessionScanData) : s
+                )
+              );
+              setError(null);
+            } catch (err) {
+              console.error("Error processing UPDATE realtime update:", err);
+            }
           } else if (
             payload.eventType === "DELETE" &&
             payload.old &&
-            (payload.old as ScanRow).id
+            payload.old.id
           ) {
-            const deletedScanId = (payload.old as ScanRow).id;
+            const deletedScanId = payload.old.id;
             setScans((prevScans) =>
               prevScans.filter((s) => s.id !== deletedScanId)
             );
@@ -260,7 +329,7 @@ const RealtimeScanLogSidebar = ({
       }
 
       // Apply type filter
-      if (typeFilter !== "all" && scan.scan_action !== typeFilter) {
+      if (actionFilter !== "all" && scan.scan_action !== actionFilter) {
         return false;
       }
 
@@ -270,13 +339,14 @@ const RealtimeScanLogSidebar = ({
         return (
           scan.raw_barcode?.toLowerCase().includes(searchLower) ||
           scan.item_name?.toLowerCase().includes(searchLower) ||
+          scan.user_email_name?.toLowerCase().includes(searchLower) ||
           scan.error_message?.toLowerCase().includes(searchLower)
         );
       }
 
       return true;
     });
-  }, [scans, searchQuery, statusFilter, typeFilter]);
+  }, [scans, searchQuery, statusFilter, actionFilter]);
 
   // Calculate some stats
   const totalToday = useMemo(() => {
@@ -292,6 +362,14 @@ const RealtimeScanLogSidebar = ({
       (scan) => scan.scan_status === "success"
     ).length;
     return Math.round((successCount / scans.length) * 100);
+  }, [scans]);
+
+  const errorCount = useMemo(() => {
+    return scans.filter((scan) => scan.scan_status === "error").length;
+  }, [scans]);
+
+  const ignoredCount = useMemo(() => {
+    return scans.filter((scan) => scan.scan_status === "ignored").length;
   }, [scans]);
 
   // Auto-scroll to top when new scan comes in, if desired
@@ -337,7 +415,7 @@ const RealtimeScanLogSidebar = ({
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              <p className="text-sm font-medium">Total Today</p>
+              <p className="text-sm font-medium">Scans Today</p>
             </div>
             <p className="text-2xl font-bold">{totalToday}</p>
           </CardContent>
@@ -347,18 +425,38 @@ const RealtimeScanLogSidebar = ({
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
-              <p className="text-xs font-medium">Success Rate</p>
+              <p className="text-sm font-medium">Success Rate</p>
             </div>
             <p className="text-2xl font-bold">{successRate}%</p>
           </CardContent>
         </Card>
+        {/* Error Scans Today */}
+        {/* <Card className="bg-sidebar-card text-sidebar-card-foreground border-l-4 border-l-red-500 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangleIcon className="w-5 h-5 text-red-500" />
+              <p className="text-sm font-medium">Errors</p>
+            </div>
+            <p className="text-2xl font-bold">{errorCount}</p>
+          </CardContent>
+        </Card> */}
+        {/* Ignored Scans Today */}
+        {/* <Card className="bg-sidebar-card text-sidebar-card-foreground border-l-4 border-l-slate-500 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Info className="w-5 h-5 text-slate-500" />
+              <p className="text-sm font-medium">Ignored</p>
+            </div>
+            <p className="text-2xl font-bold">{ignoredCount}</p>
+          </CardContent>
+        </Card> */}
       </div>
 
       {/* Search bar */}
       <div className="mb-4 relative flex items-center">
         <Input
           className="pl-9 py-2 w-full bg-sidebar-muted text-sidebar-foreground border-sidebar-border"
-          placeholder="Search barcode, material, supplier..."
+          placeholder="Search barcode, material, user..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -374,13 +472,12 @@ const RealtimeScanLogSidebar = ({
           </span>
         </div>
         <Tabs
-          defaultValue="all"
+          defaultValue="success"
           value={statusFilter}
           onValueChange={(val) => setStatusFilter(val as ScanStatus)}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-4 bg-sidebar-muted">
-            <TabsTrigger value="all">All Status</TabsTrigger>
+          <TabsList className="grid grid-cols-3 bg-sidebar-muted">
             <TabsTrigger value="success">Success</TabsTrigger>
             <TabsTrigger value="error">Errors</TabsTrigger>
             <TabsTrigger value="ignored">Ignored</TabsTrigger>
@@ -395,14 +492,15 @@ const RealtimeScanLogSidebar = ({
         </div>
         <Tabs
           defaultValue="all"
-          value={typeFilter}
-          onValueChange={(val) => setTypeFilter(val as ScanType)}
+          value={actionFilter}
+          onValueChange={(val) => setActionFilter(val as ScanAction)}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-3 bg-sidebar-muted">
-            <TabsTrigger value="all">All Types</TabsTrigger>
+          <TabsList className="grid grid-cols-4 bg-sidebar-muted">
+            <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="check_in">Check-in</TabsTrigger>
-            <TabsTrigger value="process">Process</TabsTrigger>
+            <TabsTrigger value="transport">Transport</TabsTrigger>
+            <TabsTrigger value="free_scan">Misc</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -435,7 +533,9 @@ const RealtimeScanLogSidebar = ({
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <div className="w-10 h-10 mb-3 rounded-full border-2 border-sidebar-muted-foreground/50 border-dashed animate-pulse"></div>
                 <p className="text-md text-sidebar-muted-foreground">
-                  {searchQuery || statusFilter !== "all" || typeFilter !== "all"
+                  {searchQuery ||
+                  statusFilter !== "all" ||
+                  actionFilter !== "all"
                     ? "No matching scans found"
                     : "Waiting for scans..."}
                 </p>
@@ -446,12 +546,8 @@ const RealtimeScanLogSidebar = ({
             <Card
               key={scan.id}
               className={cn(
-                "w-full shadow-sm bg-sidebar-card border-l-4 border border-sidebar-border rounded-md",
-                scan.scan_status === "success"
-                  ? "border-l-green-500"
-                  : scan.scan_status === "error"
-                    ? "border-l-red-500"
-                    : "border-l-slate-500"
+                "w-full shadow-sm bg-sidebar-card border border-l-2 border-sidebar-border rounded-md",
+                getActionColor(scan.scan_action)
               )}
             >
               <div className="p-3">
@@ -467,9 +563,9 @@ const RealtimeScanLogSidebar = ({
                     ></div>
                     <div className="font-mono text-sm truncate">
                       <span className="font-semibold capitalize">
-                        {scan.scan_action.replace(/_/g, " ")}:
+                        {scan.scan_action.replace(/.*[_\s]/g, " ")}:
                       </span>{" "}
-                      {scan.item_name || scan.raw_barcode}
+                      {scan.raw_barcode}
                     </div>
                   </div>
 
@@ -479,7 +575,7 @@ const RealtimeScanLogSidebar = ({
                       {new Date(scan.created_at).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
-                        // second: "2-digit", // Optional: for more precision
+                        second: "2-digit", // Optional: for more precision
                       })}
                     </span>
                     <Badge
@@ -491,19 +587,24 @@ const RealtimeScanLogSidebar = ({
                   </div>
                 </div>
                 {/* Additional Details */}
-                {scan.item_name && scan.raw_barcode !== scan.item_name && (
-                  <p className="text-sidebar-muted-foreground text-xs mt-1 pl-4 truncate">
-                    Barcode: {scan.raw_barcode}
-                  </p>
-                )}
+                <div className="flex flex-row justify-end items-center mt-1">
+                  {scan.item_name && scan.raw_barcode !== scan.item_name && (
+                    <p className="text-sidebar-muted-foreground text-sm truncate pl-4 flex-1">
+                      {scan.item_name}
+                    </p>
+                  )}
+                  {scan.user_email_name && (
+                    <p className="text-sidebar-muted-foreground text-xs flex items-center justify-end pl-2 flex-shrink-0">
+                      <User className="w-3 h-3 mr-1 inline-block" />
+                      {scan.user_email_name}
+                    </p>
+                  )}
+                </div>
                 {scan.scan_status === "error" && scan.error_message && (
                   <p className="text-red-400 text-xs mt-1 pl-4 truncate">
                     Error: {scan.error_message}
                   </p>
                 )}
-                {/* Optionally display user_email or pol_id if available and desired */}
-                {/* {scan.user_email && <p className="text-sidebar-muted-foreground text-xs mt-1 pl-4">User: {scan.user_email.split('@')[0]}</p>} */}
-                {/* {scan.pol_id && <p className="text-sidebar-muted-foreground text-xs mt-1 pl-4">Task ID: {scan.pol_id.substring(0,8)}</p>} */}
               </div>
             </Card>
           ))}

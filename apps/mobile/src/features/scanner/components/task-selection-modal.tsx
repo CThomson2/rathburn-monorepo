@@ -90,8 +90,28 @@ export function TaskSelectionModal() {
   const handleTaskSelect = (id: string) => {
     if (taskSelectionModalType === "transport") {
       selectTask(id);
+      // For transport tasks, selecting a task should close the modal
+      // to allow batch code input in TransportView.
+      // The actual session start is handled after batch code submission.
+      closeTaskSelectionModal();
     } else if (taskSelectionModalType === "production") {
       selectProductionJob(id);
+      // For production, user might still want to click "Start Session" in modal.
+    }
+  };
+
+  const handleStartSessionClick = () => {
+    if (taskSelectionModalType === "production") {
+      console.log(
+        "Starting production session with modal type:",
+        taskSelectionModalType
+      );
+      confirmStartSession();
+    } else if (taskSelectionModalType === "transport") {
+      // For transport tasks, selection itself closes the modal.
+      // The "Start Session" button in the modal is effectively bypassed for the new batch code flow.
+      // If it were to be clicked (e.g., if modal didn't auto-close), it should also just close.
+      closeTaskSelectionModal();
     }
   };
 
@@ -175,7 +195,7 @@ export function TaskSelectionModal() {
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={() => confirmStartSession()}
+            onClick={handleStartSessionClick} // Use the new handler
             disabled={!currentSelection || isLoading}
           >
             Start Session

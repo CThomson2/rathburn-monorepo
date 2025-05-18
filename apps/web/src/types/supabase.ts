@@ -1104,6 +1104,7 @@ export type Database = {
           item_id: string
           po_id: string | null
           qty_drums: number
+          status: Database["inventory"]["Enums"]["batch_status_type"]
           updated_at: string
         }
         Insert: {
@@ -1114,6 +1115,7 @@ export type Database = {
           item_id: string
           po_id?: string | null
           qty_drums?: number
+          status?: Database["inventory"]["Enums"]["batch_status_type"]
           updated_at?: string
         }
         Update: {
@@ -1124,6 +1126,7 @@ export type Database = {
           item_id?: string
           po_id?: string | null
           qty_drums?: number
+          status?: Database["inventory"]["Enums"]["batch_status_type"]
           updated_at?: string
         }
         Relationships: [
@@ -1571,6 +1574,12 @@ export type Database = {
         | "cancel_scan"
         | "fast_forward"
         | "bulk"
+      batch_status_type:
+        | "scanning_in"
+        | "in_stock"
+        | "in_transport"
+        | "archived"
+        | "pending"
       batch_type: "new" | "repro"
       drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
       line_status_type: "pending" | "labelled" | "scanned"
@@ -2243,10 +2252,18 @@ export type Database = {
             referencedRelation: "stocktake_scans_feed_details"
             referencedColumns: ["user_email"]
           },
+          {
+            foreignKeyName: "profiles_email_fkey"
+            columns: ["email"]
+            isOneToOne: false
+            referencedRelation: "v_session_scans_with_user"
+            referencedColumns: ["user_email"]
+          },
         ]
       }
       session_scans: {
         Row: {
+          batch_id: string | null
           cancelled_scan_id: string | null
           created_at: string
           device_id: string | null
@@ -2263,6 +2280,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          batch_id?: string | null
           cancelled_scan_id?: string | null
           created_at?: string
           device_id?: string | null
@@ -2279,6 +2297,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          batch_id?: string | null
           cancelled_scan_id?: string | null
           created_at?: string
           device_id?: string | null
@@ -2296,10 +2315,45 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_batches"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_batches_with_drums"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_distillation_schedule"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["batch_id"]
+          },
+          {
             foreignKeyName: "session_scans_cancelled_scan_id_fkey"
             columns: ["cancelled_scan_id"]
             isOneToOne: false
             referencedRelation: "session_scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_scans_with_user"
             referencedColumns: ["id"]
           },
           {
@@ -2353,6 +2407,7 @@ export type Database = {
           notes: string | null
           started_at: string | null
           status: string | null
+          task: Database["public"]["Enums"]["session_task_type"]
         }
         Insert: {
           completed_at?: string | null
@@ -2367,6 +2422,7 @@ export type Database = {
           notes?: string | null
           started_at?: string | null
           status?: string | null
+          task?: Database["public"]["Enums"]["session_task_type"]
         }
         Update: {
           completed_at?: string | null
@@ -2381,6 +2437,7 @@ export type Database = {
           notes?: string | null
           started_at?: string | null
           status?: string | null
+          task?: Database["public"]["Enums"]["session_task_type"]
         }
         Relationships: []
       }
@@ -2877,6 +2934,77 @@ export type Database = {
           },
         ]
       }
+      v_session_scans_with_user: {
+        Row: {
+          cancelled_scan_id: string | null
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          id: string | null
+          item_name: string | null
+          metadata: Json | null
+          pod_id: string | null
+          pol_id: string | null
+          raw_barcode: string | null
+          scan_action: Database["public"]["Enums"]["scan_action_type"] | null
+          scan_status: Database["public"]["Enums"]["scan_status_type"] | null
+          session_id: string | null
+          user_email: string | null
+          user_email_name: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "session_scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_scans_with_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "v_purchase_order_drum_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_enable_pgcrypto: {
@@ -2919,6 +3047,7 @@ export type Database = {
         Returns: {
           pol_id: string
           po_id: string
+          item_id: string
           po_number: string
           supplier: string
           order_date: string
@@ -3022,6 +3151,14 @@ export type Database = {
         | "cancel"
         | "free_scan"
       scan_status_type: "success" | "error" | "ignored"
+      session_task_type:
+        | "check_in"
+        | "transport"
+        | "free_scan"
+        | "misc"
+        | "production_input"
+        | "volume_transfer"
+        | "production_output"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3169,6 +3306,13 @@ export const Constants = {
         "fast_forward",
         "bulk",
       ],
+      batch_status_type: [
+        "scanning_in",
+        "in_stock",
+        "in_transport",
+        "archived",
+        "pending",
+      ],
       batch_type: ["new", "repro"],
       drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
       line_status_type: ["pending", "labelled", "scanned"],
@@ -3222,6 +3366,15 @@ export const Constants = {
         "free_scan",
       ],
       scan_status_type: ["success", "error", "ignored"],
+      session_task_type: [
+        "check_in",
+        "transport",
+        "free_scan",
+        "misc",
+        "production_input",
+        "volume_transfer",
+        "production_output",
+      ],
     },
   },
 } as const

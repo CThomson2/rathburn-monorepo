@@ -74,6 +74,8 @@ export function useAuth() {
     router.push("/sign-in");
   }, [router]);
 
+
+
   return {
     user,
     loading,
