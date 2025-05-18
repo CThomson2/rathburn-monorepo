@@ -92,7 +92,7 @@ export function BatchesTable({ batches, isLoading }: BatchesTableProps) {
                 </TableCell>
                 <TableCell>{batch.supplier_name || "N/A"}</TableCell>
                 <TableCell className="text-right">
-                  {batch.total_volume}
+                  {batch.qty_drums}
                 </TableCell>
                 <TableCell>
                   <Badge

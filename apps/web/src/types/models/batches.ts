@@ -8,7 +8,7 @@ export interface Batch {
   material_name: string;
   chemical_group: string;
   supplier_name: string | null;
-  total_volume: number;
+  qty_drums: number;
   created_at: string;
   updated_at: string;
   po_number: string | null;

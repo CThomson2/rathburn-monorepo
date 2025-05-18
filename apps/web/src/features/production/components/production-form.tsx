@@ -76,6 +76,8 @@ export function ProductionForm({
 }: ProductionFormProps) {
   const { toast } = useToast();
 
+  console.log("ProductionForm: Component rendering/re-rendering");
+
   // Form State
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
     null
@@ -86,6 +88,16 @@ export function ProductionForm({
   const [selectedStill, setSelectedStill] = useState<Still | null>(null);
   const [rawVolume, setRawVolume] = useState<number | string>("");
   const [priority, setPriority] = useState<number>(10);
+
+  console.log("ProductionForm: Current State", {
+    selectedSupplier,
+    selectedItem,
+    selectedBatch,
+    plannedDate: plannedDate?.toISOString(),
+    selectedStill,
+    rawVolume,
+    priority,
+  });
 
   // UI State for Popovers/Commands
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -99,28 +111,42 @@ export function ProductionForm({
   // SWR Data Fetching
   const { data: suppliers, error: suppliersError } = useSWR<Supplier[]>(
     "allSuppliers",
-    fetchSuppliers
+    () => {
+      console.log("ProductionForm: Fetching suppliers");
+      return fetchSuppliers();
+    }
   );
   const { data: items, error: itemsError } = useSWR<Item[]>(
     selectedSupplier ? `itemsBySupplier-${selectedSupplier.id}` : null,
-    () => fetchItemsBySupplier(selectedSupplier!.id)
+    () => {
+      console.log("ProductionForm: Fetching items for supplier:", selectedSupplier?.id);
+      return fetchItemsBySupplier(selectedSupplier!.id);
+    }
   );
   const { data: batches, error: batchesError } = useSWR<Batch[]>(
     selectedItem ? `batchesByItem-${selectedItem.id}` : null,
-    () => fetchAvailableBatchesByItem(selectedItem!.id)
+    () => {
+      console.log("ProductionForm: Fetching batches for item:", selectedItem?.id);
+      return fetchAvailableBatchesByItem(selectedItem!.id);
+    }
   );
   const { data: stills, error: stillsError } = useSWR<Still[]>(
     "allStills",
-    fetchStills
+    () => {
+      console.log("ProductionForm: Fetching stills");
+      return fetchStills();
+    }
   );
 
   // Reset dependent fields when a higher-level selection changes
   useEffect(() => {
+    console.log("ProductionForm: useEffect for selectedSupplier changed. Current supplier:", selectedSupplier);
     setSelectedItem(null);
     setItemSearch("");
   }, [selectedSupplier]);
 
   useEffect(() => {
+    console.log("ProductionForm: useEffect for selectedItem changed. Current item:", selectedItem);
     setSelectedBatch(null);
     setRawVolume(""); // Reset volume when item/batch context changes
   }, [selectedItem]);
@@ -134,39 +160,82 @@ export function ProductionForm({
   );
 
   const handleBatchSelect = (batch: Batch) => {
+    console.log("ProductionForm: handleBatchSelect called with batch:", batch);
     setSelectedBatch(batch);
-    // Default raw volume to total available in batch, capped by still capacity later if needed
-    setRawVolume(batch.drums_in_stock * 200);
+    const newRawVolume = batch.drums_in_stock * 200;
+    setRawVolume(newRawVolume);
+    console.log("ProductionForm: selectedBatch set, rawVolume set to:", newRawVolume);
   };
 
   const validateForm = (): boolean => {
-    if (!selectedSupplier) return toast.error("Supplier is required.");
-    if (!selectedItem) return toast.error("Material item is required.");
-    if (!selectedBatch) return toast.error("Input batch is required.");
-    if (!plannedDate) return toast.error("Planned date is required.");
-    if (!selectedStill) return toast.error("Distillation still is required.");
-    if (!rawVolume || isNaN(Number(rawVolume)) || Number(rawVolume) <= 0) {
-      return toast.error("Valid raw material volume is required.");
+    console.log("ProductionForm: validateForm called. Current form values:", {
+      selectedSupplier,
+      selectedItem,
+      selectedBatch,
+      plannedDate,
+      selectedStill,
+      rawVolume,
+      priority,
+    });
+    if (!selectedSupplier) {
+      toast.error("Supplier is required.");
+      console.log("ProductionForm: Validation failed - Supplier is required.");
+      return false;
     }
-    if (Number(rawVolume) > selectedBatch.drums_in_stock * 200) {
-      return toast.error(
+    if (!selectedItem) {
+      toast.error("Material item is required.");
+      console.log("ProductionForm: Validation failed - Material item is required.");
+      return false;
+    }
+    if (!selectedBatch) {
+      toast.error("Input batch is required.");
+      console.log("ProductionForm: Validation failed - Input batch is required.");
+      return false;
+    }
+    if (!plannedDate) {
+      toast.error("Planned date is required.");
+      console.log("ProductionForm: Validation failed - Planned date is required.");
+      return false;
+    }
+    if (!selectedStill) {
+      toast.error("Distillation still is required.");
+      console.log("ProductionForm: Validation failed - Distillation still is required.");
+      return false;
+    }
+    if (!rawVolume || isNaN(Number(rawVolume)) || Number(rawVolume) <= 0) {
+      toast.error("Valid raw material volume is required.");
+      console.log("ProductionForm: Validation failed - Valid raw material volume is required. Raw volume:", rawVolume);
+      return false;
+    }
+    if (selectedBatch && Number(rawVolume) > selectedBatch.drums_in_stock * 200) {
+      toast.error(
         `Volume exceeds available stock in batch (${
           selectedBatch.drums_in_stock * 200
         }L).`
       );
+      console.log("ProductionForm: Validation failed - Volume exceeds available stock in batch.");
+      return false;
     }
-    if (Number(rawVolume) > selectedStill.max_capacity * 200) {
-      return toast.error(
+    if (selectedStill && Number(rawVolume) > selectedStill.max_capacity * 200) {
+      toast.error(
         `Volume exceeds still capacity (${selectedStill.max_capacity * 200}L).`
       );
+      console.log("ProductionForm: Validation failed - Volume exceeds still capacity.");
+      return false;
     }
+    console.log("ProductionForm: Validation successful.");
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("ProductionForm: handleSubmit called.");
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log("ProductionForm: handleSubmit - validation failed, aborting submission.");
+      return;
+    }
 
+    console.log("ProductionForm: handleSubmit - validation passed, proceeding with submission.");
     setSubmitting(true);
     const formData = new FormData();
     formData.append("itemId", selectedItem!.id);
@@ -340,6 +409,7 @@ export function ProductionForm({
               {batches.map((batch) => (
                 <Button
                   key={batch.batch_id}
+                  type="button"
                   variant={
                     selectedBatch?.batch_id === batch.batch_id
                       ? "default"

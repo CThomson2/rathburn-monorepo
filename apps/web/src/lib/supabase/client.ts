@@ -2,7 +2,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/types/supabase";
 
-type SchemaName = "auth_ext" | "config" | "logs" | "production" | "public" | "inventory";
+type SchemaName = "auth" | "auth_ext" | "config" | "logs" | "production" | "public" | "inventory";
 
 /**
  * Creates and returns a Supabase client for browser usage
