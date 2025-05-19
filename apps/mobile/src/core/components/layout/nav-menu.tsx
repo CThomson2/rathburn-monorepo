@@ -15,6 +15,7 @@ import {
 import { cn } from "@/core/lib/utils";
 import { FloatingNavBase } from "./nav-base";
 import { useAuth } from "@/core/hooks/use-auth";
+import { useDebugLogStore } from "@/core/stores/debug-log-store";
 
 interface NavItem {
   id: string;
@@ -55,6 +56,7 @@ const FloatingNavMenu = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
+  const { toggleLogPanel, isLogPanelVisible } = useDebugLogStore();
 
   const navItems: NavItem[] = [
     { id: "logout", label: "Log Out", icon: <User size={20} /> },
@@ -91,6 +93,8 @@ const FloatingNavMenu = ({
 
     if (item.id === "logout") {
       signOut();
+    } else if (item.id === "logs") {
+      toggleLogPanel();
     } else if (onNavigate) {
       onNavigate(item.id);
     } else if (item.path) {
@@ -133,7 +137,9 @@ const FloatingNavMenu = ({
                 "w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg transform group",
                 location.pathname === (item.path || "/") && item.id !== "scan"
                   ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100",
+                  : item.id === "logs" && isLogPanelVisible
+                    ? "bg-yellow-500 text-black"
+                    : "bg-white text-gray-700 hover:bg-gray-100",
                 isOpen ? "scale-100" : "scale-75",
                 // Add staggered animation delay
                 `transition-transform duration-300 delay-${index * 75}`

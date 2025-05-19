@@ -11,15 +11,16 @@ import { TransportSettingsView } from "@/views/TransportSettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
-import { useScan } from "@/core/hooks/use-scan"; // This is for non-stocktake scans, keep it
+// import { useScan } from "@/core/hooks/use-scan"; // Removed import
 import { useSessionStore } from "@/core/stores/session-store"; // IMPORT: Zustand store
 import { useToast, type ToastProps } from "@/core/components/ui/use-toast";
-// import { useModal } from "@/hooks/use-modal";
-// import { ModalProvider } from "@/contexts/modal-context";
+// import { useModal } from "@/hooks/use-modal"; // This was already commented
+// import { ModalProvider } from "@/contexts/modal-context"; // This was already commented
 import { ScanSuccessIndicator } from "@/features/scanner/components/scan-success-indicator";
-import { SessionReportDialog } from "@/features/scanner/components/success-report/session-report"; // Import SessionReportDialog
-import { ScanResponse } from "@/features/scanner/services/stocktake-scan"; // IMPORT StocktakeScanResponse
+import { SessionReportDialog } from "@/features/scanner/components/success-report/session-report";
+// import { ScanResponse } from "@/features/scanner/services/stocktake-scan"; // This seems unused now, removing
 import { HistoryView } from "@/views/HistoryView";
+import { DebugLogPanel } from "@/core/components/debug/DebugLogPanel";
 // import { StocktakeButton } from "@/components/buttons/scan-button";
 
 const statusColors = {
@@ -57,9 +58,9 @@ const IndexContent = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
-  const transportScan = useScan(); // For non-stocktake transport scans
+  // const transportScan = useScan(); // Removed transportScan from useScan
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  // const [location, setLocation] = useState<Location | null>(null);
+  // const [location, setLocation] = useState<Location | null>(null); // This was already commented
   const [scanCount, setScanCount] = useState(0); // Local count for UI, reset by session changes
 
   // Add state for showing the successful scan indicator
@@ -170,9 +171,9 @@ const IndexContent = () => {
         lastScanMessage !== "Initializing..." &&
         lastScanMessage !== "Ready." &&
         lastScanMessage !== "Resumed active session." &&
-        !lastScanMessage.startsWith("Session") &&
-        !lastScanMessage.startsWith("Ending") &&
-        !lastScanMessage.startsWith("No active")
+        !lastScanMessage.startsWith("Session") && // Adjusted to be more specific
+        !lastScanMessage.startsWith("Ending session...") && // Adjusted
+        !lastScanMessage.startsWith("No active session") // Adjusted
       ) {
         // Catch other general messages from the store to display as info
         toast({ title: "Info", description: lastScanMessage });
@@ -222,14 +223,9 @@ const IndexContent = () => {
           setSuccessfulScan(null);
           successTimeoutRef.current = null;
         }, 2500);
-      } else if (currentView === "transport") {
-        console.log(
-          "[IndexPage] Routing scan to useScan (Transport, No Stocktake Session)"
-        );
-        transportScan.handleDrumScan(barcode); // This is the old non-Zustand scan path
       } else {
         console.log(
-          `[IndexPage] Scan ignored: View ${currentView} does not handle scans and no stocktake session active.`
+          `[IndexPage] Scan ignored: View ${currentView} does not handle scans and no session active.`
         );
         toast({
           title: "Scan Inactive",
@@ -237,7 +233,7 @@ const IndexContent = () => {
         });
       }
     },
-    [currentView, processScan, currentSessionId, transportScan, toast]
+    [currentView, processScan, currentSessionId, toast] // Removed transportScan from dependencies
   );
 
   // Global keydown listener for barcode scanner
@@ -311,15 +307,15 @@ const IndexContent = () => {
     console.log(`Navigation action: ${itemId}`);
 
     switch (itemId) {
-      case "stats":
-        navigate("/");
-        break;
-      case "team":
-        navigate("/team");
-        break;
-      case "scan":
-        navigate("/scan");
-        break;
+      // case "stats": // Removed obsolete case
+      //   navigate("/");
+      //   break;
+      // case "team": // Removed obsolete case
+      //   navigate("/team");
+      //   break;
+      // case "scan": // Removed obsolete case
+      //   navigate("/scan");
+      //   break;
       case "search":
         setIsSearchVisible(true);
         setTimeout(() => {
@@ -412,7 +408,7 @@ const IndexContent = () => {
   const navLinks = [
     { name: "Transport", value: "transport", icon: Forklift },
     { name: "Production", value: "production", icon: Atom },
-    { name: "Transport Settings", value: "transportsettings", icon: Settings },
+    { name: "History", value: "history", icon: Clock },
   ];
 
   // Track previous view for animation direction
@@ -507,6 +503,7 @@ const IndexContent = () => {
       {...handlers}
     >
       <ScanInput onScan={handleGlobalScan} isActive={shouldActivateScanInput} />
+      <DebugLogPanel />
 
       <TopNavbar
         navLinks={navLinks}
