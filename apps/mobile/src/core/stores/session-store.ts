@@ -390,7 +390,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
 
     try {
+      // Log the search parameters for debugging
+      console.log('[SessionStore] Looking for batch with po_id:', task.po_id, 'item_id:', task.item_id);
+      
       const supabase = createClient();
+      
+      // First check if a batch already exists for this task
       const { data: batch, error } = await supabase
         .schema('inventory')
         .from('batches')
@@ -398,23 +403,30 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         .eq('po_id', task.po_id)
         .eq('item_id', task.item_id)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
+        .limit(1);
+      
+      // Improved error logging
       if (error) {
         console.error('[SessionStore] Error fetching existing batch for task:', error);
+        get().logCurrentState('selectTask_batch_lookup_error');
       }
+      
+      // Log what we found
+      console.log('[SessionStore] Batch lookup result:', batch, 'Row count:', batch?.length || 0);
 
-      if (batch && batch.batch_code) {
-        console.log('[SessionStore] Existing batch found for task – skipping batch-code step.', batch);
+      // Check if we have a valid batch with a batch code
+      if (batch && batch.length > 0 && batch[0].batch_code) {
+        console.log('[SessionStore] Existing batch found for task – skipping batch-code step.', batch[0]);
         set({
-          currentBatchTableId: batch.batch_id,
-          currentTaskBatchCodeInput: batch.batch_code,
+          currentBatchTableId: batch[0].batch_id,
+          currentTaskBatchCodeInput: batch[0].batch_code,
           isCurrentTaskBatchCodeSubmitted: true,
         });
 
         // Immediately start a new session so the UI jumps to scanning mode
         await get().confirmStartSession();
+      } else {
+        console.log('[SessionStore] No existing batch with batch_code found for task, will show batch code input.');
       }
       get().logCurrentState('selectTask_batch_lookup_done');
     } catch (err) {
@@ -514,6 +526,69 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
     try {
       const supabase = createClient();
+      
+      // First check if a batch already exists for this task's PO and item
+      const { data: existingBatch, error: checkError } = await supabase
+        .schema('inventory')
+        .from('batches')
+        .select('batch_id, batch_code, status')
+        .eq('po_id', currentTask.po_id)
+        .eq('item_id', currentTask.item_id)
+        .limit(1);
+      
+      if (checkError) {
+        console.error("[SessionStore] Error checking for existing batch:", checkError);
+        set({ lastScanMessage: `Error checking for existing batch: ${checkError.message}` });
+        return { success: false, error: checkError.message };
+      }
+      
+      // If a batch already exists, use it instead of creating a new one
+      if (existingBatch && existingBatch.length > 0) {
+        console.log('[SessionStore] Existing batch found, using instead of creating new one:', existingBatch[0]);
+        
+        // Update batch code if it doesn't already have one
+        const batchId = existingBatch[0].batch_id;
+        
+        if (!existingBatch[0].batch_code) {
+          const { data: updateData, error: updateError } = await supabase
+            .schema('inventory')
+            .from('batches')
+            .update({ batch_code: batchCode })
+            .eq('batch_id', batchId)
+            .select('batch_id')
+            .single();
+            
+          if (updateError) {
+            console.error("Error updating existing batch with new code:", updateError);
+            set({ lastScanMessage: `Error updating batch: ${updateError.message}` });
+            return { success: false, error: updateError.message };
+          }
+          
+          console.log('[SessionStore] Updated existing batch with new code:', batchCode);
+        } else {
+          console.log('[SessionStore] Existing batch already has code:', existingBatch[0].batch_code);
+        }
+        
+        set({
+          isCurrentTaskBatchCodeSubmitted: true,
+          currentBatchTableId: batchId,
+          currentTaskBatchCodeInput: existingBatch[0].batch_code || batchCode, 
+          lastScanMessage: `Using existing batch ${existingBatch[0].batch_code || batchCode}. Ready to start session.`,
+        });
+        
+        get().logCurrentState('createBatchForCurrentTask_using_existing_batch');
+        if (get().sessionType !== 'task') {
+          console.log('[SessionStore] Setting sessionType to task before confirmStartSession');
+          set({ sessionType: 'task' });
+          get().logCurrentState('createBatchForCurrentTask_set_sessionType_task');
+        }
+        
+        await get().confirmStartSession();
+        get().logCurrentState('createBatchForCurrentTask_after_confirm');
+        return { success: true, batchId: batchId };
+      }
+      
+      // Create new batch if none exists
       const { data: batchData, error: batchError } = await supabase
         .schema('inventory')
         .from('batches')

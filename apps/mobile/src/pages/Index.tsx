@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Forklift, Atom, Settings, Search } from "lucide-react";
+import { Forklift, Atom, Settings, Search, Clock } from "lucide-react";
 // import { logout } from "@/core/services/auth"; // No longer needed here
 import { FloatingNavGroup } from "@/core/components/layout/nav-group";
 import TopNavbar from "@/core/components/layout/top-navbar";

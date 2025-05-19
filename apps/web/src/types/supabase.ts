@@ -1551,9 +1551,20 @@ export type Database = {
       }
     }
     Functions: {
+      count_materials_below_threshold: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_batch_id_from_pol_id: {
         Args: { p_pol_id: string }
         Returns: string
+      }
+      get_most_common_material: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          material_name: string
+          count: number
+        }[]
       }
       receive_delivery: {
         Args: { p_po_id: string; p_item_id: string; p_qty: number }
@@ -2353,6 +2364,13 @@ export type Database = {
             foreignKeyName: "session_scans_cancelled_scan_id_fkey"
             columns: ["cancelled_scan_id"]
             isOneToOne: false
+            referencedRelation: "v_scan_history"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
             referencedRelation: "v_session_scans_with_user"
             referencedColumns: ["id"]
           },
@@ -2934,6 +2952,59 @@ export type Database = {
           },
         ]
       }
+      v_scan_history: {
+        Row: {
+          barcode: string | null
+          created_at: string | null
+          error_message: string | null
+          item_name: string | null
+          po_id: string | null
+          po_number: string | null
+          pol_id: string | null
+          scan_action: Database["public"]["Enums"]["scan_action_type"] | null
+          scan_id: string | null
+          scan_status: Database["public"]["Enums"]["scan_status_type"] | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "v_purchase_order_drum_details"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
       v_session_scans_with_user: {
         Row: {
           cancelled_scan_id: string | null
@@ -2960,6 +3031,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "session_scans"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "v_scan_history"
+            referencedColumns: ["scan_id"]
           },
           {
             foreignKeyName: "session_scans_cancelled_scan_id_fkey"
@@ -3041,6 +3119,10 @@ export type Database = {
       find_pending_drum_by_serial: {
         Args: { p_serial_number: string }
         Returns: Json
+      }
+      function_exists: {
+        Args: { p_schema: string; p_function: string }
+        Returns: boolean
       }
       get_pending_purchase_orders: {
         Args: Record<PropertyKey, never>

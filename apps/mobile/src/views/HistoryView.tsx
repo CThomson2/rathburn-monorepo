@@ -63,7 +63,7 @@ interface PurchaseOrderLineWithOrder {
 interface RawScanData {
   id: string;
   created_at: string;
-  raw_barcode: string;
+  barcode: string;
   scan_status: string;
   scan_action: string | null;
   error_message: string | null;
@@ -146,26 +146,8 @@ export function HistoryView() {
       ) as SessionDetails[];
 
       const { data: scansData, error: scansError } = await supabase
-        .from("session_scans")
-        .select(
-          `
-          id,
-          created_at,
-          raw_barcode,
-          scan_status,
-          scan_action,
-          error_message,
-          item_name,
-          session_id,
-          pol_id,
-          purchase_order_lines (
-            po_id,
-            purchase_orders (
-              po_number
-            )
-          )
-        `
-        )
+        .from("v_scan_history")
+        .select("*")
         .eq("user_id", userId)
         .order("session_id", { ascending: false })
         .order("created_at", { ascending: false });
@@ -198,7 +180,7 @@ export function HistoryView() {
         const historyItem: ScanHistoryItem = {
           id: scan.id,
           created_at: scan.created_at,
-          raw_barcode: scan.raw_barcode,
+          raw_barcode: scan.barcode,
           scan_status: scan.scan_status,
           scan_action: scan.scan_action,
           error_message: scan.error_message,

@@ -93,7 +93,10 @@ const DrumInventoryGrid: React.FC = () => {
         );
       }
       if (currentFilters.drum_status) {
-        query = query.ilike("drum_status", `%${currentFilters.drum_status}%`);
+        query = query.ilike(
+          "drum_status",
+          `%${currentFilters.drum_status.replace(/ /g, "_")}%`
+        );
       }
       if (currentFilters.current_location) {
         query = query.ilike(

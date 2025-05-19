@@ -136,6 +136,7 @@ export function TransportView() {
     setIsSubmittingBatchCode(false);
   };
 
+  // Add debugging info to see exactly what's happening with these UI conditions
   const showTaskSelection =
     !currentSessionId && !selectedTaskId && !isCheckingBatchCode;
   const showBatchCodeInput =
@@ -166,6 +167,12 @@ export function TransportView() {
     showFreeScanInterface,
     showTaskDetailsUnavailable,
     currentActiveTaskDetails,
+    currentSessionId,
+    sessionType,
+    selectedTaskId,
+    isCurrentTaskBatchCodeSubmitted,
+    isCheckingBatchCode,
+    currentTaskBatchCodeInput,
   });
 
   return (

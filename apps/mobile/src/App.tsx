@@ -16,12 +16,10 @@ import AuthCallback from "./pages/auth/callback";
 import TransportSettings from "./pages/Settings";
 import { ErrorBoundary } from "react-error-boundary";
 import { ThemeProvider } from "@/core/providers/theme-provider";
-import { ScanProvider } from "@/contexts/scan-context";
 import { ToastContextSetter } from "@/core/components/ui/use-toast";
 import { Toaster } from "@/core/components/ui/toaster";
 import { useMiddleware } from "@/core/hooks/use-middleware";
 import { publicRoutes } from "@/middleware";
-import ScanPage from "./pages/ScanPage";
 
 const queryClient = new QueryClient();
 
@@ -66,7 +64,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return <Navigate to="/sign-in" state={{ from: location }} replace />;
   }
 
-  return <ScanProvider>{children}</ScanProvider>;
+  return <>{children}</>;
 };
 
 // Public route component that ensures users are redirected to home if already authenticated
