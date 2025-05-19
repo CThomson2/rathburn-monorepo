@@ -119,14 +119,20 @@ export function ProductionForm({
   const { data: items, error: itemsError } = useSWR<Item[]>(
     selectedSupplier ? `itemsBySupplier-${selectedSupplier.id}` : null,
     () => {
-      console.log("ProductionForm: Fetching items for supplier:", selectedSupplier?.id);
+      console.log(
+        "ProductionForm: Fetching items for supplier:",
+        selectedSupplier?.id
+      );
       return fetchItemsBySupplier(selectedSupplier!.id);
     }
   );
   const { data: batches, error: batchesError } = useSWR<Batch[]>(
     selectedItem ? `batchesByItem-${selectedItem.id}` : null,
     () => {
-      console.log("ProductionForm: Fetching batches for item:", selectedItem?.id);
+      console.log(
+        "ProductionForm: Fetching batches for item:",
+        selectedItem?.id
+      );
       return fetchAvailableBatchesByItem(selectedItem!.id);
     }
   );
@@ -140,13 +146,19 @@ export function ProductionForm({
 
   // Reset dependent fields when a higher-level selection changes
   useEffect(() => {
-    console.log("ProductionForm: useEffect for selectedSupplier changed. Current supplier:", selectedSupplier);
+    console.log(
+      "ProductionForm: useEffect for selectedSupplier changed. Current supplier:",
+      selectedSupplier
+    );
     setSelectedItem(null);
     setItemSearch("");
   }, [selectedSupplier]);
 
   useEffect(() => {
-    console.log("ProductionForm: useEffect for selectedItem changed. Current item:", selectedItem);
+    console.log(
+      "ProductionForm: useEffect for selectedItem changed. Current item:",
+      selectedItem
+    );
     setSelectedBatch(null);
     setRawVolume(""); // Reset volume when item/batch context changes
   }, [selectedItem]);
@@ -164,63 +176,84 @@ export function ProductionForm({
     setSelectedBatch(batch);
     const newRawVolume = batch.drums_in_stock * 200;
     setRawVolume(newRawVolume);
-    console.log("ProductionForm: selectedBatch set, rawVolume set to:", newRawVolume);
+    console.log(
+      "ProductionForm: selectedBatch set, rawVolume set to:",
+      newRawVolume
+    );
   };
 
   const validateForm = (): boolean => {
     console.log("ProductionForm: validateForm called. Current form values:", {
-      selectedSupplier,
       selectedItem,
+      selectedSupplier,
       selectedBatch,
       plannedDate,
       selectedStill,
       rawVolume,
       priority,
     });
+    if (!selectedItem) {
+      toast.error("Material item is required.");
+      console.log(
+        "ProductionForm: Validation failed - Material item is required."
+      );
+      return false;
+    }
     if (!selectedSupplier) {
       toast.error("Supplier is required.");
       console.log("ProductionForm: Validation failed - Supplier is required.");
       return false;
     }
-    if (!selectedItem) {
-      toast.error("Material item is required.");
-      console.log("ProductionForm: Validation failed - Material item is required.");
-      return false;
-    }
     if (!selectedBatch) {
       toast.error("Input batch is required.");
-      console.log("ProductionForm: Validation failed - Input batch is required.");
+      console.log(
+        "ProductionForm: Validation failed - Input batch is required."
+      );
       return false;
     }
     if (!plannedDate) {
       toast.error("Planned date is required.");
-      console.log("ProductionForm: Validation failed - Planned date is required.");
+      console.log(
+        "ProductionForm: Validation failed - Planned date is required."
+      );
       return false;
     }
     if (!selectedStill) {
       toast.error("Distillation still is required.");
-      console.log("ProductionForm: Validation failed - Distillation still is required.");
+      console.log(
+        "ProductionForm: Validation failed - Distillation still is required."
+      );
       return false;
     }
     if (!rawVolume || isNaN(Number(rawVolume)) || Number(rawVolume) <= 0) {
       toast.error("Valid raw material volume is required.");
-      console.log("ProductionForm: Validation failed - Valid raw material volume is required. Raw volume:", rawVolume);
+      console.log(
+        "ProductionForm: Validation failed - Valid raw material volume is required. Raw volume:",
+        rawVolume
+      );
       return false;
     }
-    if (selectedBatch && Number(rawVolume) > selectedBatch.drums_in_stock * 200) {
+    if (
+      selectedBatch &&
+      Number(rawVolume) > selectedBatch.drums_in_stock * 200
+    ) {
       toast.error(
         `Volume exceeds available stock in batch (${
           selectedBatch.drums_in_stock * 200
         }L).`
       );
-      console.log("ProductionForm: Validation failed - Volume exceeds available stock in batch.");
+      console.log(
+        "ProductionForm: Validation failed - Volume exceeds available stock in batch."
+      );
       return false;
     }
     if (selectedStill && Number(rawVolume) > selectedStill.max_capacity * 200) {
       toast.error(
         `Volume exceeds still capacity (${selectedStill.max_capacity * 200}L).`
       );
-      console.log("ProductionForm: Validation failed - Volume exceeds still capacity.");
+      console.log(
+        "ProductionForm: Validation failed - Volume exceeds still capacity."
+      );
       return false;
     }
     console.log("ProductionForm: Validation successful.");
@@ -231,11 +264,15 @@ export function ProductionForm({
     console.log("ProductionForm: handleSubmit called.");
     e.preventDefault();
     if (!validateForm()) {
-      console.log("ProductionForm: handleSubmit - validation failed, aborting submission.");
+      console.log(
+        "ProductionForm: handleSubmit - validation failed, aborting submission."
+      );
       return;
     }
 
-    console.log("ProductionForm: handleSubmit - validation passed, proceeding with submission.");
+    console.log(
+      "ProductionForm: handleSubmit - validation passed, proceeding with submission."
+    );
     setSubmitting(true);
     const formData = new FormData();
     formData.append("itemId", selectedItem!.id);
@@ -271,68 +308,8 @@ export function ProductionForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-1">
-      {/* Row 1: Supplier and Item */}
+      {/* Row 1: Item and Supplier */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="supplier">Supplier</Label>
-          <Popover
-            open={openSupplierPopover}
-            onOpenChange={setOpenSupplierPopover}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={openSupplierPopover}
-                className="w-full justify-between"
-                disabled={!suppliers}
-              >
-                {selectedSupplier?.name ??
-                  (suppliers ? (
-                    "Select supplier..."
-                  ) : (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ))}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-              <Command>
-                <CommandInput
-                  placeholder="Search suppliers..."
-                  value={supplierSearch}
-                  onValueChange={setSupplierSearch}
-                />
-                <CommandList>
-                  <CommandEmpty>No suppliers found.</CommandEmpty>
-                  <CommandGroup>
-                    {filteredSuppliers?.map((s) => (
-                      <CommandItem
-                        key={s.id}
-                        value={s.name}
-                        onSelect={() => {
-                          setSelectedSupplier(s);
-                          setOpenSupplierPopover(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedSupplier?.id === s.id
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        {s.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="item">Material Item</Label>
           <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
@@ -389,6 +366,66 @@ export function ProductionForm({
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="supplier">Supplier</Label>
+        <Popover
+          open={openSupplierPopover}
+          onOpenChange={setOpenSupplierPopover}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={openSupplierPopover}
+              className="w-full justify-between"
+              disabled={!suppliers}
+            >
+              {selectedSupplier?.name ??
+                (suppliers ? (
+                  "Select supplier..."
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ))}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <Command>
+              <CommandInput
+                placeholder="Search suppliers..."
+                value={supplierSearch}
+                onValueChange={setSupplierSearch}
+              />
+              <CommandList>
+                <CommandEmpty>No suppliers found.</CommandEmpty>
+                <CommandGroup>
+                  {filteredSuppliers?.map((s) => (
+                    <CommandItem
+                      key={s.id}
+                      value={s.name}
+                      onSelect={() => {
+                        setSelectedSupplier(s);
+                        setOpenSupplierPopover(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedSupplier?.id === s.id
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {s.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Row 2: Batch Selection (conditionally rendered) */}

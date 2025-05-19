@@ -14,6 +14,8 @@ const AuthCallback = () => {
         // Get the auth code from the URL
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
+        // Get the app source to determine where to redirect
+        const appSource = url.searchParams.get("app_source");
 
         if (!code) {
           console.error("[AUTH] No code found in URL");
@@ -21,6 +23,7 @@ const AuthCallback = () => {
         }
 
         console.log("[AUTH] Processing OAuth callback with code");
+        console.log("[AUTH] App source:", appSource);
 
         // Exchange the code for a session
         console.log("[AUTH] Exchanging code for session...");
@@ -50,9 +53,17 @@ const AuthCallback = () => {
           );
         }
 
-        // Redirect to home page
-        console.log("[AUTH] Redirecting to home page");
-        window.location.href = "https://rathburn.mobile.app/";
+        // Determine where to redirect based on app_source
+        const isProduction = window.location.hostname.includes("rathburn");
+        const redirectUrl = isProduction
+          ? appSource === "mobile"
+            ? "https://mobile.rathburn.app/"
+            : "https://rathburn.app/"
+          : "/";
+
+        // Redirect to the appropriate page
+        console.log("[AUTH] Redirecting to:", redirectUrl);
+        window.location.href = redirectUrl;
       } catch (err) {
         console.error("[AUTH] Error in auth callback:", err);
         setError(

@@ -108,7 +108,7 @@ export function DrumInventoryChart({
       )}
 
       <div
-        className="transition-all duration-300 ease-in-out overflow-y-auto"
+        className="transition-all duration-300 ease-in-out"
         style={{
           height: `${calculateChartContainerHeight()}px`,
         }}

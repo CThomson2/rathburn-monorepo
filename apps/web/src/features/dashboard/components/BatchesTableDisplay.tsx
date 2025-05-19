@@ -39,7 +39,7 @@ export function BatchesTableDisplay({ batches }: BatchesTableDisplayProps) {
   return (
     <div className="rounded-md border">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow>
             <TableHead className="w-[50px]"></TableHead> {/* For expand icon */}
             <TableHead>Batch ID / Code</TableHead>
@@ -75,7 +75,7 @@ export function BatchesTableDisplay({ batches }: BatchesTableDisplayProps) {
                 </TableCell>
                 <TableCell>{batch.supplier_name || "N/A"}</TableCell>
                 <TableCell className="text-right">
-                  {batch.qty_drums || 0} L
+                  {batch.qty_drums || 0}
                 </TableCell>
                 <TableCell>
                   {batch.batch_type && (

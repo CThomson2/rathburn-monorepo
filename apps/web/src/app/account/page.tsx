@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -40,6 +41,14 @@ export default async function AccountPage() {
 
   const userName = profile?.username ?? user.email?.split("@")[0] ?? "User"; // Use profile username, fallback to derived from email, then 'User'
   const userEmail = user.email ?? "No email provided";
+
+  // Check if user has identity linked with Microsoft
+  const { data: identities } = await supabase.auth.getUserIdentities();
+  console.log("Identities:", identities);
+
+  const hasMicrosoftAuth = identities?.identities?.some(
+    (identity) => identity.provider === "azure"
+  );
 
   // Password update server action
   const updatePassword = async (formData: FormData) => {
@@ -91,6 +100,19 @@ export default async function AccountPage() {
               disabled
             />
           </div>
+
+          {hasMicrosoftAuth && (
+            <div className="bg-blue-50 p-4 rounded-md">
+              <p className="text-sm">
+                Your account is connected with Microsoft.
+              </p>
+              <Link href="/account/add-email-login">
+                <Button className="mt-2" variant="outline" size="sm">
+                  Add Email Login Method
+                </Button>
+              </Link>
+            </div>
+          )}
 
           <Separator />
 

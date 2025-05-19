@@ -128,8 +128,17 @@ export function useAuth() {
 
     // Determine the redirect URL based on environment
     const isProduction = window.location.hostname === "rathburn.mobile.app";
+    const isMobileApp = window.location.hostname.includes("mobile");
+    
+    // Default callback URL will handle the auth flow
+    const callbackUrl = "https://ppnulxweiiczciuxcypn.supabase.co/auth/v1/callback";
+    
+    // But we need to tell Supabase where to redirect after successful auth
+    // We'll add a "redirectTo" query parameter to the URL
     const redirectUrl = isProduction
-      ? "https://rathburn.mobile.app/auth/callback"
+      ? isMobileApp 
+          ? "https://mobile.rathburn.app" 
+          : "https://rathburn.app"
       : "http://localhost:4173/auth/callback";
 
     console.log("[AUTH] Using redirect URL:", redirectUrl);
@@ -139,6 +148,10 @@ export function useAuth() {
       options: {
         scopes: "offline_access email",
         redirectTo: redirectUrl,
+        queryParams: {
+          // Adding source app as a parameter to help with redirect handling
+          app_source: isMobileApp ? "mobile" : "web",
+        },
       },
     });
 

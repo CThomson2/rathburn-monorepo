@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { fetchActiveBatches, BatchDataFromView } from '@/app/actions/batches';
-import { BatchesTableDisplay } from './BatchesTableDisplay'; // To be created
-import { AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { fetchActiveBatches, BatchDataFromView } from "@/app/actions/batches";
+import { BatchesTableDisplay } from "./BatchesTableDisplay"; // To be created
+import { AlertTriangle } from "lucide-react";
 
 export function BatchesOverview() {
   const [batches, setBatches] = useState<BatchDataFromView[]>([]);
@@ -17,7 +17,9 @@ export function BatchesOverview() {
         setError(null);
       } catch (err) {
         console.error("Failed to fetch batches:", err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred"
+        );
         setBatches([]);
       }
       setIsLoading(false);
@@ -45,7 +47,7 @@ export function BatchesOverview() {
   if (batches.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground">
-        No active batches found (with total volume > 0).
+        No active batches found (with total volume &gt; 0).
       </div>
     );
   }

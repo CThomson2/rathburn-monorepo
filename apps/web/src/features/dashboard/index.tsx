@@ -229,6 +229,7 @@ export default function ChemicalInventoryDashboard({
   ];
 
   // Sample data for usage trends - would be replaced with real data from API
+  // TODO: Replace with real data from Supabase DB API
   const usageTrendsData = [
     { month: "January", value: 42 },
     { month: "February", value: 53 },
@@ -578,12 +579,14 @@ export default function ChemicalInventoryDashboard({
                   No matching inventory items found.
                 </div>
               ) : activeView === "chart" ? (
-                <DrumInventoryChart
-                  data={transformInventoryData(filteredInventory)}
-                />
+                <div className="max-h-[calc(100vh-280px)] overflow-auto relative">
+                  <DrumInventoryChart
+                    data={transformInventoryData(filteredInventory)}
+                  />
+                </div>
               ) : activeView === "table" ? (
-                <div className="rounded-md border">
-                  <div className="grid grid-cols-12 bg-muted/50 text-xs font-medium text-muted-foreground">
+                <div className="max-h-[calc(100vh-280px)] overflow-auto relative rounded-md border">
+                  <div className="grid grid-cols-12 bg-background text-xs font-medium text-muted-foreground sticky top-0 z-10 border-b-black">
                     <div className="col-span-6 p-3">Chemical</div>
                     <div className="col-span-1 p-3 text-right">Virgin</div>
                     <div className="col-span-1 p-3 text-right">Repro</div>
@@ -597,71 +600,75 @@ export default function ChemicalInventoryDashboard({
                     <div className="col-span-1 p-3 text-right">Status</div>
                   </div>
 
-                  {filteredInventory.map((item) => {
-                    const status = getInventoryStatusVariant(
-                      item.total,
-                      item.threshold,
-                      Math.ceil(item.threshold * 0.4)
-                    );
-                    return (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-12 items-center border-t text-sm cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => {
-                          console.log("selected material id:", item.id);
-                          setSelectedItemId(item.id);
-                        }}
-                      >
-                        <div className="col-span-6 p-3 font-medium">
-                          {item.name}
+                  <div>
+                    {filteredInventory.map((item) => {
+                      const status = getInventoryStatusVariant(
+                        item.total,
+                        item.threshold,
+                        Math.ceil(item.threshold * 0.4)
+                      );
+                      return (
+                        <div
+                          key={item.id}
+                          className="grid grid-cols-12 items-center border-t text-sm cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => {
+                            console.log("selected material id:", item.id);
+                            setSelectedItemId(item.id);
+                          }}
+                        >
+                          <div className="col-span-6 p-3 font-medium">
+                            {item.name}
+                          </div>
+                          <div className="col-span-1 p-3 text-right">
+                            {item.newStock}
+                          </div>
+                          <div className="col-span-1 p-3 text-right">
+                            {item.reproStock}
+                          </div>
+                          <div className="col-span-1 p-3 text-right font-medium pr-4">
+                            {item.total}
+                          </div>
+                          <div className="col-span-1 p-3 text-right pl-4 bg-slate-100 dark:bg-slate-800">
+                            {item.pending_stock}
+                          </div>
+                          <div className="col-span-1 p-3 text-right bg-slate-100 dark:bg-slate-800">
+                            {item.processing_stock}
+                          </div>
+                          <div className="col-span-1 p-3 text-right">
+                            {status === "error" && (
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] px-1.5 py-0"
+                              >
+                                Low
+                              </Badge>
+                            )}
+                            {status === "warning" && (
+                              <Badge
+                                variant="default"
+                                className="text-[10px] px-1.5 py-0"
+                              >
+                                Warning
+                              </Badge>
+                            )}
+                            {status === "success" && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200"
+                              >
+                                OK
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="col-span-1 p-3 text-right">
-                          {item.newStock}
-                        </div>
-                        <div className="col-span-1 p-3 text-right">
-                          {item.reproStock}
-                        </div>
-                        <div className="col-span-1 p-3 text-right font-medium pr-4">
-                          {item.total}
-                        </div>
-                        <div className="col-span-1 p-3 text-right pl-4 bg-slate-100 dark:bg-slate-800">
-                          {item.pending_stock}
-                        </div>
-                        <div className="col-span-1 p-3 text-right bg-slate-100 dark:bg-slate-800">
-                          {item.processing_stock}
-                        </div>
-                        <div className="col-span-1 p-3 text-right">
-                          {status === "error" && (
-                            <Badge
-                              variant="destructive"
-                              className="text-[10px] px-1.5 py-0"
-                            >
-                              Low
-                            </Badge>
-                          )}
-                          {status === "warning" && (
-                            <Badge
-                              variant="default"
-                              className="text-[10px] px-1.5 py-0"
-                            >
-                              Warning
-                            </Badge>
-                          )}
-                          {status === "success" && (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200"
-                            >
-                              OK
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               ) : activeView === "batches" ? (
-                <BatchesOverview />
+                <div className="max-h-[calc(100vh-280px)] overflow-auto relative">
+                  <BatchesOverview />
+                </div>
               ) : null}
             </CardContent>
           </Card>

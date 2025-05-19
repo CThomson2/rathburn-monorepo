@@ -103,7 +103,11 @@ export const signInWithMicrosoftAction = async () => {
     provider: "azure",
     options: {
       scopes: "offline_access email",
-      redirectTo: `https://rathburn.app/auth/callback`, // Use absolute URL instead of ${origin}
+      redirectTo: `https://rathburn.co.uk/auth/callback`, // Web app redirect URL
+      queryParams: {
+        // Mark this as coming from the web app
+        app_source: "web",
+      },
     },
   });
 
@@ -261,4 +265,71 @@ export const updatePhoneAction = async (formData: FormData) => {
   }
 
   return encodedRedirect("success", "/protected", "Phone number updated");
+};
+
+/**
+ * Adds email/password login method to an existing user (e.g., Microsoft Azure user)
+ * @param formData Form data containing the email and new password
+ * @returns Redirect with success or error message
+ */
+export const addEmailLoginToUserAction = async (formData: FormData) => {
+  const supabase = createClient();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  if (!email || !password || !confirmPassword) {
+    return encodedRedirect(
+      "error",
+      "/account/add-email-login",
+      "All fields are required"
+    );
+  }
+
+  if (password !== confirmPassword) {
+    return encodedRedirect(
+      "error",
+      "/account/add-email-login",
+      "Passwords do not match"
+    );
+  }
+
+  // First verify the user is logged in
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return encodedRedirect(
+      "error",
+      "/account/add-email-login",
+      "You must be logged in to add an email login method"
+    );
+  }
+
+  // Check if email matches current user's email
+  if (session.user.email !== email) {
+    return encodedRedirect(
+      "error",
+      "/account/add-email-login",
+      "Email must match your account email"
+    );
+  }
+
+  // Add password to the user account
+  const { error } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (error) {
+    console.error("Error adding email login:", error);
+    return encodedRedirect(
+      "error",
+      "/account/add-email-login",
+      error.message || "Failed to add email login"
+    );
+  }
+
+  return encodedRedirect(
+    "success",
+    "/account",
+    "Email login method added successfully. You can now log in with your email and password."
+  );
 };

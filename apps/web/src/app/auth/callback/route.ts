@@ -8,10 +8,17 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
+  const appSource = requestUrl.searchParams.get("app_source");
 
   if (code) {
     const supabase = createClient();
     await supabase.auth.exchangeCodeForSession(code);
+  }
+
+  // Determine where to redirect based on app_source
+  let baseUrl = "https://rathburn.app";
+  if (appSource === "mobile") {
+    baseUrl = "https://mobile.rathburn.app";
   }
 
   if (redirectTo) {
@@ -25,9 +32,9 @@ export async function GET(request: Request) {
     );
     const finalRedirect = isValidPath ? redirectTo : defaultRedirect;
 
-    return NextResponse.redirect(`https://rathburn.app${finalRedirect}`);
+    return NextResponse.redirect(`${baseUrl}${finalRedirect}`);
   }
 
   // Default redirect after sign in/up
-  return NextResponse.redirect(`https://rathburn.app/`);
+  return NextResponse.redirect(`${baseUrl}/`);
 }
