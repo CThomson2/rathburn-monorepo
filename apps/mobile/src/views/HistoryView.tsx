@@ -22,7 +22,6 @@ import {
   AlertTriangle,
   Clock,
 } from "lucide-react";
-import TopNavbar from "@/components/navbar/top-navbar"; // Assuming a similar top navbar might be used
 
 interface ScanHistoryItem {
   id: string;
@@ -105,6 +104,14 @@ const getStatusIcon = (status: string) => {
   }
 };
 
+/**
+ * A view for displaying the user's scan history.
+ *
+ * This component fetches the user's scan history from Supabase and renders it in a collapsible list.
+ * Each collapsible item represents a session and contains a list of scans within that session.
+ *
+ * @returns A React component that displays the user's scan history.
+ */
 export function HistoryView() {
   const { user, loading: authLoading } = useAuth();
   const [groupedHistory, setGroupedHistory] = useState<GroupedScanHistory>({});

@@ -74,6 +74,7 @@ export function TransportView() {
     lastScanMessage,
     lastScanStatus,
     selectedTaskId,
+    isCheckingBatchCode,
   } = useSessionStore();
 
   const [isDrumListOpen, setIsDrumListOpen] = useState(false);
@@ -99,6 +100,9 @@ export function TransportView() {
     lastScanStatus,
   ]);
 
+  // TODO: The active task details **are not resetting to null** when ending a session, or even switching views
+  // Only by beginning a new session does this state reset.
+  // Is this due to memoization?
   const currentActiveTaskDetails = useMemo(() => {
     const taskIdToUse = currentSessionId
       ? currentSessionTaskId
@@ -132,23 +136,28 @@ export function TransportView() {
     setIsSubmittingBatchCode(false);
   };
 
-  const showTaskSelection = !currentSessionId && !selectedTaskId;
+  const showTaskSelection =
+    !currentSessionId && !selectedTaskId && !isCheckingBatchCode;
   const showBatchCodeInput =
     !currentSessionId &&
     sessionType === "task" &&
     selectedTaskId &&
-    !isCurrentTaskBatchCodeSubmitted;
+    !isCurrentTaskBatchCodeSubmitted &&
+    !isCheckingBatchCode;
   const showScanningInterface =
     currentSessionId &&
     sessionType === "task" &&
     currentActiveTaskDetails &&
-    isCurrentTaskBatchCodeSubmitted;
-  const showFreeScanInterface = currentSessionId && sessionType === "free_scan";
+    isCurrentTaskBatchCodeSubmitted &&
+    !isCheckingBatchCode;
+  const showFreeScanInterface =
+    currentSessionId && sessionType === "free_scan" && !isCheckingBatchCode;
   const showTaskDetailsUnavailable =
     currentSessionId &&
     sessionType === "task" &&
     !currentActiveTaskDetails &&
-    isCurrentTaskBatchCodeSubmitted;
+    isCurrentTaskBatchCodeSubmitted &&
+    !isCheckingBatchCode;
 
   console.log("[TransportView] Rendering with UI states:", {
     showTaskSelection,
@@ -186,6 +195,15 @@ export function TransportView() {
             <FileScan className="mr-2 h-4 w-4" />
             Start Free Scan
           </Button>
+        </div>
+      )}
+
+      {isCheckingBatchCode && (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">
+            Checking batch information...
+          </p>
         </div>
       )}
 

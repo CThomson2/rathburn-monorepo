@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState } from "react";
-import { Info } from "lucide-react";
 
 interface ScanInputProps {
   onScan: (barcode: string) => void;
@@ -25,12 +24,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [barcode, setBarcode] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const [logMessages, setLogMessages] = useState<string[]>([]);
-  const [showLogs, setShowLogs] = useState(false);
-  const addLogMessage = (message: string) => {
-    // Keep only the last 20 messages to prevent the list from growing too large
-    setLogMessages((prevMessages) => [message, ...prevMessages.slice(0, 19)]);
-  };
 
   // Auto-send the barcode after a delay of inactivity
   useEffect(() => {
@@ -38,8 +31,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
 
     const timeoutId = setTimeout(() => {
       if (barcode.trim().length >= 3) {
-        // console.log("Auto-sending barcode after timeout:", barcode);
-        addLogMessage(`Auto-sending barcode after timeout: ${barcode}`);
         onScan(barcode.trim());
         setBarcode("");
       }
@@ -50,14 +41,8 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
 
   // Focus the input element on component mount and when isActive changes
   useEffect(() => {
-    // console.log(`[ScanInput] isActive changed to: ${isActive}`);
-    addLogMessage(`isActive changed to: ${isActive}`);
-
     const focusInput = () => {
       if (inputRef.current && isActive) {
-        // console.log(`[ScanInput] Focusing input element`);
-        addLogMessage("Focusing input element");
-        // Focus the input but don't show the keyboard on mobile
         inputRef.current.focus();
         setIsFocused(true);
 
@@ -73,8 +58,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
         inputRef.current &&
         document.activeElement === inputRef.current
       ) {
-        // console.log(`[ScanInput] Blurring input element`);
-        addLogMessage("Blurring input element");
         inputRef.current.blur();
         setIsFocused(false);
       }
@@ -91,8 +74,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
           document.activeElement !== inputRef.current &&
           isActive
         ) {
-          // console.log("[ScanInput] Input lost focus, refocusing...");
-          addLogMessage("Input lost focus, refocusing...");
           focusInput();
         }
       }, 1000);
@@ -100,10 +81,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
       // Set up event listeners to help maintain focus
       const handleFocus = () => {
         if (isActive) {
-          // Add a log for when this generic handleFocus is triggered
-          addLogMessage(
-            "Global focus/click/touchstart detected, attempting to refocus input."
-          );
           setTimeout(focusInput, 100);
         }
       };
@@ -125,42 +102,16 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Ignore if not active
     if (!isActive) {
-      // addLogMessage("[ScanInput] KeyDown ignored: Not active"); // Optional: Log inactive state
       return;
     }
-
-    // console.log(
-    //   "[ScanInput] KeyDown event FIRED:",
-    //   e.key,
-    //   "Current value:",
-    //   inputRef.current?.value
-    // );
-    addLogMessage(
-      `KeyDown event FIRED: ${e.key}, Current value: ${inputRef.current?.value || ""}`
-    );
 
     // If Enter key is pressed, process the barcode stored in state
     if (e.key === "Enter" || e.key === "Backslash") {
       e.preventDefault(); // Prevent form submission or other default actions
       const currentBarcode = barcode.trim();
       if (currentBarcode.length >= 3) {
-        // console.log(
-        //   "[ScanInput] Enter key pressed, processing barcode:",
-        //   currentBarcode
-        // );
-        addLogMessage(
-          `Enter key pressed, processing barcode: ${currentBarcode}`
-        );
         onScan(currentBarcode);
         setBarcode(""); // Clear the state after processing
-      } else {
-        // console.log(
-        //   "[ScanInput] Enter key pressed, but barcode is too short:",
-        //   currentBarcode
-        // );
-        addLogMessage(
-          `Enter key pressed, but barcode is too short: ${currentBarcode}`
-        );
       }
     }
   };
@@ -169,24 +120,15 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Ignore if not active
     if (!isActive) {
-      // addLogMessage("[ScanInput] Change ignored: Not active"); // Optional: Log inactive state
       return;
     }
 
     const newValue = e.target.value;
-    // console.log("[ScanInput] Input changed (handleChange) FIRED: raw value:", newValue); // Keep this for debugging
-    addLogMessage(
-      `Input changed (handleChange) FIRED: raw value: "${newValue}"`
-    );
 
     // Check for the backslash suffix from the hardware scanner
     if (newValue.endsWith("\\")) {
       e.preventDefault(); // Prevent any default action if applicable
       const processedBarcode = newValue.slice(0, -1).trim(); // Remove suffix and trim
-
-      addLogMessage(
-        `Backslash suffix detected. Processed barcode: "${processedBarcode}"`
-      );
 
       if (processedBarcode.length >= 3) {
         onScan(processedBarcode);
@@ -194,13 +136,7 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
         if (inputRef.current) {
           inputRef.current.value = ""; // Directly clear the input element's value
         }
-        addLogMessage(
-          `Barcode sent due to suffix: "${processedBarcode}". Input cleared.`
-        );
       } else {
-        addLogMessage(
-          `Suffix detected, but barcode too short: "${processedBarcode}". Input cleared.`
-        );
         setBarcode(""); // Still clear the state
         if (inputRef.current) {
           inputRef.current.value = ""; // Directly clear the input element's value
@@ -211,8 +147,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
 
     // If no suffix, update state as usual for manual input or timeout processing
     setBarcode(newValue);
-    // console.log("[ScanInput] Input changed (handleChange) FIRED:", newValue);
-    // addLogMessage(`Input changed (handleChange) FIRED: ${newValue}`); // Already logged above with raw value
   };
 
   // Handle blur events - only refocus if still active
@@ -220,8 +154,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
     if (!isActive) return;
 
     setIsFocused(false);
-    // console.log("[ScanInput] Input blurred, waiting to refocus...");
-    addLogMessage("Input blurred, waiting to refocus...");
 
     // Refocus after a short delay only if still active
     // Use a longer delay to avoid focus fighting with other elements
@@ -231,8 +163,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
         isActive &&
         document.activeElement !== inputRef.current
       ) {
-        // console.log("[ScanInput] Refocusing after blur");
-        addLogMessage("Refocusing after blur");
         inputRef.current.focus();
         setIsFocused(true);
       }
@@ -241,13 +171,7 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
 
   // Add a special effect to log when component mounts/unmounts
   useEffect(() => {
-    // console.log("[ScanInput] Component mounted");
-    addLogMessage("Component mounted");
-
-    return () => {
-      // console.log("[ScanInput] Component unmounted");
-      addLogMessage("Component unmounted");
-    };
+    return () => {};
   }, []);
 
   return (
@@ -262,9 +186,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
         onKeyDown={handleKeyDown}
         onFocus={() => {
           if (isActive) {
-            // Only set focused state if supposed to be active
-            // console.log("[ScanInput] Input focused directly");
-            addLogMessage("Input focused directly");
             setIsFocused(true);
           }
         }}
@@ -290,59 +211,6 @@ export function ScanInput({ onScan, isActive = true }: ScanInputProps) {
         data-testid="barcode-input"
         disabled={!isActive}
       />
-      {/* Visual logger */}
-      {/* Button opens modal with logs */}
-      <button
-        onClick={() => setShowLogs(!showLogs)}
-        style={{
-          position: "fixed",
-          top: "10px",
-          right: "10px",
-          zIndex: 10000,
-          backgroundColor: "rgba(0,0,255,0.4)",
-          color: "white",
-          padding: "8px",
-          borderRadius: "5px",
-          opacity: 0.8,
-        }}
-      >
-        <Info size={16} />
-      </button>
-      {showLogs && (
-        <ul
-          style={{
-            position: "fixed",
-            top: "80px",
-            left: "10px",
-            right: "10px",
-            bottom: "120px",
-            // maxHeight: "400px",
-            overflowY: "auto",
-            backgroundColor: "rgba(0,0,0,0.7)",
-            color: "white",
-            padding: "10px",
-            zIndex: 10000, // Ensure it's on top
-            listStyleType: "none",
-            fontSize: "12px",
-            borderRadius: "5px",
-            opacity: 0.8,
-          }}
-          aria-live="polite" // Announce changes to screen readers
-        >
-          {logMessages.map((msg, index) => (
-            <li
-              key={index}
-              style={{
-                borderBottom: "1px solid #555",
-                paddingBottom: "3px",
-                marginBottom: "3px",
-              }}
-            >
-              {msg}
-            </li>
-          ))}
-        </ul>
-      )}
     </>
   );
 }

@@ -1551,9 +1551,20 @@ export type Database = {
       }
     }
     Functions: {
+      count_materials_below_threshold: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_batch_id_from_pol_id: {
         Args: { p_pol_id: string }
         Returns: string
+      }
+      get_most_common_material: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          material_name: string
+          count: number
+        }[]
       }
       receive_delivery: {
         Args: { p_po_id: string; p_item_id: string; p_qty: number }
@@ -3041,6 +3052,10 @@ export type Database = {
       find_pending_drum_by_serial: {
         Args: { p_serial_number: string }
         Returns: Json
+      }
+      function_exists: {
+        Args: { p_schema: string; p_function: string }
+        Returns: boolean
       }
       get_pending_purchase_orders: {
         Args: Record<PropertyKey, never>

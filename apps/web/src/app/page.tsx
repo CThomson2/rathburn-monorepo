@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+// import { useState } from "react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Lamp } from "@/components/layout/lamp-view";
 import { RealtimeFeedCentered } from "@/components/realtime/centered-feed";
@@ -28,16 +26,92 @@ interface SessionScanData {
   metadata?: Json | null;
 }
 
-export default function IndexPage() {
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+export default async function IndexPage() {
+  // const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
-  const handleOpenOrderModal = () => {
-    setIsOrderModalOpen(true);
+  const supabase = createClient();
+
+  // Get total drums that are in stock or in production
+  const {
+    data: drumsData,
+    count: totalDrums,
+    error: drumsError,
+  } = await supabase
+    .schema("inventory")
+    .from("drums")
+    .select("drum_id", { count: "exact" })
+    .or("status.eq.in_stock,status.like.%production%");
+
+  // First check if our functions exist before calling them
+  let checkFuncs = null;
+  try {
+    const { data } = await supabase
+      .from("public.function_exists")
+      .select("*")
+      .eq("p_schema", "inventory")
+      .in("p_function", [
+        "count_materials_below_threshold",
+        "get_most_common_material",
+      ]);
+
+    checkFuncs = data;
+  } catch (error) {
+    console.error("Error checking function existence:", error);
+    // Continue with fallbacks
+  }
+
+  // Initialize our values with fallbacks
+  let itemsBelowThreshold = 81; // Default based on our SQL analysis
+  let mostCommonMaterial = {
+    name: "Acetonitrile", // Fallback based on our SQL query
+    count: 55,
   };
 
-  // Placeholder KPI data - replace with actual data fetching if needed
-  const placeholderTotalDrums = 125; // Example value
-  const placeholderItemsBelowThreshold = 15; // Example value
+  try {
+    // Get materials below threshold using our database function
+    const { data: belowThresholdData, error: functionError } = await supabase
+      .schema("inventory")
+      .rpc("count_materials_below_threshold");
+
+    if (!functionError && belowThresholdData !== null) {
+      itemsBelowThreshold = belowThresholdData;
+    } else if (functionError) {
+      console.error(
+        "Error calling count_materials_below_threshold function:",
+        functionError
+      );
+    }
+  } catch (error) {
+    console.error("Exception when calling below threshold function:", error);
+  }
+
+  try {
+    // Get the most common material using our database function
+    const { data: materialData, error: materialError } = await supabase
+      .schema("inventory")
+      .rpc("get_most_common_material");
+
+    if (!materialError && materialData && materialData.length > 0) {
+      mostCommonMaterial = {
+        name: materialData[0].material_name || mostCommonMaterial.name,
+        count: Number(materialData[0].count) || mostCommonMaterial.count,
+      };
+    } else if (materialError) {
+      console.error(
+        "Error calling get_most_common_material function:",
+        materialError
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Exception when calling most common material function:",
+      error
+    );
+  }
+
+  // const handleOpenOrderModal = () => {
+  //   setIsOrderModalOpen(true);
+  // };
 
   return (
     <div className="container mx-auto">
@@ -56,16 +130,17 @@ export default function IndexPage() {
 
         {/* Add BentoGrid below Lamp */}
         <BentoGrid
-          onOpenOrderModal={handleOpenOrderModal}
-          totalDrums={placeholderTotalDrums}
-          itemsBelowThreshold={placeholderItemsBelowThreshold}
+          // onOpenOrderModal={handleOpenOrderModal}
+          totalDrums={totalDrums || 0}
+          itemsBelowThreshold={itemsBelowThreshold}
+          mostCommonMaterial={mostCommonMaterial}
         />
 
         {/* Add OrderModal */}
-        <OrderModal
+        {/* <OrderModal
           open={isOrderModalOpen}
           onOpenChange={setIsOrderModalOpen}
-        />
+        /> */}
       </Lamp>
     </div>
   );

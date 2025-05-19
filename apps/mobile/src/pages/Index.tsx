@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Forklift, Atom, Settings, Search } from "lucide-react";
 // import { logout } from "@/core/services/auth"; // No longer needed here
 import { FloatingNavGroup } from "@/core/components/layout/nav-group";
-import TopNavbar from "@/components/navbar/top-navbar";
+import TopNavbar from "@/core/components/layout/top-navbar";
 import { TransportView } from "@/views/TransportView";
 import { ProductionView } from "@/views/ProductionView";
 import { TransportSettingsView } from "@/views/TransportSettingsView";
@@ -19,6 +19,7 @@ import { useToast, type ToastProps } from "@/core/components/ui/use-toast";
 import { ScanSuccessIndicator } from "@/features/scanner/components/scan-success-indicator";
 import { SessionReportDialog } from "@/features/scanner/components/success-report/session-report"; // Import SessionReportDialog
 import { ScanResponse } from "@/features/scanner/services/stocktake-scan"; // IMPORT StocktakeScanResponse
+import { HistoryView } from "@/views/HistoryView";
 // import { StocktakeButton } from "@/components/buttons/scan-button";
 
 const statusColors = {
@@ -481,8 +482,8 @@ const IndexContent = () => {
         return <TransportView />;
       case "production":
         return <ProductionView />;
-      case "transportsettings":
-        return <TransportSettingsView />;
+      case "history":
+        return <HistoryView />;
       default:
         return <TransportView />;
     }
