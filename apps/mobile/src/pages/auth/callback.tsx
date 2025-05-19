@@ -17,6 +17,12 @@ const AuthCallback = () => {
         // Get the app source to determine where to redirect
         const appSource = url.searchParams.get("app_source");
 
+        console.log("[AUTH] Callback URL parameters:", {
+          appSource,
+          code: code ? "PRESENT" : "MISSING",
+          allParams: Object.fromEntries(url.searchParams.entries()),
+        });
+
         if (!code) {
           console.error("[AUTH] No code found in URL");
           throw new Error("No code found in URL");
@@ -55,11 +61,22 @@ const AuthCallback = () => {
 
         // Determine where to redirect based on app_source
         const isProduction = window.location.hostname.includes("rathburn");
-        const redirectUrl = isProduction
-          ? appSource === "mobile"
-            ? "https://mobile.rathburn.app/"
-            : "https://rathburn.app/"
-          : "/";
+        let redirectUrl;
+
+        if (isProduction) {
+          // In production we need to be explicit about the full URL
+          if (appSource === "mobile") {
+            redirectUrl = "https://mobile.rathburn.app/";
+          } else {
+            redirectUrl = "https://rathburn.app/";
+          }
+        } else {
+          // In development, we can just redirect to the root
+          redirectUrl = "/";
+        }
+
+        // Add a timestamp to prevent browser caching
+        redirectUrl = `${redirectUrl}?t=${Date.now()}`;
 
         // Redirect to the appropriate page
         console.log("[AUTH] Redirecting to:", redirectUrl);

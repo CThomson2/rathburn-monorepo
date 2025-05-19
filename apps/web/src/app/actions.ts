@@ -103,7 +103,7 @@ export const signInWithMicrosoftAction = async () => {
     provider: "azure",
     options: {
       scopes: "offline_access email",
-      redirectTo: `https://rathburn.co.uk/auth/callback`, // Web app redirect URL
+      redirectTo: `https://rathburn.app/auth/callback`, // Web app redirect URL
       queryParams: {
         // Mark this as coming from the web app
         app_source: "web",
@@ -126,25 +126,30 @@ export const signInWithMicrosoftAction = async () => {
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = createClient();
-  const origin = headers().get("origin");
+  const origin = headers().get("origin") || "https://rathburn.app";
   const callbackUrl = formData.get("callbackUrl")?.toString();
 
   if (!email) {
     return encodedRedirect("error", "/forgot-password", "Email is required");
   }
 
+  console.log("[PASSWORD-RESET] Initiating password reset for:", email);
+  console.log("[PASSWORD-RESET] Redirect origin:", origin);
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/auth/callback?redirect_to=/reset-password`,
   });
 
   if (error) {
-    console.error(error.message);
+    console.error("[PASSWORD-RESET] Error:", error.message);
     return encodedRedirect(
       "error",
       "/forgot-password",
-      "Could not reset password"
+      "Could not reset password: " + error.message
     );
   }
+
+  console.log("[PASSWORD-RESET] Password reset email sent successfully to:", email);
 
   if (callbackUrl) {
     return redirect(callbackUrl);
@@ -168,6 +173,8 @@ export const resetPasswordAction = async (formData: FormData) => {
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
+  console.log("[PASSWORD-RESET] Processing password reset submission");
+
   if (!password || !confirmPassword) {
     return encodedRedirect(
       "error",
@@ -184,19 +191,39 @@ export const resetPasswordAction = async (formData: FormData) => {
     );
   }
 
+  // First verify the user is logged in
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    console.error("[PASSWORD-RESET] No active session found");
+    return encodedRedirect(
+      "error",
+      "/reset-password",
+      "Your session has expired. Please request a new password reset link."
+    );
+  }
+
+  console.log("[PASSWORD-RESET] User authenticated, updating password for:", session.user.email);
+
   const { error } = await supabase.auth.updateUser({
     password: password,
   });
 
   if (error) {
+    console.error("[PASSWORD-RESET] Error updating password:", error.message);
     return encodedRedirect(
       "error",
       "/reset-password",
-      "Password update failed"
+      "Password update failed: " + error.message
     );
   }
 
-  return encodedRedirect("success", "/reset-password", "Password updated");
+  console.log("[PASSWORD-RESET] Password updated successfully");
+
+  return encodedRedirect(
+    "success", 
+    "/sign-in", 
+    "Password updated successfully. Please sign in with your new password."
+  );
 };
 
 /**
@@ -331,5 +358,52 @@ export const addEmailLoginToUserAction = async (formData: FormData) => {
     "success",
     "/account",
     "Email login method added successfully. You can now log in with your email and password."
+  );
+};
+
+/**
+ * Sends a magic link for passwordless login
+ * @param formData Form data containing email
+ * @returns Redirect with success or error message
+ */
+export const sendMagicLinkAction = async (formData: FormData) => {
+  const email = formData.get("email")?.toString();
+  const supabase = createClient();
+  const origin = headers().get("origin") || "https://rathburn.app";
+  const callbackUrl = formData.get("callbackUrl")?.toString();
+
+  if (!email) {
+    return encodedRedirect("error", "/magic-link", "Email is required");
+  }
+
+  console.log("[MAGIC-LINK] Sending magic link to:", email);
+  console.log("[MAGIC-LINK] Redirect origin:", origin);
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    console.error("[MAGIC-LINK] Error:", error.message);
+    return encodedRedirect(
+      "error",
+      "/magic-link",
+      "Could not send magic link: " + error.message
+    );
+  }
+
+  console.log("[MAGIC-LINK] Magic link sent successfully to:", email);
+
+  if (callbackUrl) {
+    return redirect(callbackUrl);
+  }
+
+  return encodedRedirect(
+    "success",
+    "/magic-link",
+    "Check your email for a magic link to sign in."
   );
 };

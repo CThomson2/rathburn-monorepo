@@ -130,10 +130,12 @@ export default function AddEmailLoginPage() {
           </SubmitButton>
 
           <FormMessage
-            message={{
-              message: message || "",
-              type: type as "error" | "success" | "",
-            }}
+            message={
+              {
+                message: message || "",
+                type: type as "error" | "success" | "",
+              } as any
+            }
           />
 
           <div className="pt-2">

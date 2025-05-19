@@ -6,6 +6,7 @@ import { useSessionStore } from "@/core/stores/session-store";
 
 /**
  * Hook for managing client-side authentication state and actions for mobile app
+ * 
  * This hook provides:
  * - Current user state
  * - Loading state
@@ -16,8 +17,6 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
   const navigate = useNavigate();
   const { endSession, currentSessionId } = useSessionStore();
 
@@ -32,28 +31,16 @@ export function useAuth() {
         
         if (error) {
           console.error("[AUTH] Error getting Supabase session:", error);
+        } else if (data.session) {
+          console.log("[AUTH] Supabase session found");
+          console.log("[AUTH] User ID:", data.session.user.id);
+          console.log("[AUTH] Email:", data.session.user.email);
         } else {
-          console.log("[AUTH] Supabase session data:", data.session ? "Session found" : "No session");
-          if (data.session) {
-            console.log("[AUTH] Token length:", data.session.access_token?.length || 0);
-            console.log("[AUTH] Token preview:", data.session.access_token 
-              ? `${data.session.access_token.substring(0, 10)}...` 
-              : 'none');
-          }
+          console.log("[AUTH] No active session");
         }
         
         setUser(data.session?.user ?? null);
         setSession(data.session);
-        
-        // Check for mobile app passcode auth
-        const storedUserId = localStorage.getItem("userId");
-        const storedUserName = localStorage.getItem("userName");
-        
-        console.log("[AUTH] Local storage auth:", { userId: storedUserId, userName: storedUserName });
-        
-        setUserId(storedUserId);
-        setUserName(storedUserName);
-        
         setLoading(false);
       } catch (err) {
         console.error("[AUTH] Unexpected error checking auth:", err);
@@ -76,7 +63,6 @@ export function useAuth() {
       if (session) {
         console.log("[AUTH] New session details:", { 
           expires_at: session.expires_at,
-          token_length: session.access_token?.length || 0,
           user_id: session.user?.id || 'unknown'
         });
       }
@@ -92,11 +78,26 @@ export function useAuth() {
   const signInWithMicrosoft = useCallback(async () => {
     console.log("[AUTH] Attempting to sign in with Microsoft");
 
+    // Log environment information to help debug
+    console.log("[AUTH] Current URL:", window.location.href);
+    console.log("[AUTH] Hostname:", window.location.hostname);
+    
     // Determine the redirect URL based on environment
-    const isProduction = window.location.hostname === "rathburn.mobile.app";
-    const redirectUrl = isProduction
-      ? "https://rathburn.mobile.app/auth/callback"
-      : "http://localhost:4173/auth/callback";
+    // Check if we're in a production environment and correctly identify mobile vs web app
+    const isMobileHostname = window.location.hostname.includes("mobile");
+    const isLocalhost = window.location.hostname.includes("localhost");
+    
+    // Build the appropriate redirect URL
+    let redirectUrl;
+    if (isLocalhost) {
+      // Development environment
+      redirectUrl = "http://localhost:4173/auth/callback";
+    } else {
+      // Production environment
+      redirectUrl = isMobileHostname 
+        ? "https://mobile.rathburn.app/auth/callback" 
+        : "https://rathburn.app/auth/callback";
+    }
 
     console.log("[AUTH] Using redirect URL:", redirectUrl);
 
@@ -105,6 +106,10 @@ export function useAuth() {
       options: {
         scopes: "offline_access email",
         redirectTo: redirectUrl,
+        queryParams: {
+          // Adding source app as a parameter to help with redirect handling
+          app_source: isMobileHostname ? "mobile" : "web",
+        },
       },
     });
 
@@ -131,21 +136,6 @@ export function useAuth() {
     }
 
     console.log("[AUTH] Email sign in successful:", data.user ? "User authenticated" : "No user returned");
-    
-    if (data.user) {
-      // Store user data in localStorage
-      localStorage.setItem("userId", data.user.id);
-      localStorage.setItem("userName", data.user.email || "email-user");
-      localStorage.setItem("userRole", "user");
-      localStorage.setItem(
-        "userDisplayName",
-        data.user.user_metadata?.name || data.user.email || "User"
-      );
-      
-      setUserId(data.user.id);
-      setUserName(data.user.email || "email-user");
-    }
-
     return data;
   }, []);
 
@@ -160,12 +150,6 @@ export function useAuth() {
         console.log("[AUTH] Active scanning session ended or attempt completed.");
       }
       
-      // Clear localStorage auth data
-      localStorage.removeItem("userId");
-      localStorage.removeItem("userName");
-      localStorage.removeItem("userRole");
-      localStorage.removeItem("userDisplayName");
-      
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
@@ -177,8 +161,6 @@ export function useAuth() {
       // Reset local state
       setUser(null);
       setSession(null);
-      setUserId(null);
-      setUserName(null);
       
       // Redirect to login page
       navigate("/sign-in");
@@ -190,12 +172,13 @@ export function useAuth() {
     }
   }, [navigate, endSession, currentSessionId]);
 
+  const isAuthenticated = !!session;
+
   return {
     user,
     session,
     loading,
-    userId,
-    userName,
+    isAuthenticated,
     signInWithMicrosoft,
     signInWithEmail,
     signOut

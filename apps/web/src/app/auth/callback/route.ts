@@ -10,9 +10,28 @@ export async function GET(request: Request) {
   const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
   const appSource = requestUrl.searchParams.get("app_source");
 
+  console.log("[AUTH-CALLBACK-WEB] Processing request:", { 
+    url: request.url,
+    code: code ? "PRESENT" : "MISSING", 
+    redirectTo, 
+    appSource 
+  });
+
   if (code) {
     const supabase = createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (error) {
+      console.error("[AUTH-CALLBACK-WEB] Error exchanging code for session:", error);
+      return NextResponse.redirect(`https://rathburn.app/sign-in?error=${encodeURIComponent(error.message)}`);
+    }
+    
+    console.log("[AUTH-CALLBACK-WEB] Session created successfully:", { 
+      hasSession: !!data.session,
+      userId: data.session?.user?.id || "none" 
+    });
+  } else {
+    console.warn("[AUTH-CALLBACK-WEB] No code provided in callback URL");
   }
 
   // Determine where to redirect based on app_source
@@ -20,6 +39,8 @@ export async function GET(request: Request) {
   if (appSource === "mobile") {
     baseUrl = "https://mobile.rathburn.app";
   }
+
+  console.log("[AUTH-CALLBACK-WEB] Will redirect to base URL:", baseUrl);
 
   if (redirectTo) {
     // Ensure the redirect path is valid
@@ -32,9 +53,13 @@ export async function GET(request: Request) {
     );
     const finalRedirect = isValidPath ? redirectTo : defaultRedirect;
 
-    return NextResponse.redirect(`${baseUrl}${finalRedirect}`);
+    const fullRedirectUrl = `${baseUrl}${finalRedirect}`;
+    console.log("[AUTH-CALLBACK-WEB] Redirecting to:", fullRedirectUrl);
+    return NextResponse.redirect(fullRedirectUrl);
   }
 
   // Default redirect after sign in/up
-  return NextResponse.redirect(`${baseUrl}/`);
+  const defaultUrl = `${baseUrl}/`;
+  console.log("[AUTH-CALLBACK-WEB] Redirecting to default:", defaultUrl);
+  return NextResponse.redirect(defaultUrl);
 }

@@ -43,12 +43,23 @@ export default async function AccountPage() {
   const userEmail = user.email ?? "No email provided";
 
   // Check if user has identity linked with Microsoft
-  const { data: identities } = await supabase.auth.getUserIdentities();
-  console.log("Identities:", identities);
+  const identityResponse = await supabase.auth.getUserIdentities();
+  console.log("Identity response:", identityResponse);
 
-  const hasMicrosoftAuth = identities?.identities?.some(
-    (identity) => identity.provider === "azure"
-  );
+  let hasMicrosoftAuth = false;
+
+  if (identityResponse.error) {
+    console.error("Error fetching user identities:", identityResponse.error);
+  } else if (identityResponse.data?.identities) {
+    console.log("User identities:", identityResponse.data.identities);
+
+    // Check if any identity uses the 'azure' provider
+    hasMicrosoftAuth = identityResponse.data.identities.some(
+      (identity) => identity.provider === "azure"
+    );
+  } else {
+    console.log("No identities found or unexpected response structure");
+  }
 
   // Password update server action
   const updatePassword = async (formData: FormData) => {
@@ -104,11 +115,28 @@ export default async function AccountPage() {
           {hasMicrosoftAuth && (
             <div className="bg-blue-50 p-4 rounded-md">
               <p className="text-sm">
-                Your account is connected with Microsoft.
+                <span className="font-medium">
+                  Microsoft Account Connected:
+                </span>{" "}
+                Your account is currently using Microsoft authentication.
               </p>
               <Link href="/account/add-email-login">
                 <Button className="mt-2" variant="outline" size="sm">
                   Add Email Login Method
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {!hasMicrosoftAuth && (
+            <div className="bg-gray-50 p-4 rounded-md">
+              <p className="text-sm">
+                <span className="font-medium">Email Login Available:</span> You
+                can use your email address and password to sign in.
+              </p>
+              <Link href="/account/add-email-login">
+                <Button className="mt-2" variant="outline" size="sm">
+                  Manage Email Login
                 </Button>
               </Link>
             </div>

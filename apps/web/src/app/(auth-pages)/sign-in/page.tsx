@@ -65,6 +65,11 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
           <FormMessage message={searchParams} />
         </div>
       </form>
+      <div className="mt-4 flex justify-center">
+        <Link className="text-xs text-foreground underline" href="/magic-link">
+          Sign in with a magic link instead
+        </Link>
+      </div>
       <form className="flex flex-col gap-2">
         <SubmitButton
           pendingText="Connecting..."

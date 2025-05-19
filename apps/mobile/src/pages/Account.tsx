@@ -38,7 +38,7 @@ export default function Account({ session }: { session: Session }) {
           console.warn(error);
         } else if (data) {
           setUsername(data.username ?? "User");
-          setWebsite(data.website ?? "https://rathburn.co.uk");
+          setWebsite(data.website ?? "https://rathburn.app");
           setAvatarUrl(data.avatar_url ?? "/avatars/default.png");
         }
       }
