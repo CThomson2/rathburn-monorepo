@@ -6,7 +6,6 @@ import { FloatingNavGroup } from "@/core/components/layout/nav-group";
 import TopNavbar from "@/core/components/layout/top-navbar";
 import { TransportView } from "@/views/TransportView";
 import { ProductionView } from "@/views/ProductionView";
-import { TransportSettingsView } from "@/views/TransportSettingsView";
 // import { SettingsView } from "@/components/views/SettingsView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";

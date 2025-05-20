@@ -2,12 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
-  Calendar,
-  Users,
-  MapPin,
+  MessageCircle,
   RefreshCw,
-  X,
-  ChevronRight,
   ScanBarcode,
   Truck,
   Package,
@@ -15,6 +11,7 @@ import {
   XCircle,
   FileScan,
   BookText,
+  Send,
 } from "lucide-react";
 import {
   Card,
@@ -38,7 +35,7 @@ import {
   AlertDialogTrigger,
 } from "@/core/components/ui/alert-dialog";
 import { Badge } from "@/core/components/ui/badge";
-import { Input } from "@/core/components/ui/input";
+import { Textarea } from "@/core/components/ui/textarea";
 import {
   useSessionStore,
   PurchaseOrderLineTask,
@@ -51,6 +48,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/core/components/ui/collapsible";
+import { useComments } from "@/features/scanner/hooks/use-comments";
+import { formatDistance } from "date-fns";
 
 /**
  * Transport view that displays goods in transport
@@ -75,6 +74,23 @@ export function TransportView() {
   } = useSessionStore();
 
   const [isDrumListOpen, setIsDrumListOpen] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [showCommentInput, setShowCommentInput] = useState(false);
+
+  // Get the active task ID, whether in session or selected
+  const activeTaskId = currentSessionId ? currentSessionTaskId : selectedTaskId;
+
+  // Only call useComments when we have an active task ID
+  const {
+    comments,
+    isLoading: isLoadingComments,
+    isSubmitting: isSubmittingComment,
+    submitComment,
+    refreshComments,
+  } = useComments({
+    taskType: "transport",
+    taskId: activeTaskId,
+  });
 
   useEffect(() => {
     console.log("[TransportView] Relevant state changed:", {
@@ -139,6 +155,16 @@ export function TransportView() {
     isCheckingBatchCode,
   });
 
+  const handleSubmitComment = async () => {
+    if (!newComment.trim()) return;
+
+    const result = await submitComment(newComment.trim());
+    if (result.success) {
+      setNewComment("");
+      setShowCommentInput(false);
+    }
+  };
+
   return (
     <div className="container max-w-lg mx-auto p-4 space-y-4">
       <TaskSelectionModal />
@@ -158,14 +184,14 @@ export function TransportView() {
           >
             Select Task
           </Button>
-          <Button
+          {/* <Button
             variant="outline"
             onClick={() => startSession("free_scan")}
             className="w-full max-w-xs"
           >
             <FileScan className="mr-2 h-4 w-4" />
             Start Free Scan
-          </Button>
+          </Button> */}
         </div>
       )}
 
@@ -331,6 +357,90 @@ export function TransportView() {
                   </div>
                 )}
               </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Comments for task */}
+          <Card>
+            <CardHeader className="p-4">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base flex items-center space-x-2">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Comments</span>
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    refreshComments();
+                    setShowCommentInput(!showCommentInput);
+                  }}
+                >
+                  {showCommentInput ? "Cancel" : "Add Comment"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              {showCommentInput && (
+                <div className="mb-4 space-y-2">
+                  <Textarea
+                    placeholder="Add your comment here..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="min-h-[80px] w-full"
+                    disabled={isSubmittingComment}
+                  />
+                  <Button
+                    onClick={handleSubmitComment}
+                    className="w-full"
+                    disabled={!newComment.trim() || isSubmittingComment}
+                  >
+                    {isSubmittingComment ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Submit Comment
+                  </Button>
+                </div>
+              )}
+
+              {isLoadingComments ? (
+                <div className="flex justify-center py-4">
+                  <RefreshCw className="animate-spin h-5 w-5 text-primary" />
+                </div>
+              ) : comments && comments.length > 0 ? (
+                <ScrollArea className="h-[200px] pr-4">
+                  <div className="space-y-3">
+                    {comments.map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="border rounded-lg p-3 text-sm"
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-medium">
+                            {/* Can replace with user info if available */}
+                            User
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistance(
+                              new Date(comment.created_at),
+                              new Date(),
+                              { addSuffix: true }
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-sm">{comment.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No comments yet</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

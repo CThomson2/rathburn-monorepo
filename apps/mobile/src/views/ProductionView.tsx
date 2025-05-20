@@ -51,19 +51,36 @@ export function ProductionView() {
     openTaskSelectionModal, // To open the modal for production tasks
     fetchActiveProductionJobDrums,
     scannedDrumsForCurrentTask, // Will represent drums scanned IN THIS SESSION for this job
+    isCheckingBatchCode, // Adding this to match TransportView
   } = useSessionStore();
 
   const [isDrumListOpen, setIsDrumListOpen] = useState(false);
 
+  // For debugging - log state changes in production view
+  useEffect(() => {
+    console.log("[ProductionView] Relevant state changed:", {
+      currentSessionId,
+      sessionType,
+      selectedProductionJobId,
+      isScanning,
+      activeProductionJobDrums: activeProductionJobDrums.length,
+    });
+  }, [
+    currentSessionId,
+    sessionType,
+    selectedProductionJobId,
+    isScanning,
+    activeProductionJobDrums.length,
+  ]);
+
   const currentActiveProductionJob = useMemo(() => {
-    if (!selectedProductionJobId || sessionType !== "production_task")
-      return null;
+    if (!selectedProductionJobId) return null;
     return (
       availableProductionTasks.find(
         (job) => job.job_id === selectedProductionJobId
       ) || null
     );
-  }, [selectedProductionJobId, availableProductionTasks, sessionType]);
+  }, [selectedProductionJobId, availableProductionTasks]);
 
   // Fetch assigned drums when the active job changes
   useEffect(() => {
@@ -108,12 +125,46 @@ export function ProductionView() {
   ]);
 
   const estimatedTotalDrums = currentActiveProductionJob?.totalQuantity || 0;
-  const processedDrumsCount = displayDrums.length; // Simplified: count of all drums associated/scanned
+  const processedDrumsCount = displayDrums.length;
+
+  // Define UI states similar to TransportView
+  const showProductionTaskSelection =
+    !currentSessionId && !selectedProductionJobId && !isCheckingBatchCode;
+
+  const showProductionScanningInterface =
+    currentSessionId &&
+    sessionType === "production_task" &&
+    currentActiveProductionJob !== null;
+
+  const showProductionDetailsUnavailable =
+    currentSessionId &&
+    sessionType === "production_task" &&
+    !currentActiveProductionJob;
+
+  // Logging UI states for debugging
+  console.log("[ProductionView] Rendering with UI states:", {
+    showProductionTaskSelection,
+    showProductionScanningInterface,
+    showProductionDetailsUnavailable,
+    currentActiveProductionJob,
+    currentSessionId,
+    sessionType,
+    selectedProductionJobId,
+    isCheckingBatchCode,
+  });
 
   return (
     <div className="container max-w-lg mx-auto p-4 space-y-4">
       <TaskSelectionModal /> {/* This modal is now multi-purpose */}
-      {!currentSessionId || sessionType !== "production_task" ? (
+      {isCheckingBatchCode && (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">
+            Processing production job information...
+          </p>
+        </div>
+      )}
+      {showProductionTaskSelection && (
         <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
           <Zap className="h-12 w-12 text-muted-foreground" />
           <div className="text-center space-y-2">
@@ -128,9 +179,9 @@ export function ProductionView() {
           >
             Select Production Job
           </Button>
-          {/* Optional: Button for a "Free Scan" within production context if needed */}
         </div>
-      ) : currentActiveProductionJob ? (
+      )}
+      {showProductionScanningInterface && (
         <div className="space-y-4">
           <Card>
             <CardHeader className="p-4">
@@ -260,7 +311,8 @@ export function ProductionView() {
             </CardContent>
           </Card>
         </div>
-      ) : (
+      )}
+      {showProductionDetailsUnavailable && (
         <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
           <Zap className="h-12 w-12 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">

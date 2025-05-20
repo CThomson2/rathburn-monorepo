@@ -23,13 +23,11 @@ import {
   MoreHorizontal, // For generic details icon
   FileText, // For notes or generic info
 } from "lucide-react";
-import {
-  OrderStatus,
-  ProductionJobOrderType,
-} from "@/features/production/types"; // Use the aliased import if needed
+import { OrderStatus, Order as JobOrder } from "@/features/production/types"; // Use the aliased import if needed
 import { Progress } from "@/components/ui/progress"; // Assuming you have this
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatDateTime } from "@/utils/format-date";
+import { cn } from "@/lib/utils";
 
 interface JobDetailsPageProps {
   params: {
@@ -105,6 +103,18 @@ function InfoItem({ icon, label, value, valueClassName }: InfoItemProps) {
   );
 }
 
+/**
+ * Page component for displaying a production job's details.
+ *
+ * Fetches the specific job with the given ID from the database and displays
+ * its details, including the item name, supplier, scheduled date, priority,
+ * and progress. Also displays specific details for the distillation operation
+ * if available. If the job is not found, will serve a 404 page.
+ *
+ * @param {object} params - Page parameters, including the job ID.
+ * @param {string} params.job-id - The ID of the production job to display.
+ * @returns {JSX.Element} The production job details page.
+ */
 export default async function ProductionJobDetailsPage({
   params,
 }: JobDetailsPageProps) {
@@ -226,7 +236,7 @@ export default async function ProductionJobDetailsPage({
                           variant={getOperationStatusVariant(
                             task.status as string | undefined
                           )}
-                          size="sm"
+                          className="text-sm"
                         >
                           {task.status}
                         </Badge>
@@ -327,7 +337,7 @@ export default async function ProductionJobDetailsPage({
                         {event.event}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {formatDateTime(event.timestamp)}{" "}
+                        {formatDateTime(new Date(event.timestamp))}{" "}
                         {event.user && `by ${event.user}`}
                       </p>
                     </div>

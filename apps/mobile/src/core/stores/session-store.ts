@@ -470,20 +470,30 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   // No session should be active when this function is called
   closeTaskSelectionModal: () => {
-    const { currentSessionId, sessionType, selectedTaskId } = get();
+    const { currentSessionId, sessionType, selectedTaskId, selectedProductionJobId } = get();
     const ProceedingToBatchCodeForTransport = sessionType === 'task' && selectedTaskId && !currentSessionId;
-    console.log('[SessionStore] closeTaskSelectionModal called. ProceedingToBatchCode:', ProceedingToBatchCodeForTransport, 'Current state:', get());
+    const ProceedingToProductionSession = sessionType === 'production_task' && selectedProductionJobId && !currentSessionId;
+    
+    console.log('[SessionStore] closeTaskSelectionModal called. ProceedingToBatchCode:', ProceedingToBatchCodeForTransport, 
+                'ProceedingToProductionSession:', ProceedingToProductionSession, 'Current state:', get());
 
     set(state => ({
       showTaskSelectionModal: false,
       taskSelectionModalType: null, 
       selectedTaskId: ProceedingToBatchCodeForTransport ? state.selectedTaskId : (currentSessionId && state.sessionType === 'task' ? state.selectedTaskId : null),
-      selectedProductionJobId: currentSessionId && state.sessionType === 'production_task' ? state.selectedProductionJobId : null,
-      sessionType: ProceedingToBatchCodeForTransport ? 'task' : (currentSessionId ? state.sessionType : null),
+      selectedProductionJobId: ProceedingToProductionSession ? state.selectedProductionJobId : (currentSessionId && state.sessionType === 'production_task' ? state.selectedProductionJobId : null),
+      sessionType: ProceedingToBatchCodeForTransport ? 'task' : (ProceedingToProductionSession ? 'production_task' : (currentSessionId ? state.sessionType : null)),
       currentTaskBatchCodeInput: ProceedingToBatchCodeForTransport ? state.currentTaskBatchCodeInput : '',
       isCurrentTaskBatchCodeSubmitted: ProceedingToBatchCodeForTransport ? state.isCurrentTaskBatchCodeSubmitted : false,
       currentBatchTableId: ProceedingToBatchCodeForTransport ? state.currentBatchTableId : null,
     }));
+    
+    // If we're proceeding to production session, start it immediately
+    if (ProceedingToProductionSession) {
+      console.log('[SessionStore] Proceeding to confirmStartSession for production job');
+      get().confirmStartSession();
+    }
+    
     get().logCurrentState('closeTaskSelectionModal');
     console.log('[SessionStore] state AFTER closeTaskSelectionModal:', get());
   }, 

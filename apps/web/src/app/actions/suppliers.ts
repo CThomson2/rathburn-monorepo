@@ -147,7 +147,7 @@ export async function searchItemsBySupplier(
  */
 export async function fetchItemsBySupplier(
   supplierId: string
-): Promise<Array<{ id: string; name: string }>> {
+): Promise<Array<{ id: string; name: string; materialId: string }>> {
   if (!supplierId) {
     return [];
   }

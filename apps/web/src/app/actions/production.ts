@@ -7,6 +7,8 @@ import {
   mapJobStatusToOrderStatus,
   getProgressFromStatus,
   getPriorityFromJob,
+  JobStatus,
+  OperationStatus,
 } from "@/features/production/types";
 
 /***************************
@@ -67,6 +69,7 @@ export async function fetchProductionJobs(): Promise<ProductionJobOrderType[]> {
           `Still: ${job.still_code}, Raw Vol: ${job.raw_volume}L, Max Cap: ${job.still_max_capacity * 200}L`
           : 'Details unavailable',
         // Add more task details from view if needed (started_at, ended_at for this op)
+        status: job.op_status as OperationStatus,
         started_at: job.started_at,
         ended_at: job.ended_at,
       }],
@@ -143,6 +146,7 @@ export async function fetchProductionJobById(jobId: string): Promise<ProductionJ
         details: op.distillation_details ? 
           `Still: ${op.distillation_details.stills?.code}, Raw Volume: ${op.distillation_details.raw_volume}L` 
           : undefined,
+        status: op.status,
       })) ?? [],
       timeline:
         j.operations

@@ -835,27 +835,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_profiles: {
-        Row: {
-          avatar_url: string | null
-          email: string | null
-          full_name: string | null
-          id: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          email?: string | null
-          full_name?: string | null
-          id: string
-        }
-        Update: {
-          avatar_url?: string | null
-          email?: string | null
-          full_name?: string | null
-          id?: string
-        }
-        Relationships: []
-      }
       user_queries: {
         Row: {
           created_at: string | null
@@ -2648,6 +2627,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_goods_in"
             referencedColumns: ["pol_id"]
+          },
+          {
+            foreignKeyName: "task_comments_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }

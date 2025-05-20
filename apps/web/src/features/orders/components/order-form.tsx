@@ -69,8 +69,9 @@ interface OrderFormProps {
 }
 
 // Helper functions to fetch data with SWR
-const suppliersFetcher = async () => await fetchSuppliers();
-const itemsBySupplierFetcher = async (supplierId: string) => {
+const suppliersFetcher = async (): Promise<Supplier[]> =>
+  await fetchSuppliers();
+const itemsBySupplierFetcher = async (supplierId: string): Promise<Item[]> => {
   if (!supplierId) return [];
   return await fetchItemsBySupplier(supplierId);
 };
@@ -498,16 +499,16 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0 max-h-[300px] overflow-y-auto">
               <Command>
                 <CommandInput
                   placeholder="Search suppliers..."
                   value={supplierSearchTerm}
                   onValueChange={setSupplierSearchTerm}
                 />
-                <CommandList>
+                <CommandList className="max-h-[300px] overflow-y-auto">
                   <CommandEmpty>No suppliers found.</CommandEmpty>
-                  <CommandGroup>
+                  <CommandGroup className="w-full">
                     {filteredSuppliers?.map((item) => {
                       return (
                         <CommandItem

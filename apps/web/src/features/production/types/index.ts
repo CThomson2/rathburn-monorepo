@@ -1,4 +1,4 @@
-export type OrderStatus = 'preparing' | 'distillation' | 'qc' | 'complete' | 'error';
+export type OrderStatus = "preparing" | "distillation" | "qc" | "complete" | "error";
 
 export type Order = {
   id: string;
@@ -8,7 +8,7 @@ export type Order = {
   scheduledDate: string;
   status: OrderStatus;
   progress: number;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
   drums?: {
     id: string;
     serial: string;
@@ -24,30 +24,41 @@ export type Order = {
     name: string;
     completed: boolean;
     assignedTo?: string;
+    details?: string;
+    status: OperationStatus;
+    started_at?: string | null;
+    ended_at?: string | null;
   }[];
 }
 
-export type JobStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'paused' | 'completed' | 'failed' | 'cancelled';
+// production.job_status
+export type JobStatus = "scheduled" | "confirmed" | "in_progress" | "paused" | "completed" | "failed" | "cancelled";
+
+// production.op_status
+export type OperationStatus = "pending" | "active" | "completed" | "error";
+
+// production.op_type
+export type OperationType = "distillation" | "decanting" | "qc" | "split" | "packaging" | "goods_in" | "transport0";
 
 // Mapping from database status to UI status
 export const mapJobStatusToOrderStatus = (
   status: JobStatus
 ): OrderStatus => {
   switch (status) {
-    case 'scheduled':
-    case 'confirmed':
-      return 'preparing';
-    case 'in_progress':
-      return 'distillation';
-    case 'paused':
-      return 'qc';
-    case 'completed':
-      return 'complete';
-    case 'failed':
-    case 'cancelled':
-      return 'error';
+    case "scheduled":
+    case "confirmed":
+      return "preparing";
+    case "in_progress":
+      return "distillation";
+    case "paused":
+      return "qc";
+    case "completed":
+      return "complete";
+    case "failed":
+    case "cancelled":
+      return "error";
     default:
-      return 'preparing';
+      return "preparing";
   }
 };
 
@@ -56,18 +67,18 @@ export const getProgressFromStatus = (
   status: string
 ): number => {
   switch (status) {
-    case 'scheduled':
+    case "scheduled":
       return 10;
-    case 'confirmed':
+    case "confirmed":
       return 25;
-    case 'in_progress':
+    case "in_progress":
       return 50;
-    case 'paused':
+    case "paused":
       return 75;
-    case 'completed':
+    case "completed":
       return 100;
-    case 'failed':
-    case 'cancelled':
+    case "failed":
+    case "cancelled":
       return 60; // Error state shows some progress
     default:
       return 0;
@@ -77,21 +88,21 @@ export const getProgressFromStatus = (
 // Helper to determine priority based on job data
 export const getPriorityFromJob = (
   job: any
-): 'low' | 'medium' | 'high' => {
-  if (!job) return 'medium';
+): "low" | "medium" | "high" => {
+  if (!job) return "medium";
   
   // Determine priority based on job.priority if available
-  if (typeof job.priority === 'number') {
-    if (job.priority >= 8) return 'high';
-    if (job.priority >= 4) return 'medium';
-    return 'low';
+  if (typeof job.priority === "number") {
+    if (job.priority >= 8) return "high";
+    if (job.priority >= 4) return "medium";
+    return "low";
   }
   
-  return 'medium';
+  return "medium";
 };
 
 // Add these new types for distillation schedules
-export type DistillationStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type DistillationStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
 
 export interface DistillationScheduleItem {
   id: number;

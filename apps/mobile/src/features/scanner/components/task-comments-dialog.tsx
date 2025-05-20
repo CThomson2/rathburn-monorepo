@@ -21,12 +21,11 @@ interface TaskCommentsDialogProps {
   taskName: string;
 }
 
-interface CommentWithUserData extends TaskComment {
-  users?: {
-    email?: string;
-    user_profiles?: {
-      full_name?: string;
-    };
+interface CommentWithUserData
+  extends Pick<TaskComment, "id" | "created_at" | "comment" | "user_id"> {
+  profiles?: {
+    email?: string | null;
+    username?: string | null;
   };
 }
 
@@ -60,11 +59,9 @@ export function TaskCommentsDialog({
           created_at,
           comment,
           user_id,
-          auth.users!user_id (
+          profiles!user_id (
             email,
-            auth_ext.user_profiles!user_id (
-              full_name
-            )
+            username
           )
         `
         )
@@ -81,10 +78,10 @@ export function TaskCommentsDialog({
             created_at: comment.created_at,
             comment: comment.comment,
             user_id: comment.user_id,
-            user_email: comment.users?.email || "Unknown user",
+            user_email: comment.profiles?.email || "Unknown user",
             user_name:
-              comment.users?.user_profiles?.full_name ||
-              comment.users?.email?.split("@")[0] ||
+              comment.profiles?.username ||
+              comment.profiles?.email?.split("@")[0] ||
               "Unknown user",
           };
         }

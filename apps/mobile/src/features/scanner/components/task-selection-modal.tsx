@@ -40,12 +40,11 @@ import { Textarea } from "@/core/components/ui/textarea";
 import { Button } from "@/core/components/ui/button";
 import { useToast } from "@/core/components/ui/use-toast";
 import { createClient } from "@/core/lib/supabase/client";
-import { SupabaseClient } from "@supabase/supabase-js";
 import { TaskCommentsDialog } from "./task-comments-dialog";
-import { TaskComment } from "../types/task-comment";
 import { Input } from "@/core/components/ui/input";
-import { Database } from "@rathburn/types";
 
+import { Database } from "@rathburn/types";
+import { useComments } from "../hooks/use-comments";
 type Batch = Database["inventory"]["Tables"]["batches"]["Row"];
 
 /**
@@ -133,6 +132,17 @@ export function TaskSelectionModal() {
       ? selectedTaskId
       : selectedProductionJobId;
 
+  const {
+    comments,
+    isLoading: commentsLoading,
+    submitComment,
+  } = useComments({
+    taskType: taskSelectionModalType as NonNullable<
+      typeof taskSelectionModalType
+    >,
+    taskId: currentSelection as NonNullable<typeof currentSelection>,
+  });
+
   const checkForExistingBatch = async (taskId: string) => {
     setIsFetchingBatch(true);
     try {
@@ -199,8 +209,20 @@ export function TaskSelectionModal() {
     if (taskSelectionModalType === "production") {
       console.log(
         "Starting production session with modal type:",
-        taskSelectionModalType
+        taskSelectionModalType,
+        "Selected job ID:",
+        selectedProductionJobId
       );
+      // Add a check to ensure we have a selected production job
+      if (!selectedProductionJobId) {
+        toast({
+          title: "No production job selected",
+          description:
+            "Please select a production job before starting a session",
+          variant: "destructive",
+        });
+        return;
+      }
       confirmStartSession();
     } else if (taskSelectionModalType === "transport") {
       if (existingBatchCode) {
