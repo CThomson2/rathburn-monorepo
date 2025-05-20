@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Lamp } from "@/components/layout/lamp-view";
 import { RealtimeFeedCentered } from "@/components/realtime/centered-feed";
 import { Database, Json } from "@/types/supabase";
-import { BentoGrid } from "@/components/layout/bento-grid";
+import { EnhancedBentoGrid } from "@/components/layout/enhanced-bento-grid";
 import { OrderModal } from "@/features/orders/components/order-modal";
 
 // Updated interface to match public.session_scans
@@ -128,9 +128,8 @@ export default async function IndexPage() {
           initialScans={typedInitialScans} // Pass the correctly typed and potentially transformed scans
         /> */}
 
-        {/* Add BentoGrid below Lamp */}
-        <BentoGrid
-          // onOpenOrderModal={handleOpenOrderModal}
+        {/* Use EnhancedBentoGrid instead of BentoGrid */}
+        <EnhancedBentoGrid
           totalDrums={totalDrums || 0}
           itemsBelowThreshold={itemsBelowThreshold}
           mostCommonMaterial={mostCommonMaterial}

@@ -163,9 +163,7 @@ const RealtimeScanLogSidebar = ({
             .limit(100)
             .gte(
               "created_at",
-              new Date(
-                new Date().setDate(new Date().getDate() - 2)
-              ).toISOString()
+              new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
             );
 
           if (fetchError) {
@@ -418,7 +416,10 @@ const RealtimeScanLogSidebar = ({
             return;
           }
 
-          if (payload.eventType === "INSERT" && payload.new) {
+          if (
+            payload.eventType === "INSERT" ||
+            (payload.eventType === "UPDATE" && payload.new)
+          ) {
             try {
               // Fetch the user information
               const { data: userData, error: userError } = await supabase

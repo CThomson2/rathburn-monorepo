@@ -1,0 +1,458 @@
+"use client";
+
+import React, { useState, useRef, ReactNode } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import Link from "next/link";
+import {
+  FileTextIcon,
+  BookOpenIcon,
+  PackageIcon,
+  WorkflowIcon,
+  PlusCircleIcon,
+  ArrowRightIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+// Types
+interface BentoGridProps {
+  className?: string;
+  totalDrums: number;
+  itemsBelowThreshold: number;
+  mostCommonMaterial?: {
+    name: string;
+    count: number;
+  };
+}
+
+interface BentoCardProps {
+  name: string;
+  className?: string;
+  background?: ReactNode;
+  icon: ReactNode;
+  description: string;
+  href: string;
+  cta: string;
+  flippable?: boolean;
+  disabled?: boolean;
+  children?: ReactNode;
+}
+
+interface ChangelogEntryProps {
+  version: string;
+  date: string;
+  title: string;
+  description: string;
+  items?: string[];
+}
+
+// 3D Tilt Card Component
+const Tilt3DCard: React.FC<BentoCardProps> = ({
+  name,
+  className,
+  background,
+  icon,
+  description,
+  href,
+  cta,
+  flippable = false,
+  disabled = false,
+  children,
+}) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const mouseX = useSpring(x, { stiffness: 500, damping: 100 });
+  const mouseY = useSpring(y, { stiffness: 500, damping: 100 });
+  const rotateX = useTransform(mouseY, [-100, 100], [10, -10]);
+  const rotateY = useTransform(mouseX, [-100, 100], [-10, 10]);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!cardRef.current || disabled) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct * 100);
+    y.set(yPct * 100);
+  }
+
+  function onMouseLeave() {
+    x.set(0);
+    y.set(0);
+  }
+
+  function handleClick() {
+    if (flippable && !disabled) {
+      setIsFlipped(!isFlipped);
+    }
+  }
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      onClick={handleClick}
+      style={{
+        rotateX: disabled ? 0 : rotateX,
+        rotateY: disabled ? 0 : rotateY,
+        transformStyle: "preserve-3d",
+      }}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      transition={{ duration: 0.2 }}
+      className={cn(
+        "group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-xl",
+        "bg-card border border-border shadow-lg dark:shadow-primary/20",
+        "transform-gpu",
+        disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
+        className
+      )}
+    >
+      <motion.div
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ duration: 0.6 }}
+        style={{ transformStyle: "preserve-3d" }}
+        className="w-full h-full"
+      >
+        {/* Front of card */}
+        <motion.div
+          style={{ backfaceVisibility: "hidden" }}
+          className={`absolute w-full h-full ${isFlipped ? "opacity-0" : "opacity-100"}`}
+        >
+          <div>{background}</div>
+          <div className="pointer-events-none z-10 flex transform-gpu flex-col gap-1 p-6 transition-all duration-300 group-hover:-translate-y-2">
+            <div className="h-8 w-8 origin-left transform-gpu text-primary transition-all duration-300 ease-in-out group-hover:scale-125">
+              {icon}
+            </div>
+            <h3 className="text-xl font-semibold text-card-foreground dark:text-slate-100 mt-2">
+              {name}
+            </h3>
+            <p className="max-w-lg text-muted-foreground dark:text-slate-300 text-sm">
+              {description}
+            </p>
+            {children}
+          </div>
+
+          <div
+            className={cn(
+              "pointer-events-none absolute bottom-0 flex w-full translate-y-4 transform-gpu flex-row items-center p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100",
+              disabled && "!opacity-0"
+            )}
+          >
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className="pointer-events-auto text-primary hover:text-primary/90 dark:text-slate-200 dark:hover:text-slate-50"
+              disabled={disabled}
+            >
+              <Link href={href}>
+                {cta}
+                <ArrowRightIcon className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 transform-gpu transition-all duration-300",
+              !disabled &&
+                "group-hover:bg-black/[.03] dark:group-hover:bg-primary/[.06]"
+            )}
+          />
+        </motion.div>
+
+        {/* Back of card (only shown when flippable) */}
+        {flippable && (
+          <motion.div
+            style={{
+              backfaceVisibility: "hidden",
+              rotateY: 180,
+              transformStyle: "preserve-3d",
+            }}
+            className={`absolute w-full h-full p-6 flex flex-col justify-between bg-card dark:bg-slate-800 ${isFlipped ? "opacity-100" : "opacity-0"}`}
+          >
+            <div>
+              <h3 className="text-xl font-semibold text-card-foreground dark:text-slate-100 mb-4">
+                More about {name}
+              </h3>
+              <p className="text-muted-foreground dark:text-slate-300">
+                Additional details about this feature can be found by clicking
+                below.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              asChild
+              className="mt-4 self-start border-primary/50 text-primary hover:text-primary/90 hover:bg-primary/5 dark:border-slate-700 dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-700"
+            >
+              <Link href={href}>
+                View Details <ArrowRightIcon className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </motion.div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Changelog Component
+const Changelog = ({ entries }: { entries: ChangelogEntryProps[] }) => {
+  return (
+    <div className="w-full bg-card/50 p-6 rounded-xl border border-border">
+      <h2 className="text-2xl font-bold mb-4">Release Notes</h2>
+      <div className="space-y-8">
+        {entries.map((entry, index) => (
+          <div key={index} className="relative flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {entry.version}
+              </Badge>
+              <span className="text-xs font-medium text-muted-foreground">
+                {entry.date}
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-lg font-bold text-foreground/90">
+                {entry.title}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {entry.description}
+              </p>
+              {entry.items && entry.items.length > 0 && (
+                <ul className="mt-4 ml-4 space-y-1.5 text-sm text-muted-foreground">
+                  {entry.items.map((item, itemIndex) => (
+                    <li key={itemIndex} className="list-disc">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Decorative Lines Component
+const DecorativeLines = () => {
+  return (
+    <div className="grid grid-cols-4 gap-4 mb-8">
+      <motion.div
+        className="h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration: 1, delay: 0.2 }}
+        whileHover={{
+          scale: 1.05,
+          backgroundColor: "var(--primary)",
+          transition: { duration: 0.3 },
+        }}
+      />
+      <motion.div
+        className="h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent col-span-2"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration: 1, delay: 0.4 }}
+        whileHover={{
+          scale: 1.05,
+          backgroundColor: "var(--primary)",
+          transition: { duration: 0.3 },
+        }}
+      />
+      <motion.div
+        className="h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration: 1, delay: 0.6 }}
+        whileHover={{
+          scale: 1.05,
+          backgroundColor: "var(--primary)",
+          transition: { duration: 0.3 },
+        }}
+      />
+    </div>
+  );
+};
+
+// Main Enhanced Bento Grid Component
+export function EnhancedBentoGrid({
+  className,
+  totalDrums,
+  itemsBelowThreshold,
+  mostCommonMaterial = { name: "Material XYZ", count: 0 },
+}: BentoGridProps) {
+  const changelogEntries = [
+    {
+      version: "v1.1.5",
+      date: "Tue 20 May",
+      title: "Production Workflow Revolution & Interactive Scan Log",
+      description:
+        "Game-changing improvements that transform how your team works",
+      items: [
+        "💪 Production scheduling end-to-end workflow saves hours of employee time weekly",
+        "🔍 Ultra-responsive scan log sidebar with powerful search and filtering",
+        "💬 Real-time team communication system for instant task updates",
+        "🔄 Seamless cross-platform sync between web and mobile applications",
+        "📊 Advanced material tracking with predictive inventory insights",
+      ],
+    },
+  ];
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Add the decorative lines */}
+      <DecorativeLines />
+
+      <div
+        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        style={{ perspective: "1200px" }}
+      >
+        {/* Release Notes Card */}
+        <Tilt3DCard
+          icon={<FileTextIcon className="h-8 w-8 text-primary" />}
+          name="Release Notes"
+          description="Latest updates and new features."
+          href="/release-notes"
+          cta="View all updates"
+          className="md:col-span-2"
+          flippable={true}
+        >
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="text-xs border-primary/30 text-primary dark:text-slate-300 dark:border-slate-600"
+              >
+                v1.1.5
+              </Badge>
+              <span className="text-xs font-medium text-muted-foreground dark:text-slate-400">
+                Tue 20 May
+              </span>
+            </div>
+            <p className="font-medium text-card-foreground dark:text-slate-200">
+              <strong className="text-primary dark:text-cyan-400">
+                Production Scheduling:
+              </strong>{" "}
+              Now available! Game-changing workflow that saves hours each week.
+            </p>
+            <p className="font-medium text-card-foreground dark:text-slate-200">
+              <strong className="text-primary dark:text-cyan-400">
+                Scan Log Sidebar:
+              </strong>{" "}
+              Powerful interactive history with real-time team communication.
+            </p>
+          </div>
+        </Tilt3DCard>
+
+        {/* User Guides Card - Dimmed */}
+        <Tilt3DCard
+          icon={
+            <BookOpenIcon className="h-8 w-8 text-primary/70 dark:text-primary/50" />
+          }
+          name="User Guides"
+          description="Learn how to use the platform."
+          href="/guides"
+          cta="Explore Guides"
+          className="md:col-span-1"
+          disabled={true}
+        >
+          <div className="mt-4 text-sm text-muted-foreground dark:text-slate-400">
+            <p>Comprehensive documentation coming soon.</p>
+          </div>
+        </Tilt3DCard>
+
+        {/* Inventory Dashboard Card */}
+        <Tilt3DCard
+          icon={<PackageIcon className="h-8 w-8 text-primary" />}
+          name="Inventory Snapshot"
+          description="Quick view of your inventory status."
+          href="/inventory"
+          cta="Go to Inventory"
+          className="md:col-span-1"
+          flippable={true}
+        >
+          <div className="space-y-3 mt-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">
+                Total Drums
+              </p>
+              <p className="text-2xl font-bold text-card-foreground dark:text-slate-100">
+                {totalDrums}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">
+                Materials Below Threshold
+              </p>
+              <p className="text-2xl font-bold text-card-foreground dark:text-slate-100">
+                {itemsBelowThreshold}
+              </p>
+              {itemsBelowThreshold > 0 && (
+                <p className="text-xs text-destructive dark:text-red-400 mt-1">
+                  Action needed: {itemsBelowThreshold} materials below safe
+                  stock levels
+                </p>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">
+                Most Common Material
+              </p>
+              <p className="text-md font-semibold text-card-foreground dark:text-slate-100">
+                {mostCommonMaterial.name}
+              </p>
+              {mostCommonMaterial.count > 0 && (
+                <p className="text-xs text-muted-foreground dark:text-slate-400">
+                  {mostCommonMaterial.count} drums in stock
+                </p>
+              )}
+            </div>
+          </div>
+        </Tilt3DCard>
+
+        {/* Production Scheduling Card */}
+        <Tilt3DCard
+          icon={<WorkflowIcon className="h-8 w-8 text-primary" />}
+          name="Production Scheduling"
+          description="Manage your production workflow efficiently."
+          href="/production"
+          cta="View Production"
+          className="md:col-span-2"
+          flippable={true}
+        >
+          <div className="mt-4 text-sm">
+            <p className="text-muted-foreground dark:text-slate-300">
+              Our latest feature enables end-to-end production scheduling,
+              syncing seamlessly between web and mobile applications.
+            </p>
+            <div className="mt-2">
+              <Badge className="mr-2 bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-700 dark:text-green-100 dark:hover:bg-green-600">
+                New
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-primary/30 text-primary dark:text-slate-300 dark:border-slate-600"
+              >
+                Time-saving
+              </Badge>
+            </div>
+          </div>
+        </Tilt3DCard>
+      </div>
+
+      {/* Full Changelog Section */}
+      <div className="mt-8">
+        <Changelog entries={changelogEntries} />
+      </div>
+    </div>
+  );
+}
