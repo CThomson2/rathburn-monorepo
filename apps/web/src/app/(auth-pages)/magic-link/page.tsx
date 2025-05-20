@@ -1,17 +1,17 @@
 "use client";
 
-import { forgotPasswordAction } from "@/app/actions";
-import { SubmitButton } from "@/components/layout/auth/submit-button";
+import { sendMagicLinkAction } from "@/app/actions";
 import { FormMessage } from "@/components/layout/auth/form-message";
+import { SubmitButton } from "@/components/layout/auth/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 /**
- * Page for requesting a password reset
+ * Page for requesting a magic link for passwordless login
  */
-export default function ForgotPasswordPage() {
+export default function MagicLinkPage() {
   const searchParams = useSearchParams();
 
   // Get message and type from URL
@@ -20,9 +20,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex-1 flex flex-col min-w-64">
-      <h1 className="text-2xl font-medium">Forgot Password</h1>
+      <h1 className="text-2xl font-medium">Magic Link Sign In</h1>
       <p className="text-sm text-foreground mt-1">
-        Enter your email address and we'll send you a link to reset your
+        Enter your email address and we'll send you a link to sign in without a
         password.
       </p>
 
@@ -37,13 +37,13 @@ export default function ForgotPasswordPage() {
           />
 
           {/* Hidden input to redirect back to this page for displaying messages */}
-          <input type="hidden" name="callbackUrl" value="/forgot-password" />
+          <input type="hidden" name="callbackUrl" value="/magic-link" />
 
           <SubmitButton
             pendingText="Sending..."
-            formAction={forgotPasswordAction}
+            formAction={sendMagicLinkAction}
           >
-            Send Reset Link
+            Send Magic Link
           </SubmitButton>
 
           <FormMessage

@@ -171,7 +171,7 @@ import React, {
 import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 import { useRouter } from "next/router";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
-import { Database } from "@/types/supabase";
+import { Database } from "@rathburn/types";
 
 // Tutorial types
 type TutorialContextType = {
@@ -459,7 +459,7 @@ Create server actions to handle tutorial data:
 
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import { Database } from "@/types/supabase";
+import { Database } from "@rathburn/types";
 
 export async function getTutorialProgress(userId: string, tutorialId?: string) {
   const supabase = createServerComponentClient<Database>({ cookies });

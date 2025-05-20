@@ -2606,6 +2606,51 @@ export type Database = {
           },
         ]
       }
+      task_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          job_id: string | null
+          pol_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          pol_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          pol_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_jobs"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "task_comments_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

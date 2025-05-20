@@ -1,3 +1,4 @@
+export * from "./supabase";
 /**
  * Common types and interfaces for the Rathburn monorepo
  */

@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // Import the specific type from the centralized file
-import { Database } from "@/types/supabase";
+import { Database } from "@rathburn/types";
 
 // Define the interface for scan data from public.session_scans
 // Base type with original fields

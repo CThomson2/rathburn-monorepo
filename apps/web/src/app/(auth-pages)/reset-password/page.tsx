@@ -1,12 +1,12 @@
 "use client";
 
 import { resetPasswordAction } from "@/app/actions";
-import { SubmitButton } from "@/components/layout/auth/submit-button";
 import { FormMessage } from "@/components/layout/auth/form-message";
+import { SubmitButton } from "@/components/layout/auth/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSearchParams } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 /**

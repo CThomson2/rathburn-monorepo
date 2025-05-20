@@ -11,7 +11,7 @@
     "start:mobile": "turbo run start --filter=@rathburn/mobile",
     "build:all": "turbo run build",
     "build:apps": "pnpm build:ui && pnpm build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=@rathburn/web --filter=@rathburn/mobile",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"

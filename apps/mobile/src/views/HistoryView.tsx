@@ -192,6 +192,12 @@ export function HistoryView() {
         };
 
         if (grouped[scan.session_id]) {
+          // console.log("Adding scan to existing session:", scan.session_id);
+          // console.log(
+          //   "Scans in session:",
+          //   grouped[scan.session_id].scans.length,
+          //   grouped[scan.session_id].scans
+          // );
           grouped[scan.session_id].scans.push(historyItem);
         } else {
           // This case implies a scan exists for a session not fetched or not in validSessions.
@@ -223,7 +229,15 @@ export function HistoryView() {
           );
         });
 
-      setGroupedHistory(sortedGrouped);
+      console.log("Sorted grouped history:", sortedGrouped);
+      console.log(JSON.stringify(sortedGrouped, null, 2));
+      setGroupedHistory(
+        Object.fromEntries(
+          Object.entries(sortedGrouped).filter(
+            ([_, group]) => group.scans.length > 0
+          )
+        )
+      );
     } catch (err) {
       const typedError = err as Error; // This is fine
       console.error("Failed to fetch scan history:", typedError);
@@ -343,7 +357,7 @@ export function HistoryView() {
                                         variant="outline"
                                         className="text-xs"
                                       >
-                                        PO: {scan.po_number}
+                                        Goods In: {scan.po_number}
                                       </Badge>
                                     )}
                                   {scan.scan_action === "free_scan" && (

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,9 +22,31 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/core/components/ui/card";
-import { Truck, Package, ChevronRight, Zap, RefreshCw } from "lucide-react";
+import {
+  Truck,
+  Package,
+  ChevronRight,
+  Zap,
+  RefreshCw,
+  X,
+  MessageSquare,
+  Play,
+  Check,
+} from "lucide-react";
 import { formatDate } from "@/core/utils/format-date";
+import { Textarea } from "@/core/components/ui/textarea";
+import { Button } from "@/core/components/ui/button";
+import { useToast } from "@/core/components/ui/use-toast";
+import { createClient } from "@/core/lib/supabase/client";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { TaskCommentsDialog } from "./task-comments-dialog";
+import { TaskComment } from "../types/task-comment";
+import { Input } from "@/core/components/ui/input";
+import { Database } from "@rathburn/types";
+
+type Batch = Database["inventory"]["Tables"]["batches"]["Row"];
 
 /**
  * TODO: Add caching of tasks to avoid fetching from the database on every modal open.
@@ -51,7 +73,21 @@ export function TaskSelectionModal() {
     isFetchingProductionTasks,
     fetchProductionTasks, // Keep for production tasks
     taskSelectionModalType,
+    currentTaskBatchCodeInput,
+    setCurrentTaskBatchCodeInput,
+    createBatchForCurrentTask,
   } = useSessionStore();
+
+  const [showCommentField, setShowCommentField] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [existingBatchCode, setExistingBatchCode] = useState<string | null>(
+    null
+  );
+  const [isFetchingBatch, setIsFetchingBatch] = useState(false);
+  const [batchCodeInput, setBatchCodeInput] = useState("");
+  const [isSubmittingBatchCode, setIsSubmittingBatchCode] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Fetch production tasks when modal is shown for production
@@ -72,6 +108,16 @@ export function TaskSelectionModal() {
     availableProductionTasks.length,
   ]);
 
+  // Reset comment field when modal is opened or closed
+  useEffect(() => {
+    if (showTaskSelectionModal) {
+      setShowCommentField(false);
+      setCommentText("");
+      setBatchCodeInput("");
+      setExistingBatchCode(null);
+    }
+  }, [showTaskSelectionModal]);
+
   const isLoading =
     taskSelectionModalType === "transport"
       ? isFetchingTasks
@@ -87,16 +133,65 @@ export function TaskSelectionModal() {
       ? selectedTaskId
       : selectedProductionJobId;
 
-  const handleTaskSelect = (id: string) => {
+  const checkForExistingBatch = async (taskId: string) => {
+    setIsFetchingBatch(true);
+    try {
+      const supabase = createClient();
+      const currentTask = availableTasks.find((t) => t.id === taskId);
+
+      if (!currentTask) {
+        throw new Error("Task not found in available tasks");
+      }
+
+      // Check if a batch already exists for this task's PO and item
+      const { data: existingBatch, error: checkError } = await supabase
+        .schema("inventory")
+        .from("batches")
+        .select("batch_id, batch_code, status")
+        .eq("po_id", currentTask.po_id)
+        .eq("item_id", currentTask.item_id)
+        .limit(1);
+
+      if (checkError) {
+        throw checkError;
+      }
+
+      // If a batch already exists with a batch code, use it
+      if (
+        existingBatch &&
+        existingBatch.length > 0 &&
+        existingBatch[0].batch_code
+      ) {
+        setExistingBatchCode(existingBatch[0].batch_code);
+        return true;
+      }
+
+      // No existing batch with a batch code
+      setExistingBatchCode(null);
+      return false;
+    } catch (error) {
+      console.error("Error checking for existing batch:", error);
+      toast({
+        title: "Error",
+        description:
+          "Failed to check existing batch information. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsFetchingBatch(false);
+    }
+  };
+
+  const handleTaskSelect = async (id: string) => {
     if (taskSelectionModalType === "transport") {
       selectTask(id);
-      // For transport tasks, selecting a task should close the modal
-      // to allow batch code input in TransportView.
-      // The actual session start is handled after batch code submission.
-      closeTaskSelectionModal();
+      if (currentSelection !== id) {
+        // Only check for existing batch if selecting a different task
+        await checkForExistingBatch(id);
+      }
     } else if (taskSelectionModalType === "production") {
       selectProductionJob(id);
-      // For production, user might still want to click "Start Session" in modal.
     }
   };
 
@@ -108,10 +203,121 @@ export function TaskSelectionModal() {
       );
       confirmStartSession();
     } else if (taskSelectionModalType === "transport") {
-      // For transport tasks, selection itself closes the modal.
-      // The "Start Session" button in the modal is effectively bypassed for the new batch code flow.
-      // If it were to be clicked (e.g., if modal didn't auto-close), it should also just close.
-      closeTaskSelectionModal();
+      if (existingBatchCode) {
+        // If we have an existing batch code, just start the session
+        confirmStartSession();
+      } else {
+        // This should never happen as we now control batch code input in the modal
+        closeTaskSelectionModal();
+      }
+    }
+  };
+
+  const handleShowCommentField = () => {
+    setShowCommentField(true);
+  };
+
+  const handleBatchCodeSubmit = async () => {
+    if (!batchCodeInput.trim()) {
+      toast({
+        title: "Empty batch code",
+        description: "Please enter a batch code before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingBatchCode(true);
+
+    try {
+      // Set the current batch code input in the session store
+      setCurrentTaskBatchCodeInput(batchCodeInput);
+
+      // Call the existing session store function to create a batch
+      const result = await createBatchForCurrentTask(batchCodeInput.trim());
+
+      if (result.success) {
+        toast({
+          title: "Batch code saved",
+          description: `Batch code ${batchCodeInput} has been saved successfully.`,
+        });
+        setExistingBatchCode(batchCodeInput);
+        setBatchCodeInput("");
+      } else {
+        throw new Error(result.error || "Failed to create batch");
+      }
+    } catch (error) {
+      console.error("Error submitting batch code:", error);
+      toast({
+        title: "Failed to save batch code",
+        description:
+          error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingBatchCode(false);
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) {
+      toast({
+        title: "Empty comment",
+        description: "Please enter a comment before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingComment(true);
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // Only proceed if we have a valid task type
+      if (!taskSelectionModalType) {
+        throw new Error("No task type selected");
+      }
+
+      // Create the comment data object with required fields
+      const commentData = {
+        user_id: user.id,
+        comment: commentText,
+        ...(taskSelectionModalType === "transport"
+          ? { pol_id: selectedTaskId }
+          : { job_id: selectedProductionJobId }),
+      };
+
+      const { error } = await supabase
+        .from("task_comments")
+        .insert(commentData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment saved",
+        description: "Your comment has been saved successfully",
+      });
+
+      setCommentText("");
+      setShowCommentField(false);
+    } catch (error) {
+      console.error("Error saving comment:", error);
+      toast({
+        title: "Failed to save comment",
+        description:
+          "There was an error saving your comment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -135,6 +341,10 @@ export function TaskSelectionModal() {
         <AlertDialogHeader className="flex-shrink-0">
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
+          <X
+            onClick={closeTaskSelectionModal}
+            className="absolute top-4 right-6 cursor-pointer"
+          />
         </AlertDialogHeader>
 
         <ScrollArea className="flex-grow h-full w-full pr-4 my-4 min-h-[300px]">
@@ -164,6 +374,11 @@ export function TaskSelectionModal() {
                     ? (task as PurchaseOrderLineTask).id
                     : (task as ProductionTask).job_id;
 
+                const taskName =
+                  taskSelectionModalType === "transport"
+                    ? `PO #${(task as PurchaseOrderLineTask).poNumber}`
+                    : `Job: ${(task as ProductionTask).job_id.slice(0, 8).toUpperCase()}`;
+
                 return (
                   <Card
                     key={id}
@@ -183,6 +398,125 @@ export function TaskSelectionModal() {
                         task={task as ProductionTask}
                       />
                     )}
+
+                    {isSelected && (
+                      <CardFooter className="p-3 pt-0 flex-col space-y-2 border-t mt-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        {showCommentField ? (
+                          <>
+                            <Textarea
+                              placeholder="Enter your comment about this task..."
+                              className="w-full min-h-[80px]"
+                              value={commentText}
+                              onChange={(e) => setCommentText(e.target.value)}
+                            />
+                            <div className="flex w-full justify-between space-x-2">
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setShowCommentField(false)}
+                                disabled={isSubmittingComment}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                className="flex-1"
+                                onClick={handleSubmitComment}
+                                disabled={isSubmittingComment}
+                              >
+                                {isSubmittingComment
+                                  ? "Saving..."
+                                  : "Save Comment"}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {taskSelectionModalType === "transport" &&
+                            isFetchingBatch ? (
+                              // Show loading spinner while checking for existing batch
+                              <div className="flex justify-center py-2">
+                                <RefreshCw className="animate-spin h-5 w-5 text-primary" />
+                              </div>
+                            ) : taskSelectionModalType === "transport" &&
+                              !existingBatchCode ? (
+                              // Show batch code input if no existing batch is found
+                              <>
+                                <div className="text-sm font-medium mb-1">
+                                  Enter Batch Code
+                                </div>
+                                <div className="flex w-full space-x-2">
+                                  <Input
+                                    placeholder="Supplier batch code"
+                                    value={batchCodeInput}
+                                    onChange={(e) =>
+                                      setBatchCodeInput(e.target.value)
+                                    }
+                                    className="flex-1"
+                                  />
+                                  <Button
+                                    onClick={handleBatchCodeSubmit}
+                                    disabled={
+                                      !batchCodeInput.trim() ||
+                                      isSubmittingBatchCode
+                                    }
+                                    className="whitespace-nowrap"
+                                  >
+                                    {isSubmittingBatchCode ? (
+                                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                    ) : (
+                                      <Check className="h-4 w-4 mr-2" />
+                                    )}
+                                    Save
+                                  </Button>
+                                </div>
+                              </>
+                            ) : (
+                              // Show comment/start buttons if batch exists or for production tasks
+                              <div className="flex w-full space-x-2">
+                                <Button
+                                  variant="outline"
+                                  className="flex-1 justify-start"
+                                  onClick={handleShowCommentField}
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  Comment
+                                </Button>
+
+                                <Button
+                                  variant="default"
+                                  className="flex-1 justify-start bg-green-600 hover:bg-green-700 text-black"
+                                  onClick={handleStartSessionClick}
+                                >
+                                  <Play className="h-4 w-4 mr-2" />
+                                  Start
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Always show batch code if it exists */}
+                            {taskSelectionModalType === "transport" &&
+                              existingBatchCode && (
+                                <div className="w-full text-xs text-muted-foreground pt-2">
+                                  Batch Code:{" "}
+                                  <span className="font-medium">
+                                    {existingBatchCode}
+                                  </span>
+                                </div>
+                              )}
+
+                            <div className="w-full pt-2">
+                              {taskSelectionModalType && (
+                                <TaskCommentsDialog
+                                  taskType={taskSelectionModalType}
+                                  taskId={id}
+                                  taskName={taskName}
+                                />
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </CardFooter>
+                    )}
                   </Card>
                 );
               })}
@@ -190,17 +524,13 @@ export function TaskSelectionModal() {
           )}
         </ScrollArea>
 
-        <AlertDialogFooter className="flex-shrink-0 pt-4 border-t">
-          <AlertDialogCancel onClick={closeTaskSelectionModal}>
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleStartSessionClick} // Use the new handler
-            disabled={!currentSelection || isLoading}
-          >
-            Start Session
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        {!currentSelection && (
+          <AlertDialogFooter className="flex-shrink-0 pt-4 border-t">
+            <AlertDialogCancel onClick={closeTaskSelectionModal}>
+              Cancel
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );

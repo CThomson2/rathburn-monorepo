@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
-import { Database } from "@/types/supabase";
+import { Database } from "@rathburn/types";
 
 // This is sample data.
 const data = {

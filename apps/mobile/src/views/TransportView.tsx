@@ -67,10 +67,7 @@ export function TransportView() {
     scannedDrumsForCurrentTask,
     activeTaskDrumDetails,
     sessionType,
-    currentTaskBatchCodeInput,
     isCurrentTaskBatchCodeSubmitted,
-    setCurrentTaskBatchCodeInput,
-    createBatchForCurrentTask,
     lastScanMessage,
     lastScanStatus,
     selectedTaskId,
@@ -78,7 +75,6 @@ export function TransportView() {
   } = useSessionStore();
 
   const [isDrumListOpen, setIsDrumListOpen] = useState(false);
-  const [isSubmittingBatchCode, setIsSubmittingBatchCode] = useState(false);
 
   useEffect(() => {
     console.log("[TransportView] Relevant state changed:", {
@@ -112,39 +108,9 @@ export function TransportView() {
     return task;
   }, [currentSessionTaskId, selectedTaskId, availableTasks, currentSessionId]);
 
-  const handleBatchCodeSubmit = async () => {
-    console.log(
-      "[TransportView] handleBatchCodeSubmit called. Batch Code:",
-      currentTaskBatchCodeInput
-    );
-    if (!currentTaskBatchCodeInput.trim()) {
-      useSessionStore.setState({
-        lastScanStatus: "error",
-        lastScanMessage: "Batch code cannot be empty.",
-      });
-      return;
-    }
-    setIsSubmittingBatchCode(true);
-    console.log("[TransportView] Calling createBatchForCurrentTask...");
-    const result = await createBatchForCurrentTask(
-      currentTaskBatchCodeInput.trim()
-    );
-    console.log("[TransportView] createBatchForCurrentTask result:", result);
-    if (!result.success) {
-      console.error("[TransportView] Failed to create batch:", result.error);
-    }
-    setIsSubmittingBatchCode(false);
-  };
-
   // Add debugging info to see exactly what's happening with these UI conditions
   const showTaskSelection =
     !currentSessionId && !selectedTaskId && !isCheckingBatchCode;
-  const showBatchCodeInput =
-    !currentSessionId &&
-    sessionType === "task" &&
-    selectedTaskId &&
-    !isCurrentTaskBatchCodeSubmitted &&
-    !isCheckingBatchCode;
   const showScanningInterface =
     currentSessionId &&
     sessionType === "task" &&
@@ -162,7 +128,6 @@ export function TransportView() {
 
   console.log("[TransportView] Rendering with UI states:", {
     showTaskSelection,
-    showBatchCodeInput,
     showScanningInterface,
     showFreeScanInterface,
     showTaskDetailsUnavailable,
@@ -172,7 +137,6 @@ export function TransportView() {
     selectedTaskId,
     isCurrentTaskBatchCodeSubmitted,
     isCheckingBatchCode,
-    currentTaskBatchCodeInput,
   });
 
   return (
@@ -214,65 +178,6 @@ export function TransportView() {
         </div>
       )}
 
-      {showBatchCodeInput && currentActiveTaskDetails && (
-        <Card>
-          <CardHeader className="p-4">
-            <CardTitle className="text-lg flex items-center space-x-2">
-              <BookText className="h-5 w-5" />
-              <span>
-                Enter Batch Code for PO #{currentActiveTaskDetails.poNumber}
-              </span>
-            </CardTitle>
-            <CardDescription>
-              Item: {currentActiveTaskDetails.item}. Please enter the supplier's
-              batch code found on the drum labels.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3">
-            <Input
-              placeholder="Enter Batch Code"
-              value={currentTaskBatchCodeInput}
-              onChange={(e) => setCurrentTaskBatchCodeInput(e.target.value)}
-              disabled={isSubmittingBatchCode}
-            />
-            {lastScanStatus === "error" && lastScanMessage && (
-              <p className="text-sm text-red-500 dark:text-red-400">
-                {lastScanMessage}
-              </p>
-            )}
-          </CardContent>
-          <CardFooter className="p-4 flex flex-col space-y-2">
-            <Button
-              onClick={handleBatchCodeSubmit}
-              disabled={
-                isSubmittingBatchCode || !currentTaskBatchCodeInput.trim()
-              }
-              className="w-full"
-            >
-              {isSubmittingBatchCode
-                ? "Submitting..."
-                : "Submit Batch Code & Start Session"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                useSessionStore.setState({
-                  selectedTaskId: null,
-                  sessionType: null,
-                  currentTaskBatchCodeInput: "",
-                  isCurrentTaskBatchCodeSubmitted: false,
-                  currentBatchTableId: null,
-                })
-              }
-              className="w-full"
-              disabled={isSubmittingBatchCode}
-            >
-              Cancel
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
       {showScanningInterface && (
         <div className="space-y-4">
           <Card>
@@ -280,10 +185,7 @@ export function TransportView() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center space-x-2">
                   <Truck className="h-5 w-5" />
-                  <span>
-                    PO #{currentActiveTaskDetails.poNumber} - Batch:{" "}
-                    {currentTaskBatchCodeInput}
-                  </span>
+                  <span>PO #{currentActiveTaskDetails.poNumber}</span>
                 </CardTitle>
                 <Button
                   variant="outline"

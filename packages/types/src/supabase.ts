@@ -910,27 +910,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
-        Row: {
-          created_at: string
-          id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       worker_passcodes: {
         Row: {
           created_at: string | null
@@ -1055,36 +1034,6 @@ export type Database = {
         }
         Relationships: []
       }
-      stills: {
-        Row: {
-          code: string
-          is_operational: boolean
-          is_vacuum: boolean
-          max_capacity: number
-          notes: string | null
-          power_rating_kw: number
-          still_id: number
-        }
-        Insert: {
-          code: string
-          is_operational: boolean
-          is_vacuum: boolean
-          max_capacity: number
-          notes?: string | null
-          power_rating_kw: number
-          still_id?: number
-        }
-        Update: {
-          code?: string
-          is_operational?: boolean
-          is_vacuum?: boolean
-          max_capacity?: number
-          notes?: string | null
-          power_rating_kw?: number
-          still_id?: number
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -1148,30 +1097,36 @@ export type Database = {
       }
       batches: {
         Row: {
+          batch_code: string | null
           batch_id: string
           batch_type: string
           created_at: string
           item_id: string
           po_id: string | null
-          total_volume: number
+          qty_drums: number
+          status: Database["inventory"]["Enums"]["batch_status_type"]
           updated_at: string
         }
         Insert: {
+          batch_code?: string | null
           batch_id?: string
           batch_type: string
           created_at?: string
           item_id: string
           po_id?: string | null
-          total_volume?: number
+          qty_drums?: number
+          status?: Database["inventory"]["Enums"]["batch_status_type"]
           updated_at?: string
         }
         Update: {
+          batch_code?: string | null
           batch_id?: string
           batch_type?: string
           created_at?: string
           item_id?: string
           po_id?: string | null
-          total_volume?: number
+          qty_drums?: number
+          status?: Database["inventory"]["Enums"]["batch_status_type"]
           updated_at?: string
         }
         Relationships: [
@@ -1287,6 +1242,7 @@ export type Database = {
           material_id: string
           name: string
           supplier_id: string | null
+          unit_weight: number | null
           updated_at: string
         }
         Insert: {
@@ -1297,6 +1253,7 @@ export type Database = {
           material_id: string
           name: string
           supplier_id?: string | null
+          unit_weight?: number | null
           updated_at?: string
         }
         Update: {
@@ -1307,6 +1264,7 @@ export type Database = {
           material_id?: string
           name?: string
           supplier_id?: string | null
+          unit_weight?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1316,6 +1274,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_material_inventory_summary"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "items_supplier_id_fkey"
@@ -1366,22 +1331,37 @@ export type Database = {
           cas_number: string
           chemical_group: string
           code: string
+          default_expiry_date: string | null
+          density: number | null
+          formula: string | null
           material_id: string
           name: string
+          storage_conditions: Json | null
+          threshold_stock: number | null
         }
         Insert: {
           cas_number: string
           chemical_group?: string
           code: string
+          default_expiry_date?: string | null
+          density?: number | null
+          formula?: string | null
           material_id?: string
           name: string
+          storage_conditions?: Json | null
+          threshold_stock?: number | null
         }
         Update: {
           cas_number?: string
           chemical_group?: string
           code?: string
+          default_expiry_date?: string | null
+          density?: number | null
+          formula?: string | null
           material_id?: string
           name?: string
+          storage_conditions?: Json | null
+          threshold_stock?: number | null
         }
         Relationships: []
       }
@@ -1394,6 +1374,8 @@ export type Database = {
           pod_id: string
           pol_id: string
           serial_number: string
+          unit_weight: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string
@@ -1403,6 +1385,8 @@ export type Database = {
           pod_id?: string
           pol_id: string
           serial_number: string
+          unit_weight?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string
@@ -1412,6 +1396,8 @@ export type Database = {
           pod_id?: string
           pol_id?: string
           serial_number?: string
+          unit_weight?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1437,7 +1423,9 @@ export type Database = {
           po_id: string
           pol_id: string
           quantity: number
+          status: string | null
           unit_weight: number | null
+          updated_at: string | null
         }
         Insert: {
           cost?: number | null
@@ -1445,7 +1433,9 @@ export type Database = {
           po_id: string
           pol_id?: string
           quantity: number
+          status?: string | null
           unit_weight?: number | null
+          updated_at?: string | null
         }
         Update: {
           cost?: number | null
@@ -1453,7 +1443,9 @@ export type Database = {
           po_id?: string
           pol_id?: string
           quantity?: number
+          status?: string | null
           unit_weight?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1515,16 +1507,25 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          contact_name: string | null
           email: string | null
           name: string
           supplier_id: string
         }
         Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          contact_name?: string | null
           email?: string | null
           name: string
           supplier_id?: string
         }
         Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          contact_name?: string | null
           email?: string | null
           name?: string
           supplier_id?: string
@@ -1533,9 +1534,38 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_material_inventory_summary: {
+        Row: {
+          category: string | null
+          code: string | null
+          id: string | null
+          name: string | null
+          new_stock: number | null
+          pending_stock: number | null
+          processing_stock: number | null
+          repro_stock: number | null
+          threshold: number | null
+          total_stock: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      count_materials_below_threshold: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_batch_id_from_pol_id: {
+        Args: { p_pol_id: string }
+        Returns: string
+      }
+      get_most_common_material: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          material_name: string
+          count: number
+        }[]
+      }
       receive_delivery: {
         Args: { p_po_id: string; p_item_id: string; p_qty: number }
         Returns: string
@@ -1555,8 +1585,16 @@ export type Database = {
         | "cancel_scan"
         | "fast_forward"
         | "bulk"
+      batch_status_type:
+        | "scanning_in"
+        | "in_stock"
+        | "in_transport"
+        | "archived"
+        | "pending"
       batch_type: "new" | "repro"
       drum_status: "in_stock" | "reserved" | "in_production" | "empty" | "lost"
+      line_status_type: "pending" | "labelled" | "scanned"
+      location_type: "os_stock" | "os_lab" | "ns_stock" | "ns_lab"
       scan_mode: "single" | "bulk"
     }
     CompositeTypes: {
@@ -1690,6 +1728,33 @@ export type Database = {
           },
         ]
       }
+      temp_scan_log: {
+        Row: {
+          barcode_scanned: string
+          device_id: string | null
+          id: number
+          job_id: string | null
+          purchase_order_drum_serial: string | null
+          scanned_at: string
+        }
+        Insert: {
+          barcode_scanned: string
+          device_id?: string | null
+          id?: number
+          job_id?: string | null
+          purchase_order_drum_serial?: string | null
+          scanned_at?: string
+        }
+        Update: {
+          barcode_scanned?: string
+          device_id?: string | null
+          id?: number
+          job_id?: string | null
+          purchase_order_drum_serial?: string | null
+          scanned_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1760,6 +1825,20 @@ export type Database = {
             referencedRelation: "operations"
             referencedColumns: ["op_id"]
           },
+          {
+            foreignKeyName: "distillation_details_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: true
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["op_id"]
+          },
+          {
+            foreignKeyName: "distillation_details_still_id_fkey"
+            columns: ["still_id"]
+            isOneToOne: false
+            referencedRelation: "stills"
+            referencedColumns: ["still_id"]
+          },
         ]
       }
       jobs: {
@@ -1796,7 +1875,15 @@ export type Database = {
           status?: Database["production"]["Enums"]["job_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jobs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["item_id"]
+          },
+        ]
       }
       operation_drums: {
         Row: {
@@ -1826,6 +1913,13 @@ export type Database = {
             columns: ["op_id"]
             isOneToOne: false
             referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+          {
+            foreignKeyName: "operation_drums_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
             referencedColumns: ["op_id"]
           },
         ]
@@ -1875,6 +1969,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["job_id"]
           },
+          {
+            foreignKeyName: "operations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["job_id"]
+          },
         ]
       }
       qc_results: {
@@ -1910,6 +2011,13 @@ export type Database = {
             referencedRelation: "operations"
             referencedColumns: ["op_id"]
           },
+          {
+            foreignKeyName: "qc_results_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["op_id"]
+          },
         ]
       }
       split_operations: {
@@ -1939,14 +2047,107 @@ export type Database = {
             referencedRelation: "operations"
             referencedColumns: ["op_id"]
           },
+          {
+            foreignKeyName: "split_operations_parent_op_id_fkey"
+            columns: ["parent_op_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["op_id"]
+          },
         ]
+      }
+      stills: {
+        Row: {
+          code: string
+          is_operational: boolean
+          is_vacuum: boolean
+          max_capacity: number
+          notes: string | null
+          power_rating_kw: number
+          still_id: number
+        }
+        Insert: {
+          code: string
+          is_operational: boolean
+          is_vacuum: boolean
+          max_capacity: number
+          notes?: string | null
+          power_rating_kw: number
+          still_id?: number
+        }
+        Update: {
+          code?: string
+          is_operational?: boolean
+          is_vacuum?: boolean
+          max_capacity?: number
+          notes?: string | null
+          power_rating_kw?: number
+          still_id?: number
+        }
+        Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      v_operation_schedule: {
+        Row: {
+          batch_code: string | null
+          drum_current_volume: number | null
+          drum_id: string | null
+          drum_serial_number: string | null
+          ended_at: string | null
+          input_batch_id: string | null
+          item_id: string | null
+          item_name: string | null
+          job_created_at: string | null
+          job_id: string | null
+          job_status: Database["production"]["Enums"]["job_status"] | null
+          job_updated_at: string | null
+          op_created_at: string | null
+          op_id: string | null
+          op_status: Database["production"]["Enums"]["op_status"] | null
+          op_type: Database["production"]["Enums"]["op_type"] | null
+          planned_end: string | null
+          planned_start: string | null
+          priority: number | null
+          raw_volume: number | null
+          scheduled_start: string | null
+          started_at: string | null
+          still_code: string | null
+          still_id: number | null
+          still_max_capacity: number | null
+          supplier_name: string | null
+          volume_transferred: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distillation_details_still_id_fkey"
+            columns: ["still_id"]
+            isOneToOne: false
+            referencedRelation: "stills"
+            referencedColumns: ["still_id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      create_distillation_job: {
+        Args: {
+          p_item_id: string
+          p_batch_id: string
+          p_planned_start: string
+          p_still_id: number
+          p_raw_volume: number
+          p_priority?: number
+        }
+        Returns: string
+      }
+      create_transport_task: {
+        Args: { p_drum_id: string; p_created_by?: string }
+        Returns: {
+          job_id: string
+          op_id: string
+        }[]
+      }
     }
     Enums: {
       context_type: "distillation" | "warehouse"
@@ -1981,6 +2182,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      _test_permissions: {
+        Row: {
+          id: number
+          test_data: string | null
+        }
+        Insert: {
+          id?: number
+          test_data?: string | null
+        }
+        Update: {
+          id?: number
+          test_data?: string | null
+        }
+        Relationships: []
+      }
       drum_inventory: {
         Row: {
           category: string | null
@@ -2014,32 +2230,564 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          full_name: string | null
-          id: string
+          created_at: string | null
+          email: string | null
+          role: string | null
           updated_at: string | null
+          user_id: string
           username: string | null
-          website: string | null
         }
         Insert: {
           avatar_url?: string | null
-          full_name?: string | null
-          id: string
+          created_at?: string | null
+          email?: string | null
+          role?: string | null
           updated_at?: string | null
+          user_id: string
           username?: string | null
-          website?: string | null
         }
         Update: {
           avatar_url?: string | null
-          full_name?: string | null
-          id?: string
+          created_at?: string | null
+          email?: string | null
+          role?: string | null
           updated_at?: string | null
+          user_id?: string
           username?: string | null
-          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_email_fkey"
+            columns: ["email"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scans_feed_details"
+            referencedColumns: ["user_email"]
+          },
+          {
+            foreignKeyName: "profiles_email_fkey"
+            columns: ["email"]
+            isOneToOne: false
+            referencedRelation: "v_session_scans_with_user"
+            referencedColumns: ["user_email"]
+          },
+        ]
+      }
+      session_scans: {
+        Row: {
+          batch_id: string | null
+          cancelled_scan_id: string | null
+          created_at: string
+          device_id: string | null
+          error_message: string | null
+          id: string
+          item_name: string | null
+          metadata: Json | null
+          pod_id: string | null
+          pol_id: string | null
+          raw_barcode: string
+          scan_action: Database["public"]["Enums"]["scan_action_type"]
+          scan_status: Database["public"]["Enums"]["scan_status_type"]
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          cancelled_scan_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          item_name?: string | null
+          metadata?: Json | null
+          pod_id?: string | null
+          pol_id?: string | null
+          raw_barcode: string
+          scan_action: Database["public"]["Enums"]["scan_action_type"]
+          scan_status: Database["public"]["Enums"]["scan_status_type"]
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          cancelled_scan_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          item_name?: string | null
+          metadata?: Json | null
+          pod_id?: string | null
+          pol_id?: string | null
+          raw_barcode?: string
+          scan_action?: Database["public"]["Enums"]["scan_action_type"]
+          scan_status?: Database["public"]["Enums"]["scan_status_type"]
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_batches"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_batches_with_drums"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_distillation_schedule"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "session_scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "v_scan_history"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_scans_with_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "v_purchase_order_drum_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          completed_at: string | null
+          created_by: string
+          description: string | null
+          device_id: string | null
+          ended_at: string | null
+          id: string
+          location: string | null
+          metadata: Json | null
+          name: string
+          notes: string | null
+          started_at: string | null
+          status: string | null
+          task: Database["public"]["Enums"]["session_task_type"]
+        }
+        Insert: {
+          completed_at?: string | null
+          created_by: string
+          description?: string | null
+          device_id?: string | null
+          ended_at?: string | null
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          name: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          task?: Database["public"]["Enums"]["session_task_type"]
+        }
+        Update: {
+          completed_at?: string | null
+          created_by?: string
+          description?: string | null
+          device_id?: string | null
+          ended_at?: string | null
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          name?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          task?: Database["public"]["Enums"]["session_task_type"]
+        }
+        Relationships: []
+      }
+      stock_count: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          quantity: number
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          quantity?: number
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          quantity?: number
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stock_count_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stock_count_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "stock_count_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
+      stocktake_scans: {
+        Row: {
+          barcode_type: string
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          id: string
+          material_id: string | null
+          metadata: Json | null
+          raw_barcode: string
+          scanned_at: string
+          status: string
+          stocktake_session_id: string
+          supplier_id: string | null
+          user_id: string
+        }
+        Insert: {
+          barcode_type: string
+          created_at?: string | null
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          metadata?: Json | null
+          raw_barcode: string
+          scanned_at?: string
+          status?: string
+          stocktake_session_id: string
+          supplier_id?: string | null
+          user_id: string
+        }
+        Update: {
+          barcode_type?: string
+          created_at?: string | null
+          device_id?: string | null
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          metadata?: Json | null
+          raw_barcode?: string
+          scanned_at?: string
+          status?: string
+          stocktake_session_id?: string
+          supplier_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          job_id: string | null
+          pol_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          pol_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          pol_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_jobs"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "task_comments_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
     }
     Views: {
+      stocktake_material_counts: {
+        Row: {
+          first_scan: string | null
+          last_scan: string | null
+          material_code: string | null
+          material_id: string | null
+          material_name: string | null
+          material_status: string | null
+          scan_count: number | null
+          session_id: string | null
+          session_name: string | null
+          session_status: string | null
+        }
+        Relationships: []
+      }
+      stocktake_scan_details: {
+        Row: {
+          barcode_type: string | null
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          material_id: string | null
+          material_name: string | null
+          raw_barcode: string | null
+          scan_id: string | null
+          scanned_at: string | null
+          status: string | null
+          stocktake_session_id: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          user_id: string | null
+          user_identifier: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      stocktake_scans_feed_details: {
+        Row: {
+          associated_supplier_name_for_material: string | null
+          barcode_type: string | null
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          id: string | null
+          material_id: string | null
+          material_name: string | null
+          raw_barcode: string | null
+          scanned_at: string | null
+          status: string | null
+          stocktake_session_id: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
+            columns: ["stocktake_session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
       v_batches: {
         Row: {
           batch_code: string | null
@@ -2051,8 +2799,8 @@ export type Database = {
           item_name: string | null
           material_name: string | null
           po_number: string | null
+          qty_drums: number | null
           supplier_name: string | null
-          total_volume: number | null
           updated_at: string | null
         }
         Relationships: []
@@ -2067,11 +2815,12 @@ export type Database = {
           drum_count: number | null
           drums_in_stock: number | null
           input_recorded_at: string | null
+          item_id: string | null
           item_name: string | null
           material_name: string | null
           po_number: string | null
+          qty_drums: number | null
           supplier_name: string | null
-          total_volume: number | null
           updated_at: string | null
         }
         Relationships: []
@@ -2099,6 +2848,59 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_production_jobs"
             referencedColumns: ["job_id"]
+          },
+        ]
+      }
+      v_drum_inventory_details: {
+        Row: {
+          batch_created_at: string | null
+          batch_id: string | null
+          batch_type: string | null
+          current_location: string | null
+          current_volume: number | null
+          drum_created_at: string | null
+          drum_id: string | null
+          drum_is_received: boolean | null
+          drum_status: string | null
+          drum_updated_at: string | null
+          item_id: string | null
+          item_name: string | null
+          label_is_printed: boolean | null
+          material_id: string | null
+          po_eta_date: string | null
+          po_id: string | null
+          po_number: string | null
+          po_order_date: string | null
+          po_status: string | null
+          pod_id: string | null
+          pol_id: string | null
+          pol_quantity: number | null
+          pol_unit_weight: number | null
+          serial_number: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_scan_details"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_drums_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
           },
         ]
       }
@@ -2154,13 +2956,196 @@ export type Database = {
             foreignKeyName: "operation_drums_drum_id_fkey"
             columns: ["drum_id"]
             isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["drum_id"]
+          },
+          {
+            foreignKeyName: "operation_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
             referencedRelation: "v_drums"
             referencedColumns: ["drum_id"]
           },
         ]
       }
+      v_purchase_order_drum_details: {
+        Row: {
+          drum_created_at: string | null
+          is_received: boolean | null
+          item_id: string | null
+          item_name: string | null
+          line_item_quantity: number | null
+          po_eta_date: string | null
+          po_id: string | null
+          po_number: string | null
+          po_order_date: string | null
+          pod_id: string | null
+          pol_id: string | null
+          received_drums_for_line: number | null
+          serial_number: string | null
+          status: string | null
+          supplier_name: string | null
+          total_drums_for_line: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_drums_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+        ]
+      }
+      v_scan_history: {
+        Row: {
+          barcode: string | null
+          created_at: string | null
+          error_message: string | null
+          item_name: string | null
+          po_id: string | null
+          po_number: string | null
+          pol_id: string | null
+          scan_action: Database["public"]["Enums"]["scan_action_type"] | null
+          scan_id: string | null
+          scan_status: Database["public"]["Enums"]["scan_status_type"] | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "v_purchase_order_drum_details"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      v_session_scans_with_user: {
+        Row: {
+          cancelled_scan_id: string | null
+          created_at: string | null
+          device_id: string | null
+          error_message: string | null
+          id: string | null
+          item_name: string | null
+          metadata: Json | null
+          pod_id: string | null
+          pol_id: string | null
+          raw_barcode: string | null
+          scan_action: Database["public"]["Enums"]["scan_action_type"] | null
+          scan_status: Database["public"]["Enums"]["scan_status_type"] | null
+          session_id: string | null
+          user_email: string | null
+          user_email_name: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "session_scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "v_scan_history"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "session_scans_cancelled_scan_id_fkey"
+            columns: ["cancelled_scan_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_scans_with_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "v_purchase_order_drum_details"
+            referencedColumns: ["pod_id"]
+          },
+          {
+            foreignKeyName: "session_scans_pol_id_fkey"
+            columns: ["pol_id"]
+            isOneToOne: false
+            referencedRelation: "v_goods_in"
+            referencedColumns: ["pol_id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_material_counts"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
     }
     Functions: {
+      admin_enable_pgcrypto: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      check_drum_already_received: {
+        Args: { p_serial_number: string }
+        Returns: Json
+      }
+      check_purchase_order_completion: {
+        Args: { p_pol_id: string }
+        Returns: Json
+      }
+      count_pending_drums: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       create_mobile_app_passcode: {
         Args: { p_user_name: string; p_passcode: string; p_user_id: string }
         Returns: string
@@ -2169,28 +3154,101 @@ export type Database = {
         Args: { p_email: string; p_user_name: string; p_passcode: string }
         Returns: string
       }
-      query_batches_view: {
-        Args: {
-          p_search?: string
-          p_batch_type?: string
-          p_chemical_group?: string
-          p_date_from?: string
-          p_date_to?: string
-        }
+      find_item_by_barcode_prefix: {
+        Args: { p_barcode_prefix: string }
         Returns: {
-          batch_code: string | null
-          batch_id: string | null
-          batch_type: string | null
-          chemical_group: string | null
-          created_at: string | null
-          drum_count: number | null
-          drums_in_stock: number | null
-          input_recorded_at: string | null
-          item_name: string | null
-          material_name: string | null
-          po_number: string | null
-          supplier_name: string | null
-          total_volume: number | null
+          item_type: string
+          item_id: string
+        }[]
+      }
+      find_pending_drum_by_serial: {
+        Args: { p_serial_number: string }
+        Returns: Json
+      }
+      function_exists: {
+        Args: { p_schema: string; p_function: string }
+        Returns: boolean
+      }
+      get_pending_purchase_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          pol_id: string
+          po_id: string
+          item_id: string
+          po_number: string
+          supplier: string
+          order_date: string
+          status: string
+          line_status: string
+          eta_date: string
+          item: string
+          quantity: number
+          received_count: number
+        }[]
+      }
+      get_purchase_order_drums: {
+        Args: { p_po_id: string }
+        Returns: Json[]
+      }
+      get_schedulable_production_jobs: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          job_id: string
+          item_name: string
+          status: Database["production"]["Enums"]["job_status"]
+          planned_start: string
+          priority: number
+          input_batch_id: string
+          batch_code: string
+          still_code: string
+          raw_volume: number
+        }[]
+      }
+      increment_stock_count: {
+        Args: { p_supplier_id: string; p_material_id: string }
+        Returns: number
+      }
+      insert_stocktake_scan: {
+        Args: {
+          p_stocktake_session_id: string
+          p_user_id: string
+          p_device_id: string
+          p_raw_barcode: string
+          p_barcode_type: string
+          p_material_id?: string
+          p_supplier_id?: string
+          p_status?: string
+          p_error_message?: string
+          p_metadata?: Json
+        }
+        Returns: Json
+      }
+      insert_temp_scan_log: {
+        Args: {
+          p_barcode_scanned: string
+          p_device_id: string
+          p_job_id?: string
+          p_purchase_order_drum_serial?: string
+        }
+        Returns: Json
+      }
+      list_schemas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          schema_name: string
+        }[]
+      }
+      mark_drum_as_received: {
+        Args: { p_serial_number: string }
+        Returns: {
+          created_at: string
+          drum_id: string | null
+          is_printed: boolean
+          is_received: boolean
+          pod_id: string
+          pol_id: string
+          serial_number: string
+          unit_weight: string | null
           updated_at: string | null
         }[]
       }
@@ -2202,13 +3260,32 @@ export type Database = {
         Args: { p_token: string; p_new_passcode: string }
         Returns: boolean
       }
+      test_service_role_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       validate_passcode: {
         Args: { p_user_name: string; p_passcode: string }
         Returns: Json
       }
     }
     Enums: {
-      [_ in never]: never
+      scan_action_type:
+        | "check_in"
+        | "transport"
+        | "process"
+        | "context"
+        | "cancel"
+        | "free_scan"
+      scan_status_type: "success" | "error" | "ignored"
+      session_task_type:
+        | "check_in"
+        | "transport"
+        | "free_scan"
+        | "misc"
+        | "production_input"
+        | "volume_transfer"
+        | "production_output"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2356,8 +3433,17 @@ export const Constants = {
         "fast_forward",
         "bulk",
       ],
+      batch_status_type: [
+        "scanning_in",
+        "in_stock",
+        "in_transport",
+        "archived",
+        "pending",
+      ],
       batch_type: ["new", "repro"],
       drum_status: ["in_stock", "reserved", "in_production", "empty", "lost"],
+      line_status_type: ["pending", "labelled", "scanned"],
+      location_type: ["os_stock", "os_lab", "ns_stock", "ns_lab"],
       scan_mode: ["single", "bulk"],
     },
   },
@@ -2397,6 +3483,25 @@ export const Constants = {
     },
   },
   public: {
-    Enums: {},
+    Enums: {
+      scan_action_type: [
+        "check_in",
+        "transport",
+        "process",
+        "context",
+        "cancel",
+        "free_scan",
+      ],
+      scan_status_type: ["success", "error", "ignored"],
+      session_task_type: [
+        "check_in",
+        "transport",
+        "free_scan",
+        "misc",
+        "production_input",
+        "volume_transfer",
+        "production_output",
+      ],
+    },
   },
 } as const
