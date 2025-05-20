@@ -49,6 +49,7 @@ import {
   CollapsibleTrigger,
 } from "@/core/components/ui/collapsible";
 import { useComments } from "@/features/scanner/hooks/use-comments";
+import { useScanStore } from "@/core/stores/use-scan";
 import { formatDistance } from "date-fns";
 
 /**
@@ -92,6 +93,9 @@ export function TransportView() {
     taskId: activeTaskId,
   });
 
+  const { pauseScanInputTemporarily, resumeScanInputAfterPause } =
+    useScanStore();
+
   useEffect(() => {
     console.log("[TransportView] Relevant state changed:", {
       currentSessionId,
@@ -111,6 +115,13 @@ export function TransportView() {
     lastScanMessage,
     lastScanStatus,
   ]);
+
+  useEffect(() => {
+    console.log("[TransportView Scan] Scanning state changed:", {
+      isScanning,
+      currentSessionId,
+    });
+  }, [isScanning, currentSessionId]);
 
   // TODO: The active task details **are not resetting to null** when ending a session, or even switching views
   // Only by beginning a new session does this state reset.
@@ -142,7 +153,20 @@ export function TransportView() {
     isCurrentTaskBatchCodeSubmitted &&
     !isCheckingBatchCode;
 
-  console.log("[TransportView] Rendering with UI states:", {
+  useEffect(() => {
+    console.log("[TransportView] Rendering with UI states:", {
+      showTaskSelection,
+      showScanningInterface,
+      showFreeScanInterface,
+      showTaskDetailsUnavailable,
+      currentActiveTaskDetails,
+      currentSessionId,
+      sessionType,
+      selectedTaskId,
+      isCurrentTaskBatchCodeSubmitted,
+      isCheckingBatchCode,
+    });
+  }, [
     showTaskSelection,
     showScanningInterface,
     showFreeScanInterface,
@@ -153,7 +177,7 @@ export function TransportView() {
     selectedTaskId,
     isCurrentTaskBatchCodeSubmitted,
     isCheckingBatchCode,
-  });
+  ]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
@@ -162,6 +186,7 @@ export function TransportView() {
     if (result.success) {
       setNewComment("");
       setShowCommentInput(false);
+      resumeScanInputAfterPause();
     }
   };
 
@@ -374,6 +399,11 @@ export function TransportView() {
                   onClick={() => {
                     refreshComments();
                     setShowCommentInput(!showCommentInput);
+                    if (!showCommentInput) {
+                      pauseScanInputTemporarily();
+                    } else {
+                      resumeScanInputAfterPause();
+                    }
                   }}
                 >
                   {showCommentInput ? "Cancel" : "Add Comment"}
@@ -389,6 +419,7 @@ export function TransportView() {
                     onChange={(e) => setNewComment(e.target.value)}
                     className="min-h-[80px] w-full"
                     disabled={isSubmittingComment}
+                    onFocus={pauseScanInputTemporarily}
                   />
                   <Button
                     onClick={handleSubmitComment}
@@ -420,7 +451,7 @@ export function TransportView() {
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-xs font-medium">
                             {/* Can replace with user info if available */}
-                            User
+                            {comment.username}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {formatDistance(

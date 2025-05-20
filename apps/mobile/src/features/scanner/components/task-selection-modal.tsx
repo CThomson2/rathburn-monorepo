@@ -44,7 +44,8 @@ import { TaskCommentsDialog } from "./task-comments-dialog";
 import { Input } from "@/core/components/ui/input";
 
 import { Database } from "@rathburn/types";
-import { useComments } from "../hooks/use-comments";
+import { useScanStore } from "@/core/stores/use-scan";
+
 type Batch = Database["inventory"]["Tables"]["batches"]["Row"];
 
 /**
@@ -87,6 +88,9 @@ export function TaskSelectionModal() {
   const [batchCodeInput, setBatchCodeInput] = useState("");
   const [isSubmittingBatchCode, setIsSubmittingBatchCode] = useState(false);
   const { toast } = useToast();
+
+  const { pauseScanInputTemporarily, resumeScanInputAfterPause } =
+    useScanStore();
 
   useEffect(() => {
     // Fetch production tasks when modal is shown for production
@@ -131,17 +135,6 @@ export function TaskSelectionModal() {
     taskSelectionModalType === "transport"
       ? selectedTaskId
       : selectedProductionJobId;
-
-  const {
-    comments,
-    isLoading: commentsLoading,
-    submitComment,
-  } = useComments({
-    taskType: taskSelectionModalType as NonNullable<
-      typeof taskSelectionModalType
-    >,
-    taskId: currentSelection as NonNullable<typeof currentSelection>,
-  });
 
   const checkForExistingBatch = async (taskId: string) => {
     setIsFetchingBatch(true);
@@ -330,6 +323,7 @@ export function TaskSelectionModal() {
 
       setCommentText("");
       setShowCommentField(false);
+      resumeScanInputAfterPause();
     } catch (error) {
       console.error("Error saving comment:", error);
       toast({
@@ -430,12 +424,17 @@ export function TaskSelectionModal() {
                               className="w-full min-h-[80px]"
                               value={commentText}
                               onChange={(e) => setCommentText(e.target.value)}
+                              onFocus={pauseScanInputTemporarily}
+                              onBlur={resumeScanInputAfterPause}
                             />
                             <div className="flex w-full justify-between space-x-2">
                               <Button
                                 variant="outline"
                                 className="flex-1"
-                                onClick={() => setShowCommentField(false)}
+                                onClick={() => {
+                                  setShowCommentField(false);
+                                  resumeScanInputAfterPause();
+                                }}
                                 disabled={isSubmittingComment}
                               >
                                 Cancel
@@ -474,6 +473,8 @@ export function TaskSelectionModal() {
                                       setBatchCodeInput(e.target.value)
                                     }
                                     className="flex-1"
+                                    onFocus={pauseScanInputTemporarily}
+                                    onBlur={resumeScanInputAfterPause}
                                   />
                                   <Button
                                     onClick={handleBatchCodeSubmit}
@@ -498,7 +499,10 @@ export function TaskSelectionModal() {
                                 <Button
                                   variant="outline"
                                   className="flex-1 justify-start"
-                                  onClick={handleShowCommentField}
+                                  onClick={() => {
+                                    setShowCommentField(true);
+                                    pauseScanInputTemporarily();
+                                  }}
                                 >
                                   <MessageSquare className="h-4 w-4 mr-2" />
                                   Comment

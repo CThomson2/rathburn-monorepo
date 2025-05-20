@@ -4,6 +4,14 @@ import { supabase } from "@/core/lib/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { useSessionStore } from "@/core/stores/session-store";
 
+type Profile = {
+  userId: string;
+  username: string | null;
+  email: string | null;
+  role: string | null;
+  // isActive: boolean;
+};
+
 /**
  * Hook for managing client-side authentication state and actions for mobile app
  * 
@@ -49,6 +57,30 @@ export function useAuth() {
     };
 
     getSession();
+
+    // const getProfile = async (userId: string) => {
+    //   const { data, error } = await supabase
+    //     .from("profiles")
+    //     .select("user_id, username, email, role")
+    //     .eq("user_id", userId)
+    //     .single();
+
+    //   if (error) {
+    //     console.error("[AUTH] Error getting profile:", error);
+    //   } else {
+    //     const profile = {
+    //       userId: data.user_id,
+    //       username: data.username,
+    //       email: data.email,
+    //       role: data.role,
+    //     }
+    //     setProfile(profile);
+    //   }
+    // };
+
+    // if (user) {
+    //   getProfile(user.id);
+    // }
 
     // Subscribe to auth state changes
     const { data: { subscription }} = supabase.auth.onAuthStateChange((_event, session) => {

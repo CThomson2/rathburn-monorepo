@@ -12,6 +12,7 @@ import { useSwipeable } from "react-swipeable";
 import { ScanInput } from "@/features/scanner/components/scan-input/scan-input";
 // import { useScan } from "@/core/hooks/use-scan"; // Removed import
 import { useSessionStore } from "@/core/stores/session-store"; // IMPORT: Zustand store
+import { useScanStore } from "@/core/stores/use-scan"; // IMPORT: New scan store
 import { useToast, type ToastProps } from "@/core/components/ui/use-toast";
 // import { useModal } from "@/hooks/use-modal"; // This was already commented
 // import { ModalProvider } from "@/contexts/modal-context"; // This was already commented
@@ -21,6 +22,7 @@ import { SessionReportDialog } from "@/features/scanner/components/success-repor
 import { HistoryView } from "@/views/HistoryView";
 import { DebugLogPanel } from "@/core/components/debug/DebugLogPanel";
 // import { StocktakeButton } from "@/components/buttons/scan-button";
+import { useDebugLogStore } from "../core/stores/debug-log-store";
 
 const statusColors = {
   transport: {
@@ -67,23 +69,27 @@ const IndexContent = () => {
   const successTimeoutRef = useRef<number | null>(null);
 
   // Buffer and timing refs for global barcode scanner detection (re-added here)
-  const barcodeBufferRef = useRef<string>("");
-  const lastKeyTimeRef = useRef<number>(0);
+  // These are now managed within ScanInput.tsx and useScanStore.ts
+  // const barcodeBufferRef = useRef<string>("");
+  // const lastKeyTimeRef = useRef<number>(0);
 
   // Use Zustand store for stocktake state and actions
   const {
     currentSessionId,
-    isScanning,
+    // isScanning, // isScanning from session-store is for session logic, scan-store has its own activity state
     showSessionReport,
     sessionReportData,
     syncSessionStateOnMount,
-    startSession,
-    endSession,
-    processScan,
+    // startSession, // No longer needed here for scan input activation
+    // endSession, // No longer needed here for scan input deactivation
+    processScan, // This is the callback we'll provide to useScanStore
     closeSessionReport,
     lastScanStatus,
     lastScanMessage,
   } = useSessionStore();
+
+  // Get actions from the new scan store
+  const { setScanInputGloballyActive, setOnScanCallback } = useScanStore();
 
   // Sync session state on mount using the store action
   useEffect(() => {
@@ -113,13 +119,127 @@ const IndexContent = () => {
     };
   }, []);
 
+  // NEW: Determine scan input global activity based on session store's currentSessionId
+  useEffect(() => {
+    const isActive = !!currentSessionId;
+    console.log(
+      `[Index] Setting ScanInput global activity: ${isActive} (Session ID: ${currentSessionId})`
+    );
+    setScanInputGloballyActive(isActive);
+  }, [currentSessionId, setScanInputGloballyActive]);
+
+  // This effect now primarily sets the callback for the scan store
+  useEffect(() => {
+    console.log("[IndexPage] Setting onScan callback in useScanStore");
+    const scanCallback = async (barcode: string) => {
+      useDebugLogStore
+        .getState()
+        .addLog("[IndexPage] OnScanCallback invoked", { barcode });
+      console.log(
+        `[IndexPage] ScanInput processed barcode: ${barcode}. Triggering sessionStore.processScan.`
+      );
+
+      if (!barcode || barcode.length < 3) {
+        console.warn(`[IndexPage] Ignoring invalid barcode: ${barcode}`);
+        toast({
+          title: "Scan Error",
+          description: `Invalid barcode: ${barcode}`,
+          variant: "destructive",
+        });
+        // Ensure we don't proceed further if barcode is invalid
+        return;
+      }
+
+      if (currentSessionId) {
+        // Double check session is still active before processing
+        try {
+          useDebugLogStore
+            .getState()
+            .addLog(
+              "[IndexPage] Attempting to await sessionStore.processScan",
+              { barcode }
+            );
+          await processScan(barcode);
+          useDebugLogStore
+            .getState()
+            .addLog(
+              "[IndexPage] Successfully awaited sessionStore.processScan",
+              { barcode }
+            );
+
+          // Update UI based on new state from sessionStore after processScan completes
+          const { scannedDrumsForCurrentTask } = useSessionStore.getState();
+          setScanCount(scannedDrumsForCurrentTask.length);
+          useDebugLogStore
+            .getState()
+            .addLog("[IndexPage] UI scanCount updated", {
+              count: scannedDrumsForCurrentTask.length,
+            });
+
+          setSuccessfulScan(barcode);
+          if (successTimeoutRef.current) {
+            window.clearTimeout(successTimeoutRef.current);
+          }
+          successTimeoutRef.current = window.setTimeout(() => {
+            setSuccessfulScan(null);
+            successTimeoutRef.current = null;
+          }, 2500);
+          useDebugLogStore
+            .getState()
+            .addLog("[IndexPage] UI successfulScan indicator triggered", {
+              barcode,
+            });
+        } catch (error) {
+          console.error(
+            "[IndexPage] Error during processScan execution:",
+            error
+          );
+          useDebugLogStore
+            .getState()
+            .addLog("[IndexPage] Error awaiting sessionStore.processScan", {
+              barcode,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          toast({
+            title: "Processing Error",
+            description: "Failed to process scan. Check logs.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        console.log(
+          `[IndexPage] Scan callback triggered, but no active session. Scan for ${barcode} ignored.`
+        );
+        useDebugLogStore
+          .getState()
+          .addLog("[IndexPage] Scan ignored in callback, no active session", {
+            barcode,
+          });
+        toast({
+          title: "Scan Error",
+          description: "No active session to process scan.",
+          variant: "destructive",
+        });
+      }
+    };
+    setOnScanCallback(scanCallback);
+
+    // Cleanup: remove the callback when the component unmounts or dependencies change
+    return () => {
+      setOnScanCallback(null);
+      useDebugLogStore
+        .getState()
+        .addLog("[IndexPage] OnScanCallback cleared from useScanStore");
+    };
+  }, [processScan, currentSessionId, toast, setOnScanCallback]);
+
   const shouldActivateScanInput = useMemo(() => {
     const isActive = !!currentSessionId;
     console.log(
-      `[Index] ScanInput active: ${isActive} (Session ID: ${currentSessionId}, IsScanning: ${isScanning})`
+      `[Index] ScanInput active: ${isActive} (Session ID: ${currentSessionId})`
     );
     return isActive;
-  }, [currentSessionId, isScanning]);
+  }, [currentSessionId]);
 
   useEffect(() => {
     if (shouldActivateScanInput) {
@@ -182,125 +302,6 @@ const IndexContent = () => {
       // Be cautious with auto-resetting, might hide important subsequent states if not handled carefully
     }
   }, [lastScanStatus, lastScanMessage, toast]);
-
-  const handleGlobalScan = useCallback(
-    async (barcode: string) => {
-      // Made async to await processScan
-      console.log(
-        `[IndexPage] handleGlobalScan CALLED with barcode: ${barcode}`
-      );
-      // try/catch block removed from here as errors are handled in the store and reflected in state
-      if (!barcode || barcode.length < 3) {
-        console.warn(`[IndexPage] Ignoring invalid barcode: ${barcode}`);
-        // Potentially set a message in store or use local toast for this UI-specific validation
-        toast({
-          title: "Invalid Scan",
-          description: "Barcode too short.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (currentSessionId) {
-        console.log(
-          "[IndexPage] Routing scan to useSessionStore (Session Active)"
-        );
-        await processScan(barcode); // Call store action, no .then() needed
-
-        // UI updates like scanCount and successfulScan indicator are now driven by store state changes
-        // or can remain local if they are purely visual feedback not tied to core session logic.
-        // For scanCount specifically for the active session in UI:
-        const { scannedDrumsForCurrentTask } = useSessionStore.getState();
-        setScanCount(scannedDrumsForCurrentTask.length);
-
-        // For the visual pop-up of the scanned barcode:
-        setSuccessfulScan(barcode);
-        if (successTimeoutRef.current) {
-          window.clearTimeout(successTimeoutRef.current);
-        }
-        successTimeoutRef.current = window.setTimeout(() => {
-          setSuccessfulScan(null);
-          successTimeoutRef.current = null;
-        }, 2500);
-      } else {
-        console.log(
-          `[IndexPage] Scan ignored: View ${currentView} does not handle scans and no session active.`
-        );
-        toast({
-          title: "Scan Inactive",
-          description: "No active session to process this scan.",
-        });
-      }
-    },
-    [currentView, processScan, currentSessionId, toast] // Removed transportScan from dependencies
-  );
-
-  // Global keydown listener for barcode scanner
-  useEffect(() => {
-    if (!shouldActivateScanInput) {
-      barcodeBufferRef.current = ""; // Clear buffer when not active
-      return;
-    }
-
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // If an input field, textarea, or select is focused, don't interfere
-      // Allows normal typing in other potential input fields on the page.
-      const targetElement = e.target as HTMLElement;
-      if (
-        targetElement.tagName === "INPUT" ||
-        targetElement.tagName === "TEXTAREA" ||
-        targetElement.tagName === "SELECT"
-      ) {
-        // Exception: allow our own hidden scan input to still be "typed into" by the global handler
-        // if it somehow did get focus, though it's unlikely and not the primary mechanism.
-        // The main goal here is to NOT interfere with visible, user-typable inputs.
-        if (targetElement.getAttribute("data-testid") !== "barcode-input") {
-          return;
-        }
-      }
-
-      const now = Date.now();
-      // Reset buffer if pause between keys is too long (e.g., > 100ms)
-      // Adjust timeout as needed for your scanner's speed
-      if (lastKeyTimeRef.current && now - lastKeyTimeRef.current > 100) {
-        barcodeBufferRef.current = "";
-      }
-      lastKeyTimeRef.current = now;
-
-      if (e.key === "Enter") {
-        const code = barcodeBufferRef.current.trim();
-        barcodeBufferRef.current = ""; // Reset buffer
-        if (code.length >= 3) {
-          console.log(
-            "[IndexPage] Global KeyDown 'Enter' detected, processing code:",
-            code
-          );
-          handleGlobalScan(code);
-        } else if (code.length > 0) {
-          console.warn(
-            "[IndexPage] Global KeyDown 'Enter', but code too short:",
-            code
-          );
-        }
-        e.preventDefault(); // Prevent default action for Enter if it was a scan
-      } else if (e.key.length === 1) {
-        // Append single characters
-        barcodeBufferRef.current += e.key;
-      }
-      // console.log(`[IndexPage] Global KeyDown: key='${e.key}', buffer='${barcodeBufferRef.current}'`); // Verbose log
-    };
-
-    console.log("[IndexPage] Adding global keydown listener (scan active)");
-    window.addEventListener("keydown", handleGlobalKeyDown, true); // Use capture phase
-
-    return () => {
-      console.log(
-        "[IndexPage] Removing global keydown listener (scan inactive or component unmount)"
-      );
-      window.removeEventListener("keydown", handleGlobalKeyDown, true);
-      barcodeBufferRef.current = ""; // Clear buffer on cleanup
-    };
-  }, [shouldActivateScanInput, handleGlobalScan]); // Dependency: handleGlobalScan
 
   const handleNavigation = (itemId: string) => {
     console.log(`Navigation action: ${itemId}`);
@@ -501,7 +502,8 @@ const IndexContent = () => {
       className="h-screen w-full flex flex-col pt-2 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
       {...handlers}
     >
-      <ScanInput onScan={handleGlobalScan} isActive={shouldActivateScanInput} />
+      {/* ScanInput is now a self-managing component using the store */}
+      <ScanInput />
       <DebugLogPanel />
 
       <TopNavbar

@@ -1045,6 +1045,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     const { data: { user }, error: userError } = await supabase.auth.getUser(); 
     get().logCurrentState('processScan_start');
 
+    console.log("[SessionStore] processScan called with barcode:", barcode);
+
     if (!currentSessionId) { 
       console.warn("[SessionStore] processScan called without active session.");
       const noSessionMsg = 'No active session for scan.';

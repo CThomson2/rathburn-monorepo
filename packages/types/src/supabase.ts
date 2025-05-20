@@ -2594,6 +2594,7 @@ export type Database = {
           pol_id: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           comment: string
@@ -2603,6 +2604,7 @@ export type Database = {
           pol_id?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           comment?: string
@@ -2612,6 +2614,7 @@ export type Database = {
           pol_id?: string | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: [
           {

@@ -9,11 +9,11 @@ import {
 } from "@/core/components/ui/dialog";
 import { Button } from "@/core/components/ui/button";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
-import { MessageSquare, RefreshCw } from "lucide-react";
-import { createClient } from "@/core/lib/supabase/client";
+import { MessageSquare, RefreshCw, Send } from "lucide-react";
 import { formatDistance } from "date-fns";
-import { PostgrestError } from "@supabase/supabase-js";
-import { TaskComment, FormattedTaskComment } from "../types/task-comment";
+import { Textarea } from "@/core/components/ui/textarea";
+import { useComments } from "../hooks/use-comments";
+import { FormattedTaskComment } from "../types/task-comment";
 
 interface TaskCommentsDialogProps {
   taskType: "transport" | "production";
@@ -21,89 +21,45 @@ interface TaskCommentsDialogProps {
   taskName: string;
 }
 
-interface CommentWithUserData
-  extends Pick<TaskComment, "id" | "created_at" | "comment" | "user_id"> {
-  profiles?: {
-    email?: string | null;
-    username?: string | null;
-  };
-}
-
 export function TaskCommentsDialog({
   taskType,
   taskId,
   taskName,
 }: TaskCommentsDialogProps) {
-  const [comments, setComments] = useState<FormattedTaskComment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const {
+    comments: rawComments,
+    isLoading,
+    error,
+    isSubmitting,
+    submitComment,
+    refreshComments,
+  } = useComments({ taskType, taskId });
 
-  const fetchComments = async () => {
-    if (!taskId) return;
+  // Format comments for display
+  const comments: FormattedTaskComment[] =
+    rawComments?.map((comment) => ({
+      id: comment.id,
+      created_at: comment.created_at,
+      comment: comment.comment,
+      user_id: comment.user_id,
+      user_email: comment.username || "Unknown user",
+      user_name: comment.username || "Unknown user",
+    })) || [];
 
-    setIsLoading(true);
-    setError(null);
+  const handleSubmitComment = async () => {
+    if (!newComment.trim()) return;
 
-    try {
-      const supabase = createClient();
-
-      // Determine which field to query based on task type
-      const idFieldName = taskType === "transport" ? "pol_id" : "job_id";
-
-      // Query for comments with user information
-      const { data, error } = await supabase
-        .from("task_comments")
-        .select(
-          `
-          id,
-          created_at,
-          comment,
-          user_id,
-          profiles!user_id (
-            email,
-            username
-          )
-        `
-        )
-        .eq(idFieldName, taskId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Transform the data to include user email and name
-      const formattedComments: FormattedTaskComment[] = (data || []).map(
-        (comment: CommentWithUserData) => {
-          return {
-            id: comment.id,
-            created_at: comment.created_at,
-            comment: comment.comment,
-            user_id: comment.user_id,
-            user_email: comment.profiles?.email || "Unknown user",
-            user_name:
-              comment.profiles?.username ||
-              comment.profiles?.email?.split("@")[0] ||
-              "Unknown user",
-          };
-        }
-      );
-
-      setComments(formattedComments);
-    } catch (err) {
-      console.error("Error fetching comments:", err);
-      const errorMessage =
-        err instanceof PostgrestError
-          ? err.message
-          : "Failed to load comments. Please try again.";
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
+    const { success } = await submitComment(newComment);
+    if (success) {
+      setNewComment("");
     }
   };
 
-  // Reset and fetch comments when dialog opens (handled by Dialog's onOpenChange)
+  // Reset and fetch comments when dialog opens
   const handleDialogOpen = (open: boolean) => {
     if (open && taskId) {
-      fetchComments();
+      refreshComments();
     }
   };
 
@@ -129,7 +85,7 @@ export function TaskCommentsDialog({
           <Button
             variant="ghost"
             size="sm"
-            onClick={fetchComments}
+            onClick={refreshComments}
             disabled={isLoading}
             className="text-xs h-8"
           >
@@ -142,13 +98,13 @@ export function TaskCommentsDialog({
           </Button>
         </div>
 
-        <ScrollArea className="flex-grow max-h-[50vh] pr-4">
+        <ScrollArea className="flex-grow max-h-[40vh] pr-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <RefreshCw className="animate-spin rounded-full h-6 w-6 text-primary" />
             </div>
           ) : error ? (
-            <div className="p-4 text-center text-red-500">{error}</div>
+            <div className="p-4 text-center text-red-500">{error.message}</div>
           ) : comments.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
               No comments found
@@ -173,6 +129,28 @@ export function TaskCommentsDialog({
             </div>
           )}
         </ScrollArea>
+
+        <div className="mt-4 space-y-2">
+          <Textarea
+            placeholder="Add your comment here..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            className="min-h-[80px] w-full"
+            disabled={isSubmitting}
+          />
+          <Button
+            onClick={handleSubmitComment}
+            className="w-full"
+            disabled={!newComment.trim() || isSubmitting}
+          >
+            {isSubmitting ? (
+              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            Submit Comment
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
