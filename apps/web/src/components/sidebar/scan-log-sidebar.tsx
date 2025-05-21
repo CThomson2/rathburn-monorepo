@@ -416,16 +416,13 @@ const RealtimeScanLogSidebar = ({
             return;
           }
 
-          if (
-            payload.eventType === "INSERT" ||
-            (payload.eventType === "UPDATE" && payload.new)
-          ) {
+          if (payload.eventType === "INSERT" && payload.new) {
             try {
               // Fetch the user information
               const { data: userData, error: userError } = await supabase
                 .from("profiles")
                 .select("email, username")
-                .eq("id", payload.new.user_id)
+                .eq("user_id", payload.new.user_id)
                 .single();
 
               if (userError) {
@@ -440,28 +437,53 @@ const RealtimeScanLogSidebar = ({
                 profiles: userData || { email: null, username: null },
               };
 
-              setComments((prevComments) =>
-                [newComment as TaskComment, ...prevComments].slice(0, 100)
-              );
+              setComments((prevComments) => {
+                // Check if this comment ID already exists to prevent duplicates
+                const exists = prevComments.some(
+                  (c) => c.id === payload.new.id
+                );
+                if (exists) return prevComments;
+                return [newComment as TaskComment, ...prevComments].slice(
+                  0,
+                  100
+                );
+              });
               setError(null);
             } catch (err) {
               console.error("Error processing INSERT comment update:", err);
             }
           } else if (payload.eventType === "UPDATE" && payload.new) {
-            // Handle comment updates
-            setComments((prevComments) =>
-              prevComments.map((c) =>
-                c.id === payload.new.id ? { ...c, ...payload.new } : c
-              )
-            );
+            // For updates, use the username directly from the payload
+            try {
+              // The username is now included in the payload.new from the trigger
+              const updatedComment = {
+                ...payload.new,
+                profiles: {
+                  // Use username from the updated comment if available
+                  username: payload.new.username || null,
+                  email: null, // We don't have email in this context
+                },
+              };
+
+              console.log("Comment update received:", updatedComment);
+
+              setComments((prevComments) =>
+                prevComments.map((c) =>
+                  c.id === payload.new.id ? (updatedComment as TaskComment) : c
+                )
+              );
+            } catch (err) {
+              console.error("Error processing UPDATE comment update:", err);
+            }
           } else if (
             payload.eventType === "DELETE" &&
             payload.old &&
             payload.old.id
           ) {
             // Handle comment deletions
+            const deletedCommentId = payload.old.id;
             setComments((prevComments) =>
-              prevComments.filter((c) => c.id !== payload.old.id)
+              prevComments.filter((c) => c.id !== deletedCommentId)
             );
           }
         }
@@ -897,7 +919,7 @@ const RealtimeScanLogSidebar = ({
                       <MessageCircle className="w-4 h-4 text-primary" />
                       <div>
                         <div className="text-sm font-medium">
-                          {comment.profiles?.username ||
+                          {comment.username ||
                             comment.profiles?.email?.split("@")[0] ||
                             "Unknown User"}
                         </div>
