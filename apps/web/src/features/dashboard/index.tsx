@@ -64,20 +64,21 @@ import {
 } from "@/components/ui/table";
 
 // Import dashboard components
-import { StatCard } from "./components/StatCard";
-import { SummaryCard } from "./components/SummaryCard";
+import { StatCard } from "./components/stat-card";
+import { SummaryCard } from "./components/summary-card";
 import { PieChart } from "./components/PieChart";
 import { LineChart } from "./components/LineChart";
-import { DrumInventoryChart } from "./components/DrumInventoryChart";
-import { DetailPanel } from "./components/DetailPanel";
-import { BatchesOverview } from "./components/BatchesOverview";
+import { DrumInventoryChart } from "./components/inventory-chart";
+import { DetailPanel } from "./components/detail-panel";
+import { BatchesOverview } from "./components/batches-overview";
 
-// Import theme utilities
+// Import theme and format utilities
 import {
   useColorScheme,
   getCategoryColor,
   getInventoryStatusVariant,
 } from "./utils/theme-colors";
+import { formatDateTime } from "@/utils/format-date";
 
 // Helper function to transform inventory data for the chart
 function transformInventoryData(data: DrumInventory[]): ChartDrumInventory[] {
@@ -728,8 +729,11 @@ export default function ChemicalInventoryDashboard({
       )}
 
       {/* Last updated timestamp */}
-      <div className="text-xs text-muted-foreground text-center pt-2">
-        Last updated: {lastUpdated.toLocaleString()}
+      <div
+        className="text-xs text-muted-foreground text-center pt-2"
+        suppressHydrationWarning
+      >
+        Last updated: {formatDateTime(lastUpdated)}
       </div>
     </div>
   );

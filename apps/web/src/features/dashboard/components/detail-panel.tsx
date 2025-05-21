@@ -25,6 +25,8 @@ import {
   ExternalLink,
   FileText,
   Info,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -62,12 +64,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { toast } from "@/hooks/use-toast";
+
+import { formatDate } from "@/utils/format-date";
+
+type Supplier = {
+  name: string;
+  created_at: string;
+};
 
 interface DetailPanelProps {
   itemId: string | null;
   onClose?: () => void;
   onEdit: (id: string) => void;
   onPrint: (id: string) => void;
+}
+
+interface MaterialWithItemsAndSupplier {
+  material_id: string;
+  name: string;
+  cas_number: string;
+  chemical_group: string;
+  items: {
+    supplier_id: string | null;
+    suppliers: { name: string | null } | null;
+  }[];
+  threshold_stock: number | null;
+  formula: string | null;
+  default_expiry_date: string | null;
+  storage_conditions: Record<string, any> | string | null;
 }
 
 // Helper function to safely parse JSON storage conditions
@@ -107,8 +132,6 @@ export function DetailPanel({
   onEdit,
   onPrint,
 }: DetailPanelProps) {
-  const { theme } = useTheme();
-  const colors = useColorScheme();
   const supabase = createClient();
   const panelContentRef = useRef<HTMLDivElement>(null);
 
@@ -120,6 +143,10 @@ export function DetailPanel({
 
   const [editFormData, setEditFormData] = useState<Partial<ChemicalItem>>({});
 
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [newSupplierName, setNewSupplierName] = useState("");
+  const [isAddingSupplier, setIsAddingSupplier] = useState(false);
+
   const initializeFormData = (currentItem: ChemicalItem | null) => {
     if (currentItem) {
       setEditFormData({
@@ -130,6 +157,101 @@ export function DetailPanel({
       });
     } else {
       setEditFormData({});
+    }
+  };
+
+  const handleNewSupplierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewSupplierName(e.target.value);
+  };
+
+  const handleNewSupplier = async (itemId: string, supplierName: string) => {
+    console.log("New item supplier name:", supplierName);
+
+    if (!supplierName.trim()) {
+      toast.error("Supplier name cannot be empty.");
+      return;
+    }
+    setIsAddingSupplier(true);
+
+    try {
+      const { data: supplierData, error: supplierError } = await (
+        supabase as any
+      )
+        .schema("inventory")
+        .from("suppliers")
+        .select("supplier_id, name")
+        .eq("name", supplierName)
+        .single();
+
+      if (supplierError) throw supplierError;
+      if (!supplierData) {
+        toast.error(
+          `Supplier "${supplierName}" not found. Please add it via the main suppliers page first.`
+        );
+        throw new Error("Supplier not found");
+      }
+
+      console.log("Supplier data:", supplierData);
+
+      // Check if this material-supplier combination already exists
+      const { data: existingItemSupplier, error: checkError } = await (
+        supabase as any
+      )
+        .schema("inventory")
+        .from("items")
+        .select("item_id")
+        .eq("material_id", itemId)
+        .eq("supplier_id", supplierData.supplier_id)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existingItemSupplier) {
+        console.log("Existing item supplier:", existingItemSupplier);
+        toast.info(
+          `This material is already linked to supplier "${supplierName}".`
+        );
+        setNewSupplierName("");
+        setIsAddingSupplier(false);
+        return;
+      }
+
+      const { data: newItemSupplier, error: itemSuppliersError } = await (
+        supabase as any
+      )
+        .schema("inventory")
+        .from("items")
+        .insert({
+          name: item?.name || "", // This 'name' field in 'items' might be redundant if it's always the material name
+          material_id: itemId,
+          supplier_id: supplierData.supplier_id,
+        })
+        .select("created_at, suppliers (name)") // Ensure we get the created_at and supplier name back
+        .single(); // Expecting a single new record
+
+      console.log("Newly inserted item_supplier record:", newItemSupplier);
+      toast.success(`Supplier "${supplierName}" linked to ${item?.name}.`);
+
+      if (itemSuppliersError) throw itemSuppliersError;
+      if (!newItemSupplier)
+        throw new Error(
+          "Failed to link supplier to material. The new item_supplier record was not returned."
+        );
+
+      // Update the local state to reflect the new supplier link
+      setSuppliers((prev) => [
+        ...prev,
+        {
+          name: supplierData.name,
+          created_at: newItemSupplier.created_at || new Date().toISOString(),
+        },
+      ]);
+      setNewSupplierName("");
+    } catch (error: any) {
+      console.error("Error in handleNewSupplier:", error);
+      toast.error(error.message || "Could not add supplier link.");
+    } finally {
+      setIsAddingSupplier(false);
     }
   };
 
@@ -148,21 +270,6 @@ export function DetailPanel({
       setIsEditing(false);
 
       try {
-        interface MaterialWithItemsAndSupplier {
-          material_id: string;
-          name: string;
-          cas_number: string;
-          chemical_group: string;
-          items: {
-            supplier_id: string | null;
-            suppliers: { name: string | null } | null;
-          }[];
-          threshold_stock: number | null;
-          formula: string | null;
-          default_expiry_date: string | null;
-          storage_conditions: Record<string, any> | string | null;
-        }
-
         const { data: materialDataUntyped, error: materialError } = await (
           supabase as any
         )
@@ -178,6 +285,26 @@ export function DetailPanel({
 
         if (materialError) throw materialError;
         if (!materialData) throw new Error("Material not found");
+
+        const { data: itemSuppliersUntyped, error: itemSuppliersError } =
+          await (supabase as any)
+            .schema("inventory")
+            .from("items")
+            .select("created_at, suppliers(name)")
+            .eq("material_id", itemId);
+
+        if (itemSuppliersError) throw itemSuppliersError;
+        if (!itemSuppliersUntyped) throw new Error("Item suppliers not found");
+
+        console.log("Item suppliers (raw):", itemSuppliersUntyped);
+
+        const itemSuppliers = itemSuppliersUntyped.map((item: any) => ({
+          created_at: item.created_at,
+          name: item.suppliers.name,
+        }));
+
+        console.log("Item suppliers:", itemSuppliers);
+        setSuppliers(itemSuppliers);
 
         interface DrumDetail {
           drum_id: string;
@@ -562,6 +689,63 @@ export function DetailPanel({
 
           <Separator />
 
+          {/* List of suppliers we buy this material from - and UI to insert new supplier for selected item */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">
+              Suppliers ({suppliers.length})
+            </h3>
+            <div className="flex items-end gap-2 mb-3">
+              <div className="flex-grow space-y-1">
+                <Label
+                  htmlFor="newSupplierName"
+                  className="text-xs text-muted-foreground"
+                >
+                  Link New Supplier
+                </Label>
+                <Input
+                  id="newSupplierName"
+                  type="text"
+                  value={newSupplierName}
+                  onChange={handleNewSupplierChange}
+                  placeholder="Enter exact supplier name (case sensitive)"
+                  className="h-9"
+                  disabled={isAddingSupplier}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => handleNewSupplier(item.id, newSupplierName)}
+                disabled={isAddingSupplier || !newSupplierName.trim()}
+              >
+                {isAddingSupplier ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {suppliers.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {suppliers.map((supplier, index) => (
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="py-1 px-2 justify-center truncate"
+                  >
+                    {supplier.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-2">
+                No suppliers linked to this material yet.
+              </p>
+            )}
+          </div>
+
+          {/* Stock locations (current stock) */}
           <div>
             <h3 className="text-sm font-medium mb-2">
               Inventory Locations ({item.locations.length})

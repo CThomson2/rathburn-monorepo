@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BatchDataFromView } from "@/app/actions/batches";
-import { DrumSerialsList } from "./DrumSerialsList";
+import { DrumSerialsList } from "./serial-number-list";
 import {
   Table,
   TableBody,

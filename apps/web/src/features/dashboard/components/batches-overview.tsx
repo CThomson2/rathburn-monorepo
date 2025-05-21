@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { fetchActiveBatches, BatchDataFromView } from "@/app/actions/batches";
-import { BatchesTableDisplay } from "./BatchesTableDisplay"; // To be created
+import { BatchesTableDisplay } from "./batches-table"; // To be created
 import { AlertTriangle } from "lucide-react";
 
 export function BatchesOverview() {
