@@ -115,8 +115,8 @@ const data = {
           url: "/batches",
         },
         {
-          title: "Solvents",
-          url: "/solvents",
+          title: "Reprocess",
+          url: "/reprocess",
         },
       ],
     },

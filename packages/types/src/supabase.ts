@@ -1826,6 +1826,7 @@ export type Database = {
           input_batch_id: string
           item_id: string
           job_id: string
+          job_name: string | null
           planned_end: string | null
           planned_start: string | null
           priority: number
@@ -1837,6 +1838,7 @@ export type Database = {
           input_batch_id: string
           item_id: string
           job_id?: string
+          job_name?: string | null
           planned_end?: string | null
           planned_start?: string | null
           priority?: number
@@ -1848,6 +1850,7 @@ export type Database = {
           input_batch_id?: string
           item_id?: string
           job_id?: string
+          job_name?: string | null
           planned_end?: string | null
           planned_start?: string | null
           priority?: number
@@ -2079,6 +2082,7 @@ export type Database = {
           item_name: string | null
           job_created_at: string | null
           job_id: string | null
+          job_name: string | null
           job_status: Database["production"]["Enums"]["job_status"] | null
           job_updated_at: string | null
           op_created_at: string | null
@@ -2590,6 +2594,7 @@ export type Database = {
           comment: string
           created_at: string
           id: string
+          item_name: string | null
           job_id: string | null
           pol_id: string | null
           updated_at: string
@@ -2600,6 +2605,7 @@ export type Database = {
           comment: string
           created_at?: string
           id?: string
+          item_name?: string | null
           job_id?: string | null
           pol_id?: string | null
           updated_at?: string
@@ -2610,6 +2616,7 @@ export type Database = {
           comment?: string
           created_at?: string
           id?: string
+          item_name?: string | null
           job_id?: string | null
           pol_id?: string | null
           updated_at?: string

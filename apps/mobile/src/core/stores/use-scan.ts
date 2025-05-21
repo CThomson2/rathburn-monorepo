@@ -55,7 +55,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
         isScanInputDOMFocused: false,
       });
     }
-    get().logCurrentState("setScanInputGloballyActive");
+    // get().logCurrentState("setScanInputGloballyActive");
   },
 
   pauseScanInputTemporarily: () => {
@@ -63,12 +63,12 @@ export const useScanStore = create<ScanState>((set, get) => ({
     if (get().isScanInputGloballyActive) {
       set({ isManuallyPaused: true });
     }
-    get().logCurrentState("pauseScanInputTemporarily");
+    // get().logCurrentState("pauseScanInputTemporarily");
   },
 
   resumeScanInputAfterPause: () => {
     set({ isManuallyPaused: false });
-    get().logCurrentState("resumeScanInputAfterPause");
+    // get().logCurrentState("resumeScanInputAfterPause");
   },
 
   setBarcode: (value) => {
@@ -76,17 +76,17 @@ export const useScanStore = create<ScanState>((set, get) => ({
     if (get().isScanInputGloballyActive && !get().isManuallyPaused) {
       set({ barcode: value });
     }
-    get().logCurrentState("setBarcode");
+    // get().logCurrentState("setBarcode");
   },
 
   clearBarcode: () => {
     set({ barcode: "" });
-    get().logCurrentState("clearBarcode");
+    // get().logCurrentState("clearBarcode");
   },
 
   setIsScanInputDOMFocused: (isFocused) => {
     set({ isScanInputDOMFocused: isFocused });
-    get().logCurrentState("setScanInputDOMFocused");
+    // get().logCurrentState("setScanInputDOMFocused");
   },
 
   setOnScanCallback: (callback) => {

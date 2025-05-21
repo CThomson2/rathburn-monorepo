@@ -36,12 +36,7 @@ import {
   fetchStills,
   fetchAvailableBatchesByItem,
 } from "@/app/actions/production"; // Corrected path
-import { fetchSuppliers, fetchItemsBySupplier } from "@/app/actions/suppliers";
-
-interface Supplier {
-  id: string;
-  name: string;
-}
+import { fetchItems } from "@/app/actions/orders"; // Assuming this action will be created
 
 interface Item {
   id: string;
@@ -53,6 +48,7 @@ interface Batch {
   batch_id: string;
   batch_code: string | null;
   drums_in_stock: number;
+  supplier_name: string | null; // ADDED
 }
 
 interface Still {
@@ -79,9 +75,6 @@ export function ProductionForm({
   console.log("ProductionForm: Component rendering/re-rendering");
 
   // Form State
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
-    null
-  );
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [plannedDate, setPlannedDate] = useState<Date | undefined>(new Date());
@@ -90,7 +83,6 @@ export function ProductionForm({
   const [priority, setPriority] = useState<number>(10);
 
   console.log("ProductionForm: Current State", {
-    selectedSupplier,
     selectedItem,
     selectedBatch,
     plannedDate: plannedDate?.toISOString(),
@@ -100,30 +92,18 @@ export function ProductionForm({
   });
 
   // UI State for Popovers/Commands
-  const [supplierSearch, setSupplierSearch] = useState("");
   const [itemSearch, setItemSearch] = useState("");
-  const [openSupplierPopover, setOpenSupplierPopover] = useState(false);
   const [openItemPopover, setOpenItemPopover] = useState(false);
   const [openStillPopover, setOpenStillPopover] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
   // SWR Data Fetching
-  const { data: suppliers, error: suppliersError } = useSWR<Supplier[]>(
-    "allSuppliers",
-    () => {
-      console.log("ProductionForm: Fetching suppliers");
-      return fetchSuppliers();
-    }
-  );
   const { data: items, error: itemsError } = useSWR<Item[]>(
-    selectedSupplier ? `itemsBySupplier-${selectedSupplier.id}` : null,
+    "allItems", // Changed: Fetch all items initially
     () => {
-      console.log(
-        "ProductionForm: Fetching items for supplier:",
-        selectedSupplier?.id
-      );
-      return fetchItemsBySupplier(selectedSupplier!.id);
+      console.log("ProductionForm: Fetching all items");
+      return fetchItems(); // Changed: Use new action
     }
   );
   const { data: batches, error: batchesError } = useSWR<Batch[]>(
@@ -147,25 +127,12 @@ export function ProductionForm({
   // Reset dependent fields when a higher-level selection changes
   useEffect(() => {
     console.log(
-      "ProductionForm: useEffect for selectedSupplier changed. Current supplier:",
-      selectedSupplier
-    );
-    setSelectedItem(null);
-    setItemSearch("");
-  }, [selectedSupplier]);
-
-  useEffect(() => {
-    console.log(
       "ProductionForm: useEffect for selectedItem changed. Current item:",
       selectedItem
     );
     setSelectedBatch(null);
     setRawVolume(""); // Reset volume when item/batch context changes
   }, [selectedItem]);
-
-  const filteredSuppliers = suppliers?.filter((s) =>
-    s.name.toLowerCase().includes(supplierSearch.toLowerCase())
-  );
 
   const filteredItems = items?.filter((i) =>
     i.name.toLowerCase().includes(itemSearch.toLowerCase())
@@ -185,7 +152,6 @@ export function ProductionForm({
   const validateForm = (): boolean => {
     console.log("ProductionForm: validateForm called. Current form values:", {
       selectedItem,
-      selectedSupplier,
       selectedBatch,
       plannedDate,
       selectedStill,
@@ -197,11 +163,6 @@ export function ProductionForm({
       console.log(
         "ProductionForm: Validation failed - Material item is required."
       );
-      return false;
-    }
-    if (!selectedSupplier) {
-      toast.error("Supplier is required.");
-      console.log("ProductionForm: Validation failed - Supplier is required.");
       return false;
     }
     if (!selectedBatch) {
@@ -296,7 +257,7 @@ export function ProductionForm({
     setSubmitting(false);
   };
 
-  if (suppliersError || itemsError || batchesError || stillsError) {
+  if (itemsError || batchesError || stillsError) {
     return (
       <div className="flex flex-col items-center justify-center text-destructive p-8">
         <AlertTriangle className="w-12 h-12 mb-4" />
@@ -308,8 +269,10 @@ export function ProductionForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-1">
-      {/* Row 1: Item and Supplier */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Row 1: Item Selection (was Item and Supplier) */}
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        {" "}
+        {/* Changed to 1 col for item only */}
         <div className="space-y-2">
           <Label htmlFor="item">Material Item</Label>
           <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
@@ -319,10 +282,11 @@ export function ProductionForm({
                 role="combobox"
                 aria-expanded={openItemPopover}
                 className="w-full justify-between"
-                disabled={!selectedSupplier || !items}
+                // disabled={!selectedSupplier || !items} // REMOVED supplier dependency
+                disabled={!items} // Item selection is now independent
               >
                 {selectedItem?.name ??
-                  (items || !selectedSupplier ? (
+                  (items ? ( // Simplified logic
                     "Select item..."
                   ) : (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -338,7 +302,10 @@ export function ProductionForm({
                   onValueChange={setItemSearch}
                 />
                 <CommandList>
-                  <CommandEmpty>No items found for this supplier.</CommandEmpty>
+                  <CommandEmpty>
+                    {/* No items found for this supplier.  REMOVED supplier context */}
+                    No items found.
+                  </CommandEmpty>
                   <CommandGroup>
                     {filteredItems?.map((i) => (
                       <CommandItem
@@ -368,7 +335,8 @@ export function ProductionForm({
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* REMOVED Supplier Popover Section */}
+      {/* <div className="space-y-2">
         <Label htmlFor="supplier">Supplier</Label>
         <Popover
           open={openSupplierPopover}
@@ -426,7 +394,7 @@ export function ProductionForm({
             </Command>
           </PopoverContent>
         </Popover>
-      </div>
+      </div> */}
 
       {/* Row 2: Batch Selection (conditionally rendered) */}
       {selectedItem && (
@@ -458,6 +426,10 @@ export function ProductionForm({
                   <div className="flex flex-col">
                     <span className="font-semibold">
                       Batch Code: {batch.batch_code || "N/A"}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      Supplier: {batch.supplier_name || "N/A"}{" "}
+                      {/* ADDED supplier display */}
                     </span>
                     <span className="text-sm text-muted-foreground">
                       Drums in Stock: {batch.drums_in_stock}

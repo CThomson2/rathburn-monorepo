@@ -2,6 +2,7 @@ export type OrderStatus = "preparing" | "distillation" | "qc" | "complete" | "er
 
 export type Order = {
   id: string;
+  jobName: string;
   itemName: string;
   supplier: string;
   quantity: number;

@@ -27,6 +27,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -194,17 +195,10 @@ const RealtimeScanLogSidebar = ({
       if (supabase && viewType === "comments") {
         setIsLoadingComments(true);
         try {
+          // production.jobs is in a separate schema to inventory.purchase_order_lines
           const { data, error: fetchError } = await supabase
             .from("task_comments")
-            .select(
-              `
-              *,
-              profiles:user_id (
-                email,
-                username
-              )
-            `
-            )
+            .select(`*`)
             .order("created_at", { ascending: false })
             .limit(100)
             .gte(
@@ -838,73 +832,101 @@ const RealtimeScanLogSidebar = ({
 
           {/* Display scans when in scans view */}
           {viewType === "scans" &&
-            filteredScans.map((scan) => (
-              <Card
-                key={scan.id}
-                className={cn(
-                  "w-full shadow-sm bg-sidebar-card border border-l-2 border-sidebar-border rounded-md",
-                  getActionColor(scan.scan_action)
-                )}
-              >
-                <div className="p-3">
-                  <div className="flex justify-between items-center">
-                    {/* Scan Content */}
-                    <div className="flex items-center space-x-2 overflow-hidden">
-                      {/* Icon could be based on scan_action or scan_status */}
-                      <div
-                        className={cn(
-                          "w-2 h-2 rounded-full",
-                          getStatusColor(scan.scan_status)
+            filteredScans.map((scan, index, array) => {
+              // Check if this scan is from a different day than the next one
+              const currentDate = new Date(scan.created_at).toDateString();
+              const nextScan = array[index + 1];
+              const nextDate = nextScan
+                ? new Date(nextScan.created_at).toDateString()
+                : null;
+              const showDateSeparator = nextDate && currentDate !== nextDate;
+
+              return (
+                <React.Fragment key={scan.id}>
+                  <Card
+                    className={cn(
+                      "w-full shadow-sm bg-sidebar-card border border-l-2 border-sidebar-border rounded-md",
+                      getActionColor(scan.scan_action)
+                    )}
+                  >
+                    <div className="p-3">
+                      <div className="flex justify-between items-center">
+                        {/* Scan Content */}
+                        <div className="flex items-center space-x-2 overflow-hidden">
+                          {/* Icon could be based on scan_action or scan_status */}
+                          <div
+                            className={cn(
+                              "w-2 h-2 rounded-full",
+                              getStatusColor(scan.scan_status)
+                            )}
+                          ></div>
+                          <div className="font-mono text-sm truncate">
+                            <span className="font-semibold capitalize">
+                              {scan.scan_action.replace(/.*[_\s]/g, " ")}:
+                            </span>{" "}
+                            {scan.raw_barcode.slice(0, 10) +
+                              (scan.raw_barcode.length > 10 ? "..." : "")}
+                          </div>
+                        </div>
+
+                        {/* Time and Status Badge */}
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <span className="text-xs text-sidebar-muted-foreground">
+                            {new Date(scan.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit", // Optional: for more precision
+                            })}
+                          </span>
+                          <Badge
+                            variant={getStatusBadgeVariant(scan.scan_status)}
+                            className="capitalize px-2 py-0.5 text-xs h-5"
+                          >
+                            {scan.scan_status}
+                          </Badge>
+                        </div>
+                      </div>
+                      {/* Additional Details */}
+                      <div className="flex flex-row justify-end items-center mt-1">
+                        {scan.item_name &&
+                          scan.raw_barcode !== scan.item_name && (
+                            <p className="text-sidebar-muted-foreground text-sm truncate pl-4 flex-1">
+                              {scan.item_name}
+                            </p>
+                          )}
+                        {scan.user_email_name && (
+                          <p className="text-sidebar-muted-foreground text-xs flex items-center justify-end pl-2 flex-shrink-0">
+                            <User className="w-3 h-3 mr-1 inline-block" />
+                            {scan.user_email_name}
+                          </p>
                         )}
-                      ></div>
-                      <div className="font-mono text-sm truncate">
-                        <span className="font-semibold capitalize">
-                          {scan.scan_action.replace(/.*[_\s]/g, " ")}:
-                        </span>{" "}
-                        {scan.raw_barcode.slice(0, 10) +
-                          (scan.raw_barcode.length > 10 ? "..." : "")}
+                      </div>
+                      {scan.scan_status === "error" && scan.error_message && (
+                        <p className="text-red-400 text-xs mt-1 pl-4 truncate">
+                          Error: {scan.error_message}
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+
+                  {/* Add date separator between days */}
+                  {showDateSeparator && (
+                    <div className="relative my-4">
+                      <Separator className="absolute inset-0" />
+                      <div className="flex justify-center">
+                        <span className="bg-sidebar-background mt-2 px-2 text-xs text-sidebar-muted-foreground">
+                          {new Date(scan.created_at).toLocaleDateString([], {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
                       </div>
                     </div>
-
-                    {/* Time and Status Badge */}
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <span className="text-xs text-sidebar-muted-foreground">
-                        {new Date(scan.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit", // Optional: for more precision
-                        })}
-                      </span>
-                      <Badge
-                        variant={getStatusBadgeVariant(scan.scan_status)}
-                        className="capitalize px-2 py-0.5 text-xs h-5"
-                      >
-                        {scan.scan_status}
-                      </Badge>
-                    </div>
-                  </div>
-                  {/* Additional Details */}
-                  <div className="flex flex-row justify-end items-center mt-1">
-                    {scan.item_name && scan.raw_barcode !== scan.item_name && (
-                      <p className="text-sidebar-muted-foreground text-sm truncate pl-4 flex-1">
-                        {scan.item_name}
-                      </p>
-                    )}
-                    {scan.user_email_name && (
-                      <p className="text-sidebar-muted-foreground text-xs flex items-center justify-end pl-2 flex-shrink-0">
-                        <User className="w-3 h-3 mr-1 inline-block" />
-                        {scan.user_email_name}
-                      </p>
-                    )}
-                  </div>
-                  {scan.scan_status === "error" && scan.error_message && (
-                    <p className="text-red-400 text-xs mt-1 pl-4 truncate">
-                      Error: {scan.error_message}
-                    </p>
                   )}
-                </div>
-              </Card>
-            ))}
+                </React.Fragment>
+              );
+            })}
 
           {/* Display comments when in comments view */}
           {viewType === "comments" &&
@@ -944,9 +966,15 @@ const RealtimeScanLogSidebar = ({
                   </div>
                   <div className="mt-2 pt-2 border-t border-sidebar-border text-xs text-sidebar-muted-foreground">
                     {comment.pol_id ? (
-                      <span>Task: Transport (PO Line)</span>
+                      <span>
+                        Goods In | {comment.pol_id.slice(0, 8)} |{" "}
+                        {comment.item_name}
+                      </span>
                     ) : comment.job_id ? (
-                      <span>Task: Production Job</span>
+                      <span>
+                        Production Job | {comment.job_id.slice(0, 8)} |{" "}
+                        {comment.item_name}
+                      </span>
                     ) : (
                       <span>Task: Unknown</span>
                     )}

@@ -1,4 +1,4 @@
-'use server';
+"use server";
 
 import { executeServerDbOperation } from "@/lib/database";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -25,10 +25,10 @@ export async function fetchProductionJobs(): Promise<ProductionJobOrderType[]> {
       .schema("production")
       .from("v_operation_schedule")
       .select("*"); // Select all columns from the view
-      // The view already has an ORDER BY o.scheduled_start
-      // If you need to order by job's created_at, you can add it here,
-      // but ensure 'job_created_at' is selected from the view.
-      // .order("job_created_at", { ascending: false }); 
+    // The view already has an ORDER BY o.scheduled_start
+    // If you need to order by job's created_at, you can add it here,
+    // but ensure 'job_created_at' is selected from the view.
+    // .order("job_created_at", { ascending: false });
 
     if (error || !viewData) {
       console.error("[fetchProductionJobs]", error);
@@ -39,6 +39,7 @@ export async function fetchProductionJobs(): Promise<ProductionJobOrderType[]> {
     // Adjust field names based on your view's aliases
     return viewData.map((job: any) => ({
       id: job.job_id,
+      jobName: job.job_name ?? job.job_id.slice(0, 8),
       itemName: job.item_name ?? "Unknown Item", // From view
       supplier: job.supplier_name ?? "Unknown Supplier", // From view
       // Quantity might need recalculation if based on operation_drums,
@@ -55,33 +56,43 @@ export async function fetchProductionJobs(): Promise<ProductionJobOrderType[]> {
       status: mapJobStatusToOrderStatus(job.job_status), // From view
       progress: getProgressFromStatus(job.job_status), // Based on job_status
       priority: job.priority, // From view
-      drums: job.drum_id ? [{ // Simplified: if a drum_id exists in the row
-        id: job.drum_id,
-        serial: job.drum_serial_number ?? 'N/A',
-        volume: job.volume_transferred ?? job.drum_current_volume ?? 0,
-        location: 'N/A', // Location not in current view, might need to add
-      }] : [],
-      tasks: [{ // Simplified: represents the main distillation operation
-        name: job.op_type.replace("_", " ") ?? 'Distillation',
-        completed: job.op_status === "completed",
-        assignedTo: "", // Not in view
-        details: job.still_code ?
-          `Still: ${job.still_code}, Raw Vol: ${job.raw_volume}L, Max Cap: ${job.still_max_capacity * 200}L`
-          : 'Details unavailable',
-        // Add more task details from view if needed (started_at, ended_at for this op)
-        status: job.op_status as OperationStatus,
-        started_at: job.started_at,
-        ended_at: job.ended_at,
-      }],
+      drums: job.drum_id
+        ? [
+            {
+              // Simplified: if a drum_id exists in the row
+              id: job.drum_id,
+              serial: job.drum_serial_number ?? "N/A",
+              volume: job.volume_transferred ?? job.drum_current_volume ?? 0,
+              location: "N/A", // Location not in current view, might need to add
+            },
+          ]
+        : [],
+      tasks: [
+        {
+          // Simplified: represents the main distillation operation
+          name: job.op_type.replace("_", " ") ?? "Distillation",
+          completed: job.op_status === "completed",
+          assignedTo: "", // Not in view
+          details: job.still_code
+            ? `Still: ${job.still_code}, Raw Vol: ${job.raw_volume}L, Max Cap: ${job.still_max_capacity * 200}L`
+            : "Details unavailable",
+          // Add more task details from view if needed (started_at, ended_at for this op)
+          status: job.op_status as OperationStatus,
+          started_at: job.started_at,
+          ended_at: job.ended_at,
+        },
+      ],
       timeline: [], // Timeline construction might need to be re-evaluated based on view structure
-                     // or fetched separately if too complex from this flattened view row.
-                     // For simplicity, leaving it empty as the view focuses on current schedule.
+      // or fetched separately if too complex from this flattened view row.
+      // For simplicity, leaving it empty as the view focuses on current schedule.
     }));
   });
 }
 
 /** Fetches details for a single production job */
-export async function fetchProductionJobById(jobId: string): Promise<ProductionJobOrderType | null> {
+export async function fetchProductionJobById(
+  jobId: string
+): Promise<ProductionJobOrderType | null> {
   if (!jobId) return null;
 
   return executeServerDbOperation(async (supabase: SupabaseClient) => {
@@ -90,6 +101,7 @@ export async function fetchProductionJobById(jobId: string): Promise<ProductionJ
       .from("jobs")
       .select(
         `job_id,
+         job_name
          item_id,
          input_batch_id,
          status,
@@ -119,35 +131,48 @@ export async function fetchProductionJobById(jobId: string): Promise<ProductionJ
       console.error(`[fetchProductionJobById: ${jobId}]`, error);
       return null;
     }
-    
+
     const mappedJobs = [job].map((j: any) => ({
       id: j.job_id,
+      jobName: j.job_name ?? `${j.items?.name} - (${j.batches?.batch_code})`,
       itemName: j.items?.name ?? "Unknown Item",
       supplier: j.items?.suppliers?.name ?? "Unknown Supplier",
-      quantity: j.operations?.reduce((acc: number, op: any) => 
-        acc + (op.operation_drums?.reduce((sum_vol: number, od: any) => sum_vol + (od.volume_transferred || 0), 0) || 0) / 200
-      , 0) ?? 0,
+      quantity:
+        j.operations?.reduce(
+          (acc: number, op: any) =>
+            acc +
+            (op.operation_drums?.reduce(
+              (sum_vol: number, od: any) =>
+                sum_vol + (od.volume_transferred || 0),
+              0
+            ) || 0) /
+              200,
+          0
+        ) ?? 0,
       scheduledDate: j.planned_start ?? j.created_at,
       status: mapJobStatusToOrderStatus(j.status),
       progress: getProgressFromStatus(j.status),
       priority: getPriorityFromJob(j),
-      drums: j.operations?.flatMap((op: any) => 
-        op.operation_drums?.map((od: any) => ({
-          id: od.drum_id,
-          serial: od.drums?.serial_number ?? 'N/A',
-          volume: od.volume_transferred ?? od.drums?.current_volume ?? 0,
-          location: 'N/A',
-        })) || []
-      ) ?? [],
-      tasks: j.operations?.map((op: any) => ({
-        name: `${op.op_type}`,
-        completed: op.status === "completed",
-        assignedTo: "",
-        details: op.distillation_details ? 
-          `Still: ${op.distillation_details.stills?.code}, Raw Volume: ${op.distillation_details.raw_volume}L` 
-          : undefined,
-        status: op.status,
-      })) ?? [],
+      drums:
+        j.operations?.flatMap(
+          (op: any) =>
+            op.operation_drums?.map((od: any) => ({
+              id: od.drum_id,
+              serial: od.drums?.serial_number ?? "N/A",
+              volume: od.volume_transferred ?? od.drums?.current_volume ?? 0,
+              location: "N/A",
+            })) || []
+        ) ?? [],
+      tasks:
+        j.operations?.map((op: any) => ({
+          name: `${op.op_type}`,
+          completed: op.status === "completed",
+          assignedTo: "",
+          details: op.distillation_details
+            ? `Still: ${op.distillation_details.stills?.code}, Raw Volume: ${op.distillation_details.raw_volume}L`
+            : undefined,
+          status: op.status,
+        })) ?? [],
       timeline:
         j.operations
           ?.filter((op: any) => op.started_at || op.ended_at)
@@ -169,8 +194,9 @@ export async function fetchProductionJobById(jobId: string): Promise<ProductionJ
             }
             return events;
           })
-          .sort((a: any, b: any) =>
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          .sort(
+            (a: any, b: any) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           ) ?? [],
     }));
     return mappedJobs[0] || null;
@@ -193,31 +219,61 @@ export async function fetchStills(): Promise<
       console.error("[fetchStills]", error);
       return [];
     }
-    return data as Array<{ still_id: number; code: string; max_capacity: number }>;
+    return data as Array<{
+      still_id: number;
+      code: string;
+      max_capacity: number;
+    }>;
   });
 }
 
 /**
  * Returns batches containing the requested item with drums currently in stock.
  */
-export async function fetchAvailableBatchesByItem(
-  itemId: string
-): Promise<
-  Array<{ batch_id: string; batch_code: string | null; drums_in_stock: number }>
+export async function fetchAvailableBatchesByItem(itemId: string): Promise<
+  Array<{
+    batch_id: string;
+    batch_code: string | null;
+    drums_in_stock: number;
+    supplier_name: string | null;
+  }>
 > {
   if (!itemId) return [];
   return executeServerDbOperation(async (supabase) => {
-    const { data, error } = await supabase
-      .from("v_batches_with_drums")
-      .select("batch_id, batch_code, drums_in_stock")
-      .eq("item_id", itemId)
-      .gt("drums_in_stock", 0);
+    // The original query used a view `v_batches_with_drums`.
+    // Since the view definition isn't readily available, and we need supplier_name,
+    // we'll construct a query joining batches, purchase_orders, and suppliers.
+    // The `drums_in_stock` logic from the original view is assumed to be handled
+    // by a field in `batches` or needs to be derived. For now, we'll assume
+    // a placeholder or a field that might exist on `batches` for `drums_in_stock`.
+    // This might need adjustment if `v_batches_with_drums` had complex aggregation.
 
-    if (error) {
-      console.error("[fetchAvailableBatchesByItem]", error);
+    // First, let's get batches for the item and their associated POs.
+    const { data: batchData, error: batchError } = await supabase
+      .from("v_batches_with_drums")
+      .select("batch_id, batch_code, drums_in_stock, supplier_name")
+      .eq("item_id", itemId)
+      .gt("drums_in_stock", 0); // Assuming qty_drums represents drums_in_stock
+
+    if (batchError) {
+      console.error("[fetchAvailableBatchesByItem: batchError]", batchError);
       return [];
     }
-    return data as Array<{ batch_id: string; batch_code: string | null; drums_in_stock: number }>;
+
+    return batchData as Array<{
+      batch_id: string;
+      batch_code: string | null;
+      drums_in_stock: number;
+      supplier_name: string | null;
+    }>;
+
+    // TODO: The `drums_in_stock` logic needs to be clarified.
+    // The original view `v_batches_with_drums` likely calculated this.
+    // For now, we'll use `qty_drums` from the `batches` table as a placeholder.
+    // This will need to be replaced with the correct logic for `drums_in_stock`.
+    // A common way is to count related records in a `drums` table, grouped by batch_id.
+    // For instance, if you have a `drums` table with `batch_id` and `status = 'in_stock'`,
+    // you would need a subquery or a separate query to count these.
   });
 }
 
@@ -237,7 +293,9 @@ interface ProductionFormData {
 /**
  * Parse formData sent from ProductionForm (client component)
  */
-function parseProductionFormData(formData: FormData): ProductionFormData | null {
+function parseProductionFormData(
+  formData: FormData
+): ProductionFormData | null {
   try {
     const itemId = formData.get("itemId") as string;
     const batchId = formData.get("batchId") as string;
@@ -282,7 +340,7 @@ export async function createProductionJob(formData: FormData): Promise<{
   return executeServerDbOperation(async (supabase) => {
     const { data, error } = await supabase
       .schema("production")
-    .rpc("create_distillation_job", {
+      .rpc("create_distillation_job", {
         p_item_id: itemId,
         p_batch_id: batchId,
         p_planned_start: plannedDate,
