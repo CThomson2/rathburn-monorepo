@@ -5,6 +5,7 @@
     "clean": "turbo run clean",
     "build:types": "cd packages/types && pnpm build",
     "build:ui": "turbo run build --filter=@rathburn/ui",
+    "build:utils": "turbo run build --filter=@rathburn/utils",
     "build": "turbo run build --filter=@rathburn/web --filter=@rathburn/mobile",
     "build:web": "turbo run build --filter=@rathburn/web",
     "start:web": "turbo run start --filter=@rathburn/web",

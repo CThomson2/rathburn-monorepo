@@ -1,0 +1,34 @@
+{
+  "name": "@rathburn/utils",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "lint": "eslint \"src/**/*.ts*\""
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-toastify": "^9.0.0"
+  },
+  "dependencies": {
+    "@repo/typescript-config": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.20",
+    "@types/react-dom": "^18.3.6",
+    "eslint": "^8.0.0",
+    "typescript": "^5.8.2",
+    "react-toastify": "^9.0.0"
+  }
+}

@@ -6,12 +6,16 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "@rathburn/utils#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
     "@rathburn/mobile#build": {
-      "dependsOn": ["@rathburn/ui#build", "^build"],
+      "dependsOn": ["@rathburn/ui#build", "@rathburn/utils#build", "^build"],
       "outputs": ["dist/**"]
     },
     "@rathburn/web#build": {
-      "dependsOn": ["@rathburn/ui#build", "^build"],
+      "dependsOn": ["@rathburn/ui#build", "@rathburn/utils#build", "^build"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "build": {

@@ -183,8 +183,23 @@ export function DetailPanel({
         .eq("name", supplierName)
         .single();
 
-      if (supplierError) throw supplierError;
+      if (supplierError) {
+        console.error("Error fetching supplier:", supplierError);
+        toast.error(
+          `Supplier "${supplierName}" not found. Please add it directly to the database, first or check for typos.`
+        );
+        // Implement a "Did you mean?" feature here, importing from package `rathburn-utils`
+        // import { Toaster } from "@/components/ui/toaster";
+        // toast.custom(
+        //   <DidYouMeanSuggestions
+        //     suggestions={["Supplier 1", "Supplier 2", "Supplier 3"]}
+        //     query={supplierName}
+        //   />
+        // );
+        throw supplierError;
+      }
       if (!supplierData) {
+        console.error("Error fetching supplier data");
         toast.error(
           `Supplier "${supplierName}" not found. Please add it via the main suppliers page first.`
         );
@@ -249,7 +264,10 @@ export function DetailPanel({
       setNewSupplierName("");
     } catch (error: any) {
       console.error("Error in handleNewSupplier:", error);
-      toast.error(error.message || "Could not add supplier link.");
+      toast.error(
+        "General error:",
+        error.message || "Could not add supplier link."
+      );
     } finally {
       setIsAddingSupplier(false);
     }

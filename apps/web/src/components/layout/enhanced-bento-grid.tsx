@@ -10,10 +10,12 @@ import {
   WorkflowIcon,
   PlusCircleIcon,
   ArrowRightIcon,
+  GithubIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 // Types
 interface BentoGridProps {
@@ -109,7 +111,7 @@ const Tilt3DCard: React.FC<BentoCardProps> = ({
       className={cn(
         "group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-xl",
         "bg-card border border-border shadow-lg dark:shadow-primary/20",
-        "transform-gpu",
+        "transform-gpu min-h-[280px] sm:min-h-[300px] md:min-h-[320px]",
         disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
         className
       )}
@@ -117,7 +119,7 @@ const Tilt3DCard: React.FC<BentoCardProps> = ({
       <motion.div
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 0.6 }}
-        style={{ transformStyle: "preserve-3d" }}
+        style={{ transformStyle: "preserve-3d", width: "100%", height: "100%" }}
         className="w-full h-full"
       >
         {/* Front of card */}
@@ -173,7 +175,9 @@ const Tilt3DCard: React.FC<BentoCardProps> = ({
             style={{
               backfaceVisibility: "hidden",
               rotateY: 180,
-              transformStyle: "preserve-3d",
+              position: "absolute",
+              width: "100%",
+              height: "100%",
             }}
             className={`absolute w-full h-full p-6 flex flex-col justify-between bg-card dark:bg-slate-800 ${isFlipped ? "opacity-100" : "opacity-0"}`}
           >
@@ -210,8 +214,15 @@ const Changelog = ({ entries }: { entries: ChangelogEntryProps[] }) => {
       <div className="space-y-8">
         {entries.map((entry, index) => (
           <div key={index} className="relative flex flex-col gap-4">
+            {index > 0 && <Separator className="my-4" />}
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-xs",
+                  index === 0 && "text-primary bg-green-200 dark:bg-green-700"
+                )}
+              >
                 {entry.version}
               </Badge>
               <span className="text-xs font-medium text-muted-foreground">
@@ -228,9 +239,13 @@ const Changelog = ({ entries }: { entries: ChangelogEntryProps[] }) => {
               {entry.items && entry.items.length > 0 && (
                 <ul className="mt-4 ml-4 space-y-1.5 text-sm text-muted-foreground">
                   {entry.items.map((item, itemIndex) => (
-                    <li key={itemIndex} className="list-disc">
-                      {item}
-                    </li>
+                    <li
+                      key={itemIndex}
+                      className="list-disc"
+                      dangerouslySetInnerHTML={{
+                        __html: item,
+                      }}
+                    />
                   ))}
                 </ul>
               )}
@@ -247,7 +262,7 @@ const DecorativeLines = () => {
   return (
     <div className="grid grid-cols-4 gap-4 mb-8">
       <motion.div
-        className="h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent"
+        className="h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent cursor-default"
         initial={{ scaleX: 0, opacity: 0 }}
         animate={{ scaleX: 1, opacity: 1 }}
         transition={{ duration: 1, delay: 0.2 }}
@@ -258,7 +273,7 @@ const DecorativeLines = () => {
         }}
       />
       <motion.div
-        className="h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent col-span-2"
+        className="h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent col-span-2 cursor-default"
         initial={{ scaleX: 0, opacity: 0 }}
         animate={{ scaleX: 1, opacity: 1 }}
         transition={{ duration: 1, delay: 0.4 }}
@@ -269,7 +284,7 @@ const DecorativeLines = () => {
         }}
       />
       <motion.div
-        className="h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent"
+        className="h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent cursor-default"
         initial={{ scaleX: 0, opacity: 0 }}
         animate={{ scaleX: 1, opacity: 1 }}
         transition={{ duration: 1, delay: 0.6 }}
@@ -292,9 +307,24 @@ export function EnhancedBentoGrid({
 }: BentoGridProps) {
   const changelogEntries = [
     {
+      version: "v1.1.6",
+      date: "Tue 21 May",
+      title: "Production Schedule - Full System Integration",
+      description:
+        "Boost your efficency and ensure best data recording practices with a fully integrated production scheduling system.",
+      items: [
+        "📝 Create and edit draft production schedules before sending them to workers' devices",
+        "🔒 Lock in finalized schedules and instantly distribute them to mobile barcode scanners",
+        "📊 View live stock data while scheduling - see exact batch quantities at a glance",
+        "📦 Access detailed batch information to make smarter production decisions",
+        "✏️ Edit inventory details directly in the table view without admin assistance",
+        "🔗 Easily manage material-supplier relationships with <a href='/inventory' style='color: var(--primary); text-decoration: underline;'>flexible editing tools</a>",
+      ],
+    },
+    {
       version: "v1.1.5",
       date: "Tue 20 May",
-      title: "Production Workflow Revolution & Interactive Scan Log",
+      title: "Operational Workflow Revolution & Interactive Scan Log",
       description:
         "Game-changing improvements that transform how your team works",
       items: [
@@ -313,7 +343,7 @@ export function EnhancedBentoGrid({
       <DecorativeLines />
 
       <div
-        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-8"
         style={{ perspective: "1200px" }}
       >
         {/* Release Notes Card */}
@@ -321,9 +351,9 @@ export function EnhancedBentoGrid({
           icon={<FileTextIcon className="h-8 w-8 text-primary" />}
           name="Release Notes"
           description="Latest updates and new features."
-          href="/release-notes"
+          href="#changelog"
           cta="View all updates"
-          className="md:col-span-2"
+          className="md:col-span-2 md:min-h-[340px]"
           flippable={true}
         >
           <div className="mt-4 space-y-2 text-sm">
@@ -332,10 +362,10 @@ export function EnhancedBentoGrid({
                 variant="outline"
                 className="text-xs border-primary/30 text-primary dark:text-slate-300 dark:border-slate-600"
               >
-                v1.1.5
+                v1.1.6
               </Badge>
               <span className="text-xs font-medium text-muted-foreground dark:text-slate-400">
-                Tue 20 May
+                Wednesday 21 May
               </span>
             </div>
             <p className="font-medium text-card-foreground dark:text-slate-200">
@@ -350,6 +380,18 @@ export function EnhancedBentoGrid({
               </strong>{" "}
               Powerful interactive history with real-time team communication.
             </p>
+            <p className="font-medium text-card-foreground max-h-fit dark:text-slate-200">
+              <a
+                href="https://github.com/CThomson2/rathburn-monorepo/"
+                className="text-primary w-fit max-h-fit hover:w-full dark:text-cyan-400 rounded-lg border border-primary/30 dark:border-slate-600 px-2 py-1 flex items-center group"
+              >
+                <GithubIcon className="h-4 w-4 mr-2"></GithubIcon>
+                <strong>Github</strong>
+                <span className="opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-xs ml-2 text-xs text-muted-foreground dark:text-slate-400 transition-all duration-300">
+                  | CThomson2/rathburn-monorepo
+                </span>
+              </a>
+            </p>
           </div>
         </Tilt3DCard>
 
@@ -363,7 +405,7 @@ export function EnhancedBentoGrid({
           href="/guides"
           cta="Explore Guides"
           className="md:col-span-1"
-          disabled={true}
+          disabled={false}
         >
           <div className="mt-4 text-sm text-muted-foreground dark:text-slate-400">
             <p>Comprehensive documentation coming soon.</p>
@@ -426,7 +468,7 @@ export function EnhancedBentoGrid({
           description="Manage your production workflow efficiently."
           href="/production"
           cta="View Production"
-          className="md:col-span-2"
+          className="md:col-span-2 md:min-h-[340px]"
           flippable={true}
         >
           <div className="mt-4 text-sm">
@@ -450,7 +492,7 @@ export function EnhancedBentoGrid({
       </div>
 
       {/* Full Changelog Section */}
-      <div className="mt-8">
+      <div id="changelog" className="mt-8">
         <Changelog entries={changelogEntries} />
       </div>
     </div>

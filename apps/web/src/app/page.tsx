@@ -5,6 +5,7 @@ import { RealtimeFeedCentered } from "@/components/realtime/centered-feed";
 import { Database, Json } from "@/types/supabase";
 import { EnhancedBentoGrid } from "@/components/layout/enhanced-bento-grid";
 import { OrderModal } from "@/features/orders/components/order-modal";
+import { Tilt3DCardExample } from "@/components/examples/tilt-3d-card-example";
 
 // Updated interface to match public.session_scans
 interface SessionScanData {
@@ -113,6 +114,11 @@ export default async function IndexPage() {
   //   setIsOrderModalOpen(true);
   // };
 
+  // Console log the data for debugging
+  console.log("Debug: Total Drums", totalDrums);
+  console.log("Debug: Items Below Threshold", itemsBelowThreshold);
+  console.log("Debug: Most Common Material", mostCommonMaterial);
+
   return (
     <div className="container mx-auto">
       <Lamp>
@@ -128,12 +134,20 @@ export default async function IndexPage() {
           initialScans={typedInitialScans} // Pass the correctly typed and potentially transformed scans
         /> */}
 
-        {/* Use EnhancedBentoGrid instead of BentoGrid */}
+        {/* Use EnhancedBentoGrid */}
         <EnhancedBentoGrid
           totalDrums={totalDrums || 0}
           itemsBelowThreshold={itemsBelowThreshold}
           mostCommonMaterial={mostCommonMaterial}
         />
+
+        {/* Simple test implementation of Tilt3DCard */}
+        {/* <div className="mt-16 mb-8">
+          <h2 className="text-xl font-semibold mb-4">
+            Example Card (For Testing)
+          </h2>
+          <Tilt3DCardExample />
+        </div> */}
 
         {/* Add OrderModal */}
         {/* <OrderModal
