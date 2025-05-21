@@ -35,7 +35,7 @@ export async function fetchOrders(): Promise<OrdersView[]> {
  * Fetches all materials for dropdown selection
  * Returns a simplified list of materials with id and name
  */
-export async function fetchItems(): Promise<
+export async function fetchMaterials(): Promise<
   Array<{ id: string; name: string }>
 > {
   return await executeServerDbOperation(async (supabase: SupabaseClient) => {
@@ -61,7 +61,7 @@ export async function fetchItems(): Promise<
  * Searches materials with a prefix filter
  * Much faster than a full text search for autocomplete purposes
  */
-export async function searchItems(
+export async function searchMaterials(
   prefix: string
 ): Promise<Array<{ id: string; name: string }>> {
   // If empty prefix, return first 10 materials alphabetically

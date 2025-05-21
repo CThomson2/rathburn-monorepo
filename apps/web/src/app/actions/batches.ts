@@ -52,3 +52,24 @@ export async function fetchDrumSerialsByBatchId(batchId: string): Promise<Array<
   }
   return data || [];
 } 
+
+// Server action to fetch item for a given material_id selected in the production form
+// Materials are listed for better UI (instead of seeing 5 copies of the `item_name` in the dropdown)
+export async function fetchItemsByMaterialId(materialId: string): Promise<Array<{ item_id: string; name: string }>> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .schema('inventory')
+    .from('items')
+    .select('item_id, name')
+    .eq('material_id', materialId);
+
+  if (error) {
+    console.error('Error fetching item by material_id:', error);
+    return [];
+  }
+
+  console.log('Fetched items:', data);
+
+  return data as Array<{ item_id: string; name: string }>;
+}

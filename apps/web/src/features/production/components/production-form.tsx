@@ -34,14 +34,20 @@ import { useToast } from "@/hooks/use-toast";
 import {
   createProductionJob,
   fetchStills,
-  fetchAvailableBatchesByItem,
+  fetchAvailableBatchesByMaterial,
 } from "@/app/actions/production"; // Corrected path
-import { fetchItems } from "@/app/actions/orders"; // Assuming this action will be created
+import { fetchMaterials } from "@/app/actions/orders"; // Assuming this action will be created
+import { fetchItemsByMaterialId } from "@/app/actions/batches";
+
+interface Material {
+  id: string;
+  name: string;
+  // materialId: string; // Not strictly needed for form display if name is unique enough
+}
 
 interface Item {
   id: string;
   name: string;
-  // materialId: string; // Not strictly needed for form display if name is unique enough
 }
 
 interface Batch {
@@ -75,7 +81,9 @@ export function ProductionForm({
   console.log("ProductionForm: Component rendering/re-rendering");
 
   // Form State
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
+    null
+  );
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [plannedDate, setPlannedDate] = useState<Date | undefined>(new Date());
   const [selectedStill, setSelectedStill] = useState<Still | null>(null);
@@ -83,7 +91,7 @@ export function ProductionForm({
   const [priority, setPriority] = useState<number>(10);
 
   console.log("ProductionForm: Current State", {
-    selectedItem,
+    selectedMaterial,
     selectedBatch,
     plannedDate: plannedDate?.toISOString(),
     selectedStill,
@@ -92,28 +100,29 @@ export function ProductionForm({
   });
 
   // UI State for Popovers/Commands
-  const [itemSearch, setItemSearch] = useState("");
-  const [openItemPopover, setOpenItemPopover] = useState(false);
+  const [materialSearch, setMaterialSearch] = useState("");
+  const [openMaterialPopover, setOpenMaterialPopover] = useState(false);
   const [openStillPopover, setOpenStillPopover] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
   // SWR Data Fetching
-  const { data: items, error: itemsError } = useSWR<Item[]>(
-    "allItems", // Changed: Fetch all items initially
+  const { data: items, error: itemsError } = useSWR<Material[]>(
+    "allMaterials", // Changed: Fetch all items initially
     () => {
-      console.log("ProductionForm: Fetching all items");
-      return fetchItems(); // Changed: Use new action
+      console.log("ProductionForm: Fetching all materials");
+      return fetchMaterials(); // Changed: Use new action
     }
   );
+
   const { data: batches, error: batchesError } = useSWR<Batch[]>(
-    selectedItem ? `batchesByItem-${selectedItem.id}` : null,
+    selectedMaterial ? `batchesByMaterial-${selectedMaterial.id}` : null,
     () => {
       console.log(
-        "ProductionForm: Fetching batches for item:",
-        selectedItem?.id
+        "ProductionForm: Fetching batches for material:",
+        selectedMaterial?.id
       );
-      return fetchAvailableBatchesByItem(selectedItem!.id);
+      return fetchAvailableBatchesByMaterial(selectedMaterial!.id);
     }
   );
   const { data: stills, error: stillsError } = useSWR<Still[]>(
@@ -126,16 +135,19 @@ export function ProductionForm({
 
   // Reset dependent fields when a higher-level selection changes
   useEffect(() => {
+    // const item = fetchItemByMaterialId(selectedMaterial?.id || "");
+    // console.log("ProductionForm: item:", item);
+    // setSelectedMaterial(item);
     console.log(
       "ProductionForm: useEffect for selectedItem changed. Current item:",
-      selectedItem
+      selectedMaterial
     );
     setSelectedBatch(null);
     setRawVolume(""); // Reset volume when item/batch context changes
-  }, [selectedItem]);
+  }, [selectedMaterial]);
 
   const filteredItems = items?.filter((i) =>
-    i.name.toLowerCase().includes(itemSearch.toLowerCase())
+    i.name.toLowerCase().includes(materialSearch.toLowerCase())
   );
 
   const handleBatchSelect = (batch: Batch) => {
@@ -151,14 +163,14 @@ export function ProductionForm({
 
   const validateForm = (): boolean => {
     console.log("ProductionForm: validateForm called. Current form values:", {
-      selectedItem,
+      selectedMaterial,
       selectedBatch,
       plannedDate,
       selectedStill,
       rawVolume,
       priority,
     });
-    if (!selectedItem) {
+    if (!selectedMaterial) {
       toast.error("Material item is required.");
       console.log(
         "ProductionForm: Validation failed - Material item is required."
@@ -236,7 +248,6 @@ export function ProductionForm({
     );
     setSubmitting(true);
     const formData = new FormData();
-    formData.append("itemId", selectedItem!.id);
     formData.append("batchId", selectedBatch!.batch_id);
     formData.append("plannedDate", plannedDate!.toISOString());
     formData.append("stillId", selectedStill!.still_id.toString());
@@ -275,17 +286,20 @@ export function ProductionForm({
         {/* Changed to 1 col for item only */}
         <div className="space-y-2">
           <Label htmlFor="item">Material Item</Label>
-          <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
+          <Popover
+            open={openMaterialPopover}
+            onOpenChange={setOpenMaterialPopover}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
-                aria-expanded={openItemPopover}
+                aria-expanded={openMaterialPopover}
                 className="w-full justify-between"
                 // disabled={!selectedSupplier || !items} // REMOVED supplier dependency
                 disabled={!items} // Item selection is now independent
               >
-                {selectedItem?.name ??
+                {selectedMaterial?.name ??
                   (items ? ( // Simplified logic
                     "Select item..."
                   ) : (
@@ -298,8 +312,8 @@ export function ProductionForm({
               <Command>
                 <CommandInput
                   placeholder="Search items..."
-                  value={itemSearch}
-                  onValueChange={setItemSearch}
+                  value={materialSearch}
+                  onValueChange={setMaterialSearch}
                 />
                 <CommandList>
                   <CommandEmpty>
@@ -312,14 +326,14 @@ export function ProductionForm({
                         key={i.id}
                         value={i.name}
                         onSelect={() => {
-                          setSelectedItem(i);
-                          setOpenItemPopover(false);
+                          setSelectedMaterial(i);
+                          setOpenMaterialPopover(false);
                         }}
                       >
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            selectedItem?.id === i.id
+                            selectedMaterial?.id === i.id
                               ? "opacity-100"
                               : "opacity-0"
                           )}
@@ -397,9 +411,9 @@ export function ProductionForm({
       </div> */}
 
       {/* Row 2: Batch Selection (conditionally rendered) */}
-      {selectedItem && (
+      {selectedMaterial && (
         <div className="space-y-2 pt-4">
-          <Label>Select Input Batch for: {selectedItem.name}</Label>
+          <Label>Select Input Batch for: {selectedMaterial.name}</Label>
           {!batches && <Loader2 className="h-5 w-5 animate-spin my-4" />}
           {batchesError && (
             <p className="text-destructive text-sm">Error loading batches.</p>

@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/select";
 import {
   createProductionJob,
-  fetchAvailableBatchesByItem,
+  fetchAvailableBatchesByMaterial,
 } from "@/app/actions/production";
-import { fetchItems } from "@/app/actions/orders";
+import { fetchMaterials } from "@/app/actions/orders";
 import { useToast } from "@/components/ui/use-toast";
 /**
  * Props for the CreateJobModal component
@@ -82,8 +82,8 @@ export const CreateJobModal = ({
     try {
       // Fetch items and batches in parallel for better performance
       const [itemsData, batchesData] = await Promise.all([
-        fetchItems(),
-        fetchAvailableBatchesByItem(formData.itemId),
+        fetchMaterials(),
+        fetchAvailableBatchesByMaterial(formData.itemId),
       ]);
       setItems(itemsData);
       setBatches(batchesData);

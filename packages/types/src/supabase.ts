@@ -2115,7 +2115,6 @@ export type Database = {
     Functions: {
       create_distillation_job: {
         Args: {
-          p_item_id: string
           p_batch_id: string
           p_planned_start: string
           p_still_id: number
@@ -2135,6 +2134,7 @@ export type Database = {
     Enums: {
       context_type: "distillation" | "warehouse"
       job_status:
+        | "drafted"
         | "scheduled"
         | "confirmed"
         | "in_progress"
@@ -2808,7 +2808,6 @@ export type Database = {
           batch_type: string | null
           chemical_group: string | null
           created_at: string | null
-          drum_count: number | null
           drums_in_stock: number | null
           input_recorded_at: string | null
           item_id: string | null

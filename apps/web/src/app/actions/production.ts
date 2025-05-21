@@ -230,7 +230,7 @@ export async function fetchStills(): Promise<
 /**
  * Returns batches containing the requested item with drums currently in stock.
  */
-export async function fetchAvailableBatchesByItem(itemId: string): Promise<
+export async function fetchAvailableBatchesByMaterial(materialId: string): Promise<
   Array<{
     batch_id: string;
     batch_code: string | null;
@@ -238,8 +238,15 @@ export async function fetchAvailableBatchesByItem(itemId: string): Promise<
     supplier_name: string | null;
   }>
 > {
-  if (!itemId) return [];
+  console.log("[fetchAvailableBatchesByItem] Starting with materialId:", materialId);
+  if (!materialId) {
+    console.log("[fetchAvailableBatchesByItem] No materialId provided, returning empty array");
+    return [];
+  }
+  
   return executeServerDbOperation(async (supabase) => {
+    console.log("[fetchAvailableBatchesByItem] Executing database query for materialId:", materialId);
+    
     // The original query used a view `v_batches_with_drums`.
     // Since the view definition isn't readily available, and we need supplier_name,
     // we'll construct a query joining batches, purchase_orders, and suppliers.
@@ -248,17 +255,33 @@ export async function fetchAvailableBatchesByItem(itemId: string): Promise<
     // a placeholder or a field that might exist on `batches` for `drums_in_stock`.
     // This might need adjustment if `v_batches_with_drums` had complex aggregation.
 
+    const { data: itemData, error: itemError } = await supabase
+      .schema("inventory")
+      .from("items")
+      .select("item_id, name")
+      .eq("material_id", materialId);
+
+    if (itemError) {
+      console.error("[fetchAvailableBatchesByItem: itemError]", itemError);
+      return [];
+    }
+
+    console.log("[fetchAvailableBatchesByItem] Item count:", itemData?.length, "Item data:", itemData);
+
     // First, let's get batches for the item and their associated POs.
     const { data: batchData, error: batchError } = await supabase
       .from("v_batches_with_drums")
       .select("batch_id, batch_code, drums_in_stock, supplier_name")
-      .eq("item_id", itemId)
+      .in("item_id", itemData?.map((item: any) => item.item_id) || [])
       .gt("drums_in_stock", 0); // Assuming qty_drums represents drums_in_stock
 
     if (batchError) {
       console.error("[fetchAvailableBatchesByItem: batchError]", batchError);
       return [];
     }
+
+    console.log("[fetchAvailableBatchesByItem] Query results:", batchData);
+    console.log("[fetchAvailableBatchesByItem] Number of batches found:", batchData?.length || 0);
 
     return batchData as Array<{
       batch_id: string;
@@ -282,7 +305,6 @@ export async function fetchAvailableBatchesByItem(itemId: string): Promise<
  ***************************/
 
 interface ProductionFormData {
-  itemId: string;
   batchId: string;
   plannedDate: string; // ISO string
   stillId: number;
@@ -296,28 +318,39 @@ interface ProductionFormData {
 function parseProductionFormData(
   formData: FormData
 ): ProductionFormData | null {
+  console.log("[parseProductionFormData] Starting to parse form data");
   try {
-    const itemId = formData.get("itemId") as string;
     const batchId = formData.get("batchId") as string;
     const plannedDate = formData.get("plannedDate") as string;
     const stillIdStr = formData.get("stillId") as string;
     const rawVolumeStr = formData.get("rawVolume") as string;
     const priorityStr = formData.get("priority") as string | null;
 
-    if (!itemId || !batchId || !plannedDate || !stillIdStr || !rawVolumeStr) {
+    console.log("[parseProductionFormData] Raw form values:", {
+      batchId,
+      plannedDate,
+      stillIdStr,
+      rawVolumeStr,
+      priorityStr
+    });
+
+    if (!batchId || !plannedDate || !stillIdStr || !rawVolumeStr) {
+      console.log("[parseProductionFormData] Missing required fields");
       return null;
     }
 
-    return {
-      itemId,
+    const parsedData = {
       batchId,
       plannedDate,
       stillId: parseInt(stillIdStr, 10),
       rawVolume: parseFloat(rawVolumeStr),
       priority: priorityStr ? parseInt(priorityStr, 10) : undefined,
     };
+    
+    console.log("[parseProductionFormData] Parsed data:", parsedData);
+    return parsedData;
   } catch (err) {
-    console.error("[parseProductionFormData]", err);
+    console.error("[parseProductionFormData] Error parsing form data:", err);
     return null;
   }
 }
@@ -330,18 +363,21 @@ export async function createProductionJob(formData: FormData): Promise<{
   jobId?: string;
   message?: string;
 }> {
+  console.log("[createProductionJob] Starting job creation");
   const parsed = parseProductionFormData(formData);
   if (!parsed) {
+    console.log("[createProductionJob] Failed to parse form data");
     return { success: false, message: "Missing or invalid form fields" };
   }
 
-  const { itemId, batchId, plannedDate, stillId, rawVolume, priority } = parsed;
+  const { batchId, plannedDate, stillId, rawVolume, priority } = parsed;
+  console.log("[createProductionJob] Parsed data:", { batchId, plannedDate, stillId, rawVolume, priority });
 
   return executeServerDbOperation(async (supabase) => {
+    console.log("[createProductionJob] Calling database function");
     const { data, error } = await supabase
       .schema("production")
       .rpc("create_distillation_job", {
-        p_item_id: itemId,
         p_batch_id: batchId,
         p_planned_start: plannedDate,
         p_still_id: stillId,
@@ -350,10 +386,11 @@ export async function createProductionJob(formData: FormData): Promise<{
       });
 
     if (error) {
-      console.error("[createProductionJob]", error);
+      console.error("[createProductionJob] Database error:", error);
       return { success: false, message: error.message };
     }
 
+    console.log("[createProductionJob] Job created successfully with ID:", data);
     return { success: true, jobId: data as string };
   });
 }
