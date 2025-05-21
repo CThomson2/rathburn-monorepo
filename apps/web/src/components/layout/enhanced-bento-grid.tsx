@@ -135,7 +135,7 @@ const Tilt3DCard: React.FC<BentoCardProps> = ({
             <h3 className="text-xl font-semibold text-card-foreground dark:text-slate-100 mt-2">
               {name}
             </h3>
-            <p className="max-w-lg text-muted-foreground dark:text-slate-300 text-sm">
+            <p className="max-w-lg text-muted-foreground dark:text-slate-300 text-sm hidden sm:block">
               {description}
             </p>
             {children}
@@ -185,7 +185,7 @@ const Tilt3DCard: React.FC<BentoCardProps> = ({
               <h3 className="text-xl font-semibold text-card-foreground dark:text-slate-100 mb-4">
                 More about {name}
               </h3>
-              <p className="text-muted-foreground dark:text-slate-300">
+              <p className="text-muted-foreground dark:text-slate-300 hidden sm:block">
                 Additional details about this feature can be found by clicking
                 below.
               </p>
@@ -372,26 +372,34 @@ export function EnhancedBentoGrid({
               <strong className="text-primary dark:text-cyan-400">
                 Production Scheduling:
               </strong>{" "}
-              Now available! Game-changing workflow that saves hours each week.
+              <span className="hidden sm:inline">
+                Now available! Game-changing workflow that saves hours each
+                week.
+              </span>
+              <span className="inline sm:hidden">Now available!</span>
             </p>
             <p className="font-medium text-card-foreground dark:text-slate-200">
               <strong className="text-primary dark:text-cyan-400">
                 Scan Log Sidebar:
               </strong>{" "}
-              Powerful interactive history with real-time team communication.
+              <span className="hidden sm:inline">
+                Powerful interactive history with real-time team communication.
+              </span>
+              <span className="inline sm:hidden">
+                Powerful interactive history.
+              </span>
             </p>
-            <p className="font-medium text-card-foreground max-h-fit dark:text-slate-200">
-              <a
-                href="https://github.com/CThomson2/rathburn-monorepo/"
-                className="text-primary w-fit max-h-fit hover:w-full dark:text-cyan-400 rounded-lg border border-primary/30 dark:border-slate-600 px-2 py-1 flex items-center group"
-              >
-                <GithubIcon className="h-4 w-4 mr-2"></GithubIcon>
-                <strong>Github</strong>
-                <span className="opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-xs ml-2 text-xs text-muted-foreground dark:text-slate-400 transition-all duration-300">
-                  | CThomson2/rathburn-monorepo
-                </span>
-              </a>
-            </p>
+            <a
+              href="https://github.com/CThomson2/rathburn-monorepo/"
+              className="pointer-events-auto relative z-20 text-primary dark:text-cyan-400 rounded-lg border border-primary/30 dark:border-slate-600 px-2 py-1 h-8 flex items-center group w-fit hover:w-auto transition-all duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GithubIcon className="h-4 w-4 mr-2" />
+              <strong>Github</strong>
+              <span className="opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-xs ml-2 text-xs text-muted-foreground dark:text-slate-400 transition-all duration-300">
+                | CThomson2/rathburn-monorepo
+              </span>
+            </a>
           </div>
         </Tilt3DCard>
 
@@ -419,7 +427,7 @@ export function EnhancedBentoGrid({
           description="Quick view of your inventory status."
           href="/inventory"
           cta="Go to Inventory"
-          className="md:col-span-1"
+          className="md:col-span-1 md:min-h-[380px]"
           flippable={true}
         >
           <div className="space-y-3 mt-4">
@@ -458,6 +466,13 @@ export function EnhancedBentoGrid({
                 </p>
               )}
             </div>
+            <div className="mt-2 hidden sm:block">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/inventory" className="flex items-center">
+                  Go to Inventory <ArrowRightIcon className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </Tilt3DCard>
 
@@ -472,7 +487,7 @@ export function EnhancedBentoGrid({
           flippable={true}
         >
           <div className="mt-4 text-sm">
-            <p className="text-muted-foreground dark:text-slate-300">
+            <p className="text-muted-foreground dark:text-slate-300 hidden sm:block">
               Our latest feature enables end-to-end production scheduling,
               syncing seamlessly between web and mobile applications.
             </p>

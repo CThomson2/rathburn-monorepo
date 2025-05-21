@@ -20,9 +20,6 @@
     "react-dom": "^18.2.0",
     "react-toastify": "^9.0.0"
   },
-  "dependencies": {
-    "@repo/typescript-config": "*"
-  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.20",

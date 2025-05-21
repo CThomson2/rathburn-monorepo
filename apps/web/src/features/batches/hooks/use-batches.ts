@@ -62,6 +62,14 @@ interface UseBatchesResult {
   refetch: () => Promise<void>;
 }
 
+/**
+ * Custom React hook to fetch and filter batches data.
+ *
+ * @param {BatchFilters} [filters] - Optional filters to apply to the batches data.
+ * @returns {UseBatchesResult} An object containing the filtered batches data,
+ * loading state, any error encountered, and a refetch function.
+ */
+
 export function useBatches(filters?: BatchFilters): UseBatchesResult {
   const [batches, setBatches] = useState<Batch[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
