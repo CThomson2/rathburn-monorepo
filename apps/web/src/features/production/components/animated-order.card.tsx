@@ -1,24 +1,26 @@
-
 import { motion } from "framer-motion";
 import { OrderCard } from "./order-card";
 import { Order } from "../types";
-type AnimatedOrderCardProps = {
-  order: Order;
+type AnimatedCardWrapperProps = {
+  job: Order;
   index: number;
-}
+};
 
-export const AnimatedOrderCard = ({ order, index }: AnimatedOrderCardProps) => {
+export const AnimatedCardWrapper = ({
+  job,
+  index,
+}: AnimatedCardWrapperProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
+      transition={{
         duration: 0.4,
         delay: index * 0.1,
-        ease: "easeOut"
+        ease: "easeOut",
       }}
     >
-      <OrderCard order={order} />
+      <OrderCard order={job} />
     </motion.div>
   );
 };

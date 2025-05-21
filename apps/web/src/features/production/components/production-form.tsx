@@ -68,6 +68,8 @@ interface ProductionFormProps {
     success: boolean;
     jobId?: string;
     message?: string;
+    jobName?: string;
+    jobStatus?: "drafted" | "scheduled";
   }) => void;
   onCancel: () => void;
 }
@@ -89,6 +91,7 @@ export function ProductionForm({
   const [selectedStill, setSelectedStill] = useState<Still | null>(null);
   const [rawVolume, setRawVolume] = useState<number | string>("");
   const [priority, setPriority] = useState<number>(10);
+  const [jobName, setJobName] = useState<string>("");
 
   console.log("ProductionForm: Current State", {
     selectedMaterial,
@@ -97,6 +100,7 @@ export function ProductionForm({
     selectedStill,
     rawVolume,
     priority,
+    jobName,
   });
 
   // UI State for Popovers/Commands
@@ -169,6 +173,7 @@ export function ProductionForm({
       selectedStill,
       rawVolume,
       priority,
+      jobName,
     });
     if (!selectedMaterial) {
       toast.error("Material item is required.");
@@ -233,9 +238,8 @@ export function ProductionForm({
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    console.log("ProductionForm: handleSubmit called.");
-    e.preventDefault();
+  const handleSubmit = async (status: "drafted" | "scheduled") => {
+    console.log(`ProductionForm: handleSubmit called with status: ${status}`);
     if (!validateForm()) {
       console.log(
         "ProductionForm: handleSubmit - validation failed, aborting submission."
@@ -247,23 +251,27 @@ export function ProductionForm({
       "ProductionForm: handleSubmit - validation passed, proceeding with submission."
     );
     setSubmitting(true);
-    const formData = new FormData();
-    formData.append("batchId", selectedBatch!.batch_id);
-    formData.append("plannedDate", plannedDate!.toISOString());
-    formData.append("stillId", selectedStill!.still_id.toString());
-    formData.append("rawVolume", Number(rawVolume).toString());
-    formData.append("priority", priority.toString());
 
-    const result = await createProductionJob(formData);
-    onJobCreated(result);
+    const jobData = {
+      batchId: selectedBatch!.batch_id,
+      plannedDate: plannedDate!.toISOString(),
+      stillId: selectedStill!.still_id,
+      rawVolume: Number(rawVolume),
+      priority: priority,
+      jobName: jobName || undefined,
+      jobStatus: status,
+    };
+
+    const result = await createProductionJob(jobData as any);
+
+    onJobCreated({ ...result, jobName, jobStatus: status });
 
     if (result.success) {
       toast.success(
-        `Production job ${result.jobId?.slice(0, 8)} scheduled successfully!`
+        `Production job ${jobName ? `'${jobName}' ` : ""}(${result.jobId?.slice(0, 8)}) ${status} successfully!`
       );
-      // Optionally reset form here if not moving to confirmation step automatically
     } else {
-      toast.error(result.message || "Failed to schedule job.");
+      toast.error(result.message || `Failed to ${status} job.`);
     }
     setSubmitting(false);
   };
@@ -279,7 +287,24 @@ export function ProductionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-1">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+      }}
+      className="space-y-6 p-1"
+    >
+      {/* Row 0: Optional Job Name */}
+      <div className="space-y-2">
+        <Label htmlFor="jobName">Job Name (Optional)</Label>
+        <Input
+          id="jobName"
+          type="text"
+          value={jobName}
+          onChange={(e) => setJobName(e.target.value)}
+          placeholder="E.g., Acetonitrile (ICC) 70w for ACROS"
+        />
+      </div>
+
       {/* Row 1: Item Selection (was Item and Supplier) */}
       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         {" "}
@@ -289,6 +314,7 @@ export function ProductionForm({
           <Popover
             open={openMaterialPopover}
             onOpenChange={setOpenMaterialPopover}
+            modal={true}
           >
             <PopoverTrigger asChild>
               <Button
@@ -497,7 +523,11 @@ export function ProductionForm({
 
         <div className="space-y-2">
           <Label htmlFor="still">Still</Label>
-          <Popover open={openStillPopover} onOpenChange={setOpenStillPopover}>
+          <Popover
+            open={openStillPopover}
+            onOpenChange={setOpenStillPopover}
+            modal={true}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -519,7 +549,7 @@ export function ProductionForm({
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
               <Command>
                 <CommandInput placeholder="Search stills..." />
-                <CommandList>
+                <CommandList className="max-h-[300px] overflow-y-auto">
                   <CommandEmpty>No stills found.</CommandEmpty>
                   <CommandGroup>
                     {stills?.map((s) => (
@@ -596,7 +626,19 @@ export function ProductionForm({
           Cancel
         </Button>
         <Button
-          type="submit"
+          type="button"
+          onClick={() => handleSubmit("drafted")}
+          disabled={
+            submitting || !selectedBatch || !selectedStill || !rawVolume
+          }
+          variant="outline"
+        >
+          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {submitting ? "Saving Draft..." : "Save as Draft"}
+        </Button>
+        <Button
+          type="button"
+          onClick={() => handleSubmit("scheduled")}
           disabled={
             submitting || !selectedBatch || !selectedStill || !rawVolume
           }

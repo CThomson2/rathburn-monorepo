@@ -9,6 +9,7 @@ import {
   PlusCircle,
   Trash2,
   Check,
+  CalendarIcon,
   ChevronsUpDown,
   RefreshCcw,
 } from "lucide-react";
@@ -18,8 +19,9 @@ import {
   searchItemsBySupplier,
   fetchItemsBySupplier,
 } from "@/app/actions/suppliers";
-// import { useToast } from "@/components/ui/use-toast";
+
 import { useToast } from "@/hooks/use-toast";
+
 import {
   Command,
   CommandEmpty,
@@ -34,7 +36,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import useSWR from "swr";
@@ -487,7 +489,12 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
           <Label htmlFor="supplier" className="required">
             Supplier
           </Label>
-          <Popover open={openSupplier} onOpenChange={setOpenSupplier}>
+
+          <Popover
+            open={openSupplier}
+            onOpenChange={setOpenSupplier}
+            modal={true}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -544,6 +551,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
             Order Date
           </Label>
           <Popover>
+            {/* Set modal true to allow scrolling (Shadcn primitive default behaviour) */}
             <PopoverTrigger asChild>
               <Button
                 id="orderDate"
@@ -657,6 +665,7 @@ export function OrderForm({ onOrderCreated }: OrderFormProps) {
                       }));
                     }
                   }}
+                  modal={true}
                 >
                   <PopoverTrigger asChild>
                     <Button

@@ -2,14 +2,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AnimatedOrderCard, OrdersToolbar } from "@/features/production";
+import Link from "next/link";
+import { OrderCard } from "@/features/production";
 import { ProductionModal } from "@/features/production/components/production-modal";
 import { useToast } from "@/components/ui/use-toast";
 import { fetchProductionJobs } from "@/app/actions/production";
 import type { Order as ProductionJobOrder } from "@/features/production/types";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+import { useRouter } from "next/navigation";
 /**
  * OrdersPage is a Next.js page that displays a list of orders.
  * It loads data from the API on initial render and allows the user to search, filter, and sort the orders.
@@ -23,6 +24,7 @@ const OrdersPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const router = useRouter();
 
   // Function to load data
   const loadJobs = async () => {
@@ -52,6 +54,11 @@ const OrdersPage = () => {
     setSearchQuery(query);
   };
 
+  // Function to open job details page
+  const handleViewUpdate = (jobId: string) => {
+    router.push(`/production/jobs/${jobId}`);
+  };
+
   // Filter orders based on search
   const filteredJobs = jobs.filter((job) => {
     if (
@@ -72,14 +79,25 @@ const OrdersPage = () => {
       <main className="flex-1 bg-background dark:bg-background overflow-y-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">Production Schedule</h1>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Job
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search jobs..."
+                className="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+            </div>
+            <Button onClick={() => setShowCreateModal(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Job
+            </Button>
+          </div>
         </div>
 
         {loading ? (
           <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(1)].map((_, i) => (
               <div
                 key={i}
                 className="bg-card dark:bg-card rounded-2xl shadow-sm p-6 animate-pulse"
@@ -95,9 +113,14 @@ const OrdersPage = () => {
             ))}
           </div>
         ) : filteredJobs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredJobs.map((job, index) => (
-              <AnimatedOrderCard key={job.id} order={job} index={index} />
+              <OrderCard
+                key={job.id}
+                order={job}
+                handleViewUpdate={() => handleViewUpdate(job.id)}
+                index={index}
+              />
             ))}
           </div>
         ) : (

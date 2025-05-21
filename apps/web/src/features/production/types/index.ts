@@ -1,4 +1,4 @@
-export type OrderStatus = "preparing" | "distillation" | "qc" | "complete" | "error";
+export type OrderStatus = "drafted" | "preparing" | "distillation" | "qc" | "complete" | "error";
 
 export type Order = {
   id: string;
@@ -33,7 +33,7 @@ export type Order = {
 }
 
 // production.job_status
-export type JobStatus = "scheduled" | "confirmed" | "in_progress" | "paused" | "completed" | "failed" | "cancelled";
+export type JobStatus = "drafted" |"scheduled" | "confirmed" | "in_progress" | "paused" | "completed" | "failed" | "cancelled";
 
 // production.op_status
 export type OperationStatus = "pending" | "active" | "completed" | "error";
@@ -46,6 +46,8 @@ export const mapJobStatusToOrderStatus = (
   status: JobStatus
 ): OrderStatus => {
   switch (status) {
+    case "drafted":
+      return "drafted";
     case "scheduled":
     case "confirmed":
       return "preparing";
@@ -65,9 +67,11 @@ export const mapJobStatusToOrderStatus = (
 
 // Helper to determine progress percentage based on status
 export const getProgressFromStatus = (
-  status: string
+  status: JobStatus
 ): number => {
   switch (status) {
+    case "drafted":
+      return 0;
     case "scheduled":
       return 10;
     case "confirmed":

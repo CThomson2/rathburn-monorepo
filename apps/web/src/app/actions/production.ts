@@ -96,110 +96,96 @@ export async function fetchProductionJobById(
   if (!jobId) return null;
 
   return executeServerDbOperation(async (supabase: SupabaseClient) => {
-    const { data: job, error } = await supabase
-      .schema("production")
-      .from("jobs")
+    const { data: jobData, error } = await supabase
+      // .schema("production") // Querying from public schema now
+      .from("v_production_job_details") // Use the new view
       .select(
-        `job_id,
-         job_name
-         item_id,
-         input_batch_id,
-         status,
-         priority,
-         planned_start,
-         planned_end,
-         created_at,
-         updated_at,
-         items:item_id ( name, suppliers:supplier_id ( name ) ),
-         batches:input_batch_id ( batch_code ),
-         operations!job_id ( 
-           op_id, 
-           op_type, 
-           status, 
-           scheduled_start, 
-           started_at, 
-           ended_at,
-           distillation_details ( still_id, raw_volume, stills (code, max_capacity) ),
-           operation_drums ( drum_id, volume_transferred, drums (serial_number, current_volume) )
-          )
+        `*
         `
       )
-      .eq("job_id", jobId)
-      .single();
+      .eq("job_id", jobId);
+      // .single(); // The view might return multiple rows if a job has multiple operations/drums. We need to aggregate.
 
-    if (error || !job) {
+    if (error || !jobData || jobData.length === 0) {
       console.error(`[fetchProductionJobById: ${jobId}]`, error);
       return null;
     }
 
-    const mappedJobs = [job].map((j: any) => ({
-      id: j.job_id,
-      jobName: j.job_name ?? `${j.items?.name} - (${j.batches?.batch_code})`,
-      itemName: j.items?.name ?? "Unknown Item",
-      supplier: j.items?.suppliers?.name ?? "Unknown Supplier",
-      quantity:
-        j.operations?.reduce(
-          (acc: number, op: any) =>
-            acc +
-            (op.operation_drums?.reduce(
-              (sum_vol: number, od: any) =>
-                sum_vol + (od.volume_transferred || 0),
-              0
-            ) || 0) /
-              200,
-          0
-        ) ?? 0,
-      scheduledDate: j.planned_start ?? j.created_at,
-      status: mapJobStatusToOrderStatus(j.status),
-      progress: getProgressFromStatus(j.status),
-      priority: getPriorityFromJob(j),
-      drums:
-        j.operations?.flatMap(
-          (op: any) =>
-            op.operation_drums?.map((od: any) => ({
-              id: od.drum_id,
-              serial: od.drums?.serial_number ?? "N/A",
-              volume: od.volume_transferred ?? od.drums?.current_volume ?? 0,
-              location: "N/A",
-            })) || []
-        ) ?? [],
-      tasks:
-        j.operations?.map((op: any) => ({
-          name: `${op.op_type}`,
-          completed: op.status === "completed",
-          assignedTo: "",
-          details: op.distillation_details
-            ? `Still: ${op.distillation_details.stills?.code}, Raw Volume: ${op.distillation_details.raw_volume}L`
-            : undefined,
-          status: op.status,
-        })) ?? [],
-      timeline:
-        j.operations
-          ?.filter((op: any) => op.started_at || op.ended_at)
-          .flatMap((op: any) => {
-            const events = [] as any[];
-            if (op.started_at) {
-              events.push({
-                event: `${op.op_type} started`,
-                timestamp: op.started_at,
-                user: "system",
-              });
-            }
-            if (op.ended_at) {
-              events.push({
-                event: `${op.op_type} completed`,
-                timestamp: op.ended_at,
-                user: "system",
-              });
-            }
-            return events;
-          })
-          .sort(
-            (a: any, b: any) =>
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          ) ?? [],
-    }));
-    return mappedJobs[0] || null;
+    // Aggregate data since the view can return multiple rows per job_id
+    // (due to joins with operations, operation_drums)
+    const aggregatedJob: ProductionJobOrderType = {
+      id: jobData[0].job_id,
+      jobName: jobData[0].job_name ?? `${jobData[0].item_name} - (${jobData[0].batch_code})`,
+      itemName: jobData[0].item_name ?? "Unknown Item",
+      supplier: jobData[0].supplier_name ?? "Unknown Supplier",
+      quantity: 0,
+      scheduledDate: jobData[0].job_planned_start ?? jobData[0].job_created_at,
+      status: mapJobStatusToOrderStatus(jobData[0].job_status as JobStatus),
+      progress: getProgressFromStatus(jobData[0].job_status as JobStatus),
+      priority: getPriorityFromJob({ priority: jobData[0].job_priority } as any),
+      drums: [],
+      tasks: [],
+      timeline: [],
+    };
+
+    const operationMap = new Map<string, any>();
+    const drumMap = new Map<string, any>();
+
+    for (const row of jobData) {
+      if (row.operation_drum_id && !drumMap.has(row.drum_serial_number)) {
+        drumMap.set(row.drum_serial_number, {
+          id: row.drum_serial_number,
+          serial: row.drum_serial_number ?? 'N/A',
+          volume: row.operation_drum_volume_transferred ?? row.drum_current_volume ?? 0,
+          location: 'N/A',
+        });
+      }
+
+      if (row.op_id && !operationMap.has(row.op_id)) {
+        let taskDetails = "";
+        if (row.op_type === 'distillation' && row.still_code) {
+          taskDetails = `Still: ${row.still_code}, Raw Vol: ${row.distillation_raw_volume}L, Max Cap: ${row.still_max_capacity ? row.still_max_capacity * 200 : 'N/A'}L`;
+        }
+        operationMap.set(row.op_id, {
+          name: row.op_type ? row.op_type.replace("_", " ") : 'Operation',
+          completed: row.operation_status === "completed",
+          details: taskDetails || undefined,
+          status: row.operation_status as OperationStatus,
+          started_at: row.operation_started_at,
+          ended_at: row.operation_ended_at,
+        });
+      }
+    }
+
+    aggregatedJob.drums = Array.from(drumMap.values());
+    aggregatedJob.tasks = Array.from(operationMap.values());
+    
+    // Calculate total quantity from drums
+    aggregatedJob.quantity = aggregatedJob.drums.reduce((acc, drum) => acc + (drum.volume || 0), 0) / 200;
+
+    // Construct timeline from unique operations
+    const timelineEvents: any[] = [];
+    aggregatedJob.tasks.forEach(op => {
+      if (op.started_at) {
+        timelineEvents.push({
+          event: `${op.name} started`,
+          timestamp: op.started_at,
+          user: "system", // Or derive if user info is available
+        });
+      }
+      if (op.ended_at) {
+        timelineEvents.push({
+          event: `${op.name} completed`,
+          timestamp: op.ended_at,
+          user: "system",
+        });
+      }
+    });
+    aggregatedJob.timeline = timelineEvents.sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    return aggregatedJob as ProductionJobOrderType;
   });
 }
 
@@ -304,77 +290,43 @@ export async function fetchAvailableBatchesByMaterial(materialId: string): Promi
  * WRITE ACTIONS
  ***************************/
 
-interface ProductionFormData {
+interface ProductionJobData { // New interface for the job data object
   batchId: string;
   plannedDate: string; // ISO string
   stillId: number;
   rawVolume: number;
   priority?: number;
+  jobName?: string; // Optional
+  jobStatus: "drafted" | "scheduled"; // Status
 }
 
 /**
  * Parse formData sent from ProductionForm (client component)
  */
-function parseProductionFormData(
-  formData: FormData
-): ProductionFormData | null {
-  console.log("[parseProductionFormData] Starting to parse form data");
-  try {
-    const batchId = formData.get("batchId") as string;
-    const plannedDate = formData.get("plannedDate") as string;
-    const stillIdStr = formData.get("stillId") as string;
-    const rawVolumeStr = formData.get("rawVolume") as string;
-    const priorityStr = formData.get("priority") as string | null;
-
-    console.log("[parseProductionFormData] Raw form values:", {
-      batchId,
-      plannedDate,
-      stillIdStr,
-      rawVolumeStr,
-      priorityStr
-    });
-
-    if (!batchId || !plannedDate || !stillIdStr || !rawVolumeStr) {
-      console.log("[parseProductionFormData] Missing required fields");
-      return null;
-    }
-
-    const parsedData = {
-      batchId,
-      plannedDate,
-      stillId: parseInt(stillIdStr, 10),
-      rawVolume: parseFloat(rawVolumeStr),
-      priority: priorityStr ? parseInt(priorityStr, 10) : undefined,
-    };
-    
-    console.log("[parseProductionFormData] Parsed data:", parsedData);
-    return parsedData;
-  } catch (err) {
-    console.error("[parseProductionFormData] Error parsing form data:", err);
-    return null;
-  }
-}
+// function parseProductionFormData(formData: FormData): ProductionFormData | null { // OLD, remove or adapt if still needed elsewhere
+// ... (old parsing logic) ...
+// }
 
 /**
  * Server action – creates a new distillation job via the DB function.
  */
-export async function createProductionJob(formData: FormData): Promise<{
+export async function createProductionJob(jobData: ProductionJobData): Promise<{
   success: boolean;
   jobId?: string;
   message?: string;
 }> {
-  console.log("[createProductionJob] Starting job creation");
-  const parsed = parseProductionFormData(formData);
-  if (!parsed) {
-    console.log("[createProductionJob] Failed to parse form data");
-    return { success: false, message: "Missing or invalid form fields" };
-  }
+  console.log("[createProductionJob] Starting job creation with data:", jobData);
+  // const parsed = parseProductionFormData(formData); // No longer parsing FormData here
+  // if (!parsed) { // Validation can be done directly on jobData if needed
+  //   console.log("[createProductionJob] Failed to parse form data");
+  //   return { success: false, message: "Missing or invalid form fields" };
+  // }
 
-  const { batchId, plannedDate, stillId, rawVolume, priority } = parsed;
-  console.log("[createProductionJob] Parsed data:", { batchId, plannedDate, stillId, rawVolume, priority });
+  const { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus } = jobData;
+  console.log("[createProductionJob] Parsed data for RPC:", { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus });
 
   return executeServerDbOperation(async (supabase) => {
-    console.log("[createProductionJob] Calling database function");
+    console.log("[createProductionJob] Calling database function create_distillation_job");
     const { data, error } = await supabase
       .schema("production")
       .rpc("create_distillation_job", {
@@ -383,6 +335,8 @@ export async function createProductionJob(formData: FormData): Promise<{
         p_still_id: stillId,
         p_raw_volume: rawVolume,
         p_priority: priority ?? 10,
+        p_job_name: jobName, // ADDED - I will add this to the SQL function later
+        p_job_status: jobStatus, // ADDED - I will add this to the SQL function later
       });
 
     if (error) {
@@ -392,6 +346,90 @@ export async function createProductionJob(formData: FormData): Promise<{
 
     console.log("[createProductionJob] Job created successfully with ID:", data);
     return { success: true, jobId: data as string };
+  });
+}
+
+/**
+ * Server action - updates the status of a production job.
+ * Typically from "drafted" to "scheduled".
+ */
+export async function updateProductionJobStatus(
+  jobId: string,
+  newStatus: "scheduled" // Restrict to only allowed transitions for now
+): Promise<{ success: boolean; message?: string }> {
+  if (!jobId || !newStatus) {
+    return { success: false, message: "Job ID and new status are required." };
+  }
+  console.log(`[updateProductionJobStatus] Updating job ${jobId} to status ${newStatus}`);
+  return executeServerDbOperation(async (supabase) => {
+    const { error } = await supabase
+      .schema("production")
+      .from("jobs")
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq("job_id", jobId)
+      .eq("status", "drafted"); // IMPORTANT: Only allow update if current status is 'drafted'
+
+    if (error) {
+      console.error("[updateProductionJobStatus] Database error:", error);
+      return { success: false, message: error.message };
+    }
+    // Optionally, check if any row was actually updated if needed.
+    // const { count } = await ... (select count where updated)
+    // if (count === 0) return { success: false, message: "Job not found or not in 'drafted' state." };
+    console.log(`[updateProductionJobStatus] Job ${jobId} status updated to ${newStatus}`);
+    return { success: true };
+  });
+}
+
+/**
+ * Server action - updates details of a production job IF IT IS IN DRAFT STATUS.
+ */
+export async function updateProductionJobDetails(
+  jobId: string,
+  details: Partial<ProductionJobData> // Use the same type as create for consistency
+): Promise<{ success: boolean; message?: string }> {
+  if (!jobId) {
+    return { success: false, message: "Job ID is required." };
+  }
+  console.log(`[updateProductionJobDetails] Updating details for job ${jobId}:`, details);
+
+  const { batchId, plannedDate, stillId, rawVolume, priority, jobName } = details;
+
+  // Construct the update object, only including fields that are provided in 'details'
+  const updateData: any = { updated_at: new Date().toISOString() };
+  if (batchId !== undefined) updateData.input_batch_id = batchId;
+  if (plannedDate !== undefined) updateData.planned_start = plannedDate;
+  // Note: stillId and rawVolume are usually part of distillation_details, not directly on jobs table.
+  // This update logic might need to target `production.distillation_details` for those.
+  // For now, assuming these might be denormalized or handled via a more complex update RPC.
+  // If they are on `jobs` table:
+  // if (stillId !== undefined) updateData.still_id_on_job_table = stillId; // Example, if such field existed
+  // if (rawVolume !== undefined) updateData.raw_volume_on_job_table = rawVolume; // Example
+  if (priority !== undefined) updateData.priority = priority;
+  if (jobName !== undefined) updateData.job_name = jobName;
+
+  // If stillId or rawVolume need to update related operation/distillation_details,
+  // a more specific RPC or multiple updates would be needed.
+  // For this example, we only update fields directly on the `jobs` table based on ProductionJobData.
+
+  if (Object.keys(updateData).length <= 1) { // Only updated_at
+    return { success: false, message: "No details provided to update." };
+  }
+
+  return executeServerDbOperation(async (supabase) => {
+    const { error } = await supabase
+      .schema("production")
+      .from("jobs")
+      .update(updateData)
+      .eq("job_id", jobId)
+      .eq("status", "drafted"); // IMPORTANT: Only allow update if current status is 'drafted'
+
+    if (error) {
+      console.error("[updateProductionJobDetails] Database error:", error);
+      return { success: false, message: error.message };
+    }
+    console.log(`[updateProductionJobDetails] Job ${jobId} details updated.`);
+    return { success: true };
   });
 }
 

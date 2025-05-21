@@ -2,23 +2,16 @@ import { useState } from "react";
 import { Edit, CheckCircle, AlertTriangle, Loader } from "lucide-react";
 import { Order, OrderStatus } from "../types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
+// import { toast } from "@/hooks/use-toast";
 
 type OrderDetailProps = {
   order: Order;
 };
 
 export const OrderDetail = ({ order }: OrderDetailProps) => {
-  const [activeTab, setActiveTab] = useState("overview");
   const [editMode, setEditMode] = useState(false);
   const [editedOrder, setEditedOrder] = useState<Order>(order);
-
-  const handleSaveChanges = () => {
-    // Here you would send the updated order to the API
-    // For now, we'll just toggle edit mode off
-    setEditMode(false);
-    // Simulate API call success
-    // toast({ title: "Changes saved successfully" });
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -36,7 +29,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-            Order {order.id}
+            Order {order.id.slice(0, 8).toUpperCase()}
             <span
               className={`ml-3 px-3 py-1 text-xs font-medium rounded-full text-white
               ${order.status === "preparing" ? "bg-status-preparing" : ""}
@@ -53,12 +46,13 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
             Last updated: {formatDate(new Date().toISOString())}
           </p>
         </div>
-        <button
+        {/* <button
+          title="Edit Order"
           onClick={() => setEditMode(!editMode)}
           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <Edit size={18} />
-        </button>
+        </button> */}
       </div>
 
       {/* Tabs */}
@@ -136,6 +130,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                 </label>
                 {editMode ? (
                   <input
+                    title="Edit Quantity"
                     type="number"
                     value={editedOrder.quantity}
                     onChange={(e) =>
@@ -162,10 +157,12 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                 </label>
                 {editMode ? (
                   <input
+                    title="Edit Scheduled Date"
                     type="datetime-local"
-                    value={new Date(editedOrder.scheduledDate)
-                      .toISOString()
-                      .slice(0, 16)}
+                    value={format(
+                      new Date(editedOrder.scheduledDate),
+                      "yyyy-MM-dd'T'HH:mm"
+                    )}
                     onChange={(e) =>
                       setEditedOrder({
                         ...editedOrder,
@@ -188,6 +185,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                 </label>
                 {editMode ? (
                   <select
+                    title="Edit Priority"
                     value={editedOrder.priority}
                     onChange={(e) =>
                       setEditedOrder({
@@ -221,6 +219,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                 </label>
                 {editMode ? (
                   <select
+                    title="Edit Status"
                     value={editedOrder.status}
                     onChange={(e) =>
                       setEditedOrder({
@@ -265,7 +264,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
             </div>
           </div>
 
-          {editMode && (
+          {/* {editMode && (
             <div className="flex justify-end space-x-4 mt-6">
               <button
                 onClick={() => setEditMode(false)}
@@ -275,12 +274,12 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
               </button>
               <button
                 onClick={handleSaveChanges}
-                className="px-4 py-2 text-sm bg-brand-blue text-white rounded-md hover:bg-blue-600 transition-colors"
+                className="px-4 py-1.5 text-sm bg-brand-blue text-slate-800 dark:text-white hover:text-white rounded-md hover:bg-blue-600 transition-colors"
               >
                 Save Changes
               </button>
             </div>
-          )}
+          )} */}
         </TabsContent>
 
         {/* Tasks & Logs Tab */}
@@ -297,6 +296,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
               >
                 <div className="flex items-center">
                   <input
+                    title="Complete Task"
                     type="checkbox"
                     checked={task.completed}
                     className="h-4 w-4 text-brand-blue border-gray-300 rounded"

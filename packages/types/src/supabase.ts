@@ -2114,13 +2114,23 @@ export type Database = {
     }
     Functions: {
       create_distillation_job: {
-        Args: {
-          p_batch_id: string
-          p_planned_start: string
-          p_still_id: number
-          p_raw_volume: number
-          p_priority?: number
-        }
+        Args:
+          | {
+              p_batch_id: string
+              p_planned_start: string
+              p_still_id: number
+              p_raw_volume: number
+              p_job_name?: string
+              p_priority?: number
+              p_job_status?: string
+            }
+          | {
+              p_batch_id: string
+              p_planned_start: string
+              p_still_id: number
+              p_raw_volume: number
+              p_priority?: number
+            }
         Returns: string
       }
       create_transport_task: {
@@ -2134,7 +2144,6 @@ export type Database = {
     Enums: {
       context_type: "distillation" | "warehouse"
       job_status:
-        | "drafted"
         | "scheduled"
         | "confirmed"
         | "in_progress"
@@ -2142,6 +2151,7 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+        | "drafted"
       op_status: "pending" | "active" | "completed" | "error"
       op_type:
         | "distillation"
@@ -2337,6 +2347,13 @@ export type Database = {
             referencedColumns: ["batch_id"]
           },
           {
+            foreignKeyName: "session_scans_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
+            referencedColumns: ["batch_id"]
+          },
+          {
             foreignKeyName: "session_scans_cancelled_scan_id_fkey"
             columns: ["cancelled_scan_id"]
             isOneToOne: false
@@ -2483,6 +2500,13 @@ export type Database = {
             referencedColumns: ["material_id"]
           },
           {
+            foreignKeyName: "stock_count_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "stock_count_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -2494,6 +2518,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "stock_count_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
             referencedColumns: ["supplier_id"]
           },
         ]
@@ -2560,6 +2591,13 @@ export type Database = {
             referencedColumns: ["material_id"]
           },
           {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
@@ -2585,6 +2623,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
             referencedColumns: ["supplier_id"]
           },
         ]
@@ -2624,6 +2669,13 @@ export type Database = {
           username?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "task_comments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
+            referencedColumns: ["job_id"]
+          },
           {
             foreignKeyName: "task_comments_job_id_fkey"
             columns: ["job_id"]
@@ -2755,6 +2807,13 @@ export type Database = {
             referencedColumns: ["material_id"]
           },
           {
+            foreignKeyName: "stocktake_scans_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "stocktake_scans_stocktake_session_id_fkey"
             columns: ["stocktake_session_id"]
             isOneToOne: false
@@ -2780,6 +2839,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "stocktake_scans_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
             referencedColumns: ["supplier_id"]
           },
         ]
@@ -2841,6 +2907,13 @@ export type Database = {
             foreignKeyName: "operations_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "v_production_job_details"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "operations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "v_production_jobs"
             referencedColumns: ["job_id"]
           },
@@ -2891,6 +2964,13 @@ export type Database = {
             referencedColumns: ["material_id"]
           },
           {
+            foreignKeyName: "items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_production_job_details"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "purchase_order_drums_pol_id_fkey"
             columns: ["pol_id"]
             isOneToOne: false
@@ -2923,6 +3003,57 @@ export type Database = {
           supplier: string | null
         }
         Relationships: []
+      }
+      v_production_job_details: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_qty_drums: number | null
+          distillation_raw_volume: number | null
+          drum_current_volume: number | null
+          drum_serial_number: string | null
+          item_id: string | null
+          item_name: string | null
+          job_created_at: string | null
+          job_id: string | null
+          job_name: string | null
+          job_planned_end: string | null
+          job_planned_start: string | null
+          job_priority: number | null
+          job_status: Database["production"]["Enums"]["job_status"] | null
+          job_updated_at: string | null
+          material_id: string | null
+          material_name: string | null
+          op_id: string | null
+          op_type: Database["production"]["Enums"]["op_type"] | null
+          operation_drum_id: string | null
+          operation_drum_volume_transferred: number | null
+          operation_ended_at: string | null
+          operation_scheduled_start: string | null
+          operation_started_at: string | null
+          operation_status: Database["production"]["Enums"]["op_status"] | null
+          still_code: string | null
+          still_id: number | null
+          still_max_capacity: number | null
+          supplier_id: string | null
+          supplier_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_drums_drum_id_fkey"
+            columns: ["operation_drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_drum_inventory_details"
+            referencedColumns: ["drum_id"]
+          },
+          {
+            foreignKeyName: "operation_drums_drum_id_fkey"
+            columns: ["operation_drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_drums"
+            referencedColumns: ["drum_id"]
+          },
+        ]
       }
       v_production_jobs: {
         Row: {
@@ -3456,6 +3587,7 @@ export const Constants = {
         "completed",
         "failed",
         "cancelled",
+        "drafted",
       ],
       op_status: ["pending", "active", "completed", "error"],
       op_type: [

@@ -39,7 +39,7 @@ export function MaterialFilter({
   return (
     <div className="flex items-center">
       <span className="mr-2">Material</span>
-      <Popover>
+      <Popover modal={true}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
