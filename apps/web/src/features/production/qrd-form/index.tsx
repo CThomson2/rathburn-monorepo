@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -43,45 +43,62 @@ export function QRDForm({ initialData }: QRDFormProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("setup");
   const [formData, setFormData] = useState<QRDFormData>(initialData);
-  const [loading, setLoading] = useState(false);
+  const [printDate, setPrintDate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  useEffect(() => {
+    setPrintDate(format(new Date(), "PPpp"));
+  }, []);
+
   // Update formData when initialData changes (from parent)
   useEffect(() => {
+    const initialDataStr = JSON.stringify(initialData);
+    const formDataStr = JSON.stringify(formData);
+
     // Only update if initialData is different from current formData
-    // This check prevents unnecessary re-renders
-    if (JSON.stringify(initialData) !== JSON.stringify(formData)) {
+    if (initialDataStr !== formDataStr) {
       setFormData(initialData);
       setHasUnsavedChanges(false);
     }
-  }, [initialData, formData]);
+  }, [initialData]);
 
   // Handle form data updates from child components
-  const handleDataChange = (updatedData: Partial<QRDFormData>) => {
-    // Only update if there are actual changes
+  const handleDataChange = useCallback((updatedData: Partial<QRDFormData>) => {
+    if (Object.keys(updatedData).length === 0) return;
+
     setFormData((prev) => {
       // Create the new state
-      const newState = { ...prev, ...updatedData };
+      const newState = { ...prev };
 
-      // Check if anything actually changed
-      const hasChanges = Object.keys(updatedData).some(
-        (key) =>
-          prev[key as keyof QRDFormData] !==
-          updatedData[key as keyof QRDFormData]
-      );
+      // Track if anything changed
+      let changed = false;
 
-      // Only mark as unsaved if something changed
-      if (hasChanges) {
+      // Only update fields that are actually different
+      Object.entries(updatedData).forEach(([key, value]) => {
+        const typedKey = key as keyof QRDFormData;
+        if (JSON.stringify(prev[typedKey]) !== JSON.stringify(value)) {
+          // Use type assertion to ensure TypeScript knows we're setting a valid property
+          (newState as any)[typedKey] = value;
+          changed = true;
+        }
+      });
+
+      // Only mark as unsaved and return new state if something changed
+      if (changed) {
         setHasUnsavedChanges(true);
+        return newState;
       }
 
-      return newState;
+      // Nothing changed, return previous state
+      return prev;
     });
-  };
+  }, []);
 
   // Save form data
   const handleSave = async () => {
+    if (!hasUnsavedChanges) return;
+
     setSaving(true);
     try {
       // Extract only the QRD-specific data (excluding metadata)
@@ -106,14 +123,16 @@ export function QRDForm({ initialData }: QRDFormProps) {
       const result = await updateQRDData(initialData.operationId, qrdData);
 
       if (result.success) {
-        // Update state first, then toast
+        // Update state first
         setHasUnsavedChanges(false);
+
+        // Show success message
         toast.success("Distillation record saved successfully");
 
-        // Use setTimeout to delay router refresh and avoid potential loops
+        // Use setTimeout to separate router refresh from state updates
         setTimeout(() => {
-          router.refresh();
-        }, 0);
+          // router.refresh();
+        }, 100);
       } else {
         toast.error(result.message || "Failed to save distillation record");
       }
@@ -174,7 +193,7 @@ export function QRDForm({ initialData }: QRDFormProps) {
           Distillation Record (QRD)
         </h1>
         <div className="text-sm text-center text-muted-foreground">
-          Printed on {format(new Date(), "PPpp")}
+          Printed on {printDate}
         </div>
       </div>
 

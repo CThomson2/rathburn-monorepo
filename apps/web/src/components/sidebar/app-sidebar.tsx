@@ -188,9 +188,7 @@ const data = {
     // },
     {
       name: "Database",
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL
-        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}`
-        : "https://supabase.com/dashboard/project/ppnulxweiiczciuxcypn",
+      url: "https://supabase.com/dashboard/project/ppnulxweiiczciuxcypn",
       icon: DatabaseZapIcon,
     },
   ],

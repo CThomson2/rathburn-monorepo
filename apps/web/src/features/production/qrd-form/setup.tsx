@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -22,72 +22,149 @@ interface QRDSetupProps {
   disabled?: boolean;
 }
 
+/**
+ * Component for configuring the initial setup parameters of a distillation process.
+ *
+ * This component allows the user to specify and edit the initial setup details such as
+ * setup time, operator, initial temperature, pressure, and heat setting before starting
+ * the distillation process. It updates the parent component with the setup data and provides
+ * quick actions for setting the current time and standard conditions.
+ *
+ * @param {QRDSetupProps} props - The props for the component.
+ * @param {QRDFormData} props.data - The setup data including time, operator, temperature, pressure, and heat setting.
+ * @param {(data: Partial<QRDFormData>) => void} props.onChange - Function to call when the setup data changes.
+ * @param {boolean} [props.disabled=false] - Whether the input fields are disabled.
+ * @returns {JSX.Element} The QRDSetup component.
+ */
 export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
-  // Local state for setup fields
-  const [setupTime, setSetupTime] = useState<Date | undefined>(
+  const [localSetupTime, setLocalSetupTime] = useState<Date | undefined>(
     data.setupTime ? new Date(data.setupTime) : undefined
   );
-  const [setupBy, setSetupBy] = useState<string>(data.setupBy || "");
-  const [initialTemperature, setInitialTemperature] = useState<number>(
-    data.initialTemperature || 20
-  );
-  const [initialPressure, setInitialPressure] = useState<number>(
-    data.initialPressure || 1013
-  );
-  const [heatSetting, setHeatSetting] = useState<number>(
-    data.heatSetting || 50
+  const [localSetupBy, setLocalSetupBy] = useState<string>(data.setupBy || "");
+  const [localInitialTemperature, setLocalInitialTemperature] = useState<
+    number | undefined
+  >(data.initialTemperature ?? undefined);
+  const [localInitialPressure, setLocalInitialPressure] = useState<
+    number | undefined
+  >(data.initialPressure ?? undefined);
+  const [localHeatSetting, setLocalHeatSetting] = useState<number | undefined>(
+    data.heatSetting ?? undefined
   );
 
-  // Update parent component with setup fields
+  // Sync local state with incoming specific props when they change
   useEffect(() => {
-    // Only trigger onChange if one of the actual values changed
-    const updatedData = {
-      setupTime: setupTime?.toISOString(),
-      setupBy,
-      initialTemperature,
-      initialPressure,
-      heatSetting,
-    };
-
-    // Check if data actually changed before calling onChange
-    const hasChanges =
-      data.setupTime !== updatedData.setupTime ||
-      data.setupBy !== updatedData.setupBy ||
-      data.initialTemperature !== updatedData.initialTemperature ||
-      data.initialPressure !== updatedData.initialPressure ||
-      data.heatSetting !== updatedData.heatSetting;
-
-    if (hasChanges) {
-      onChange(updatedData);
+    if (data.setupTime) {
+      const propDate = new Date(data.setupTime);
+      if (
+        !localSetupTime ||
+        propDate.toISOString() !== localSetupTime.toISOString()
+      ) {
+        setLocalSetupTime(propDate);
+      }
+    } else if (data.setupTime === null && localSetupTime) {
+      setLocalSetupTime(undefined);
     }
-  }, [
-    setupTime,
-    setupBy,
-    initialTemperature,
-    initialPressure,
-    heatSetting,
-    onChange,
-    data,
-  ]);
+  }, [data.setupTime]);
 
-  // Quick actions for common values
+  useEffect(() => {
+    const propSetupBy = data.setupBy || "";
+    if (propSetupBy !== localSetupBy) {
+      setLocalSetupBy(propSetupBy);
+    }
+  }, [data.setupBy]);
+
+  useEffect(() => {
+    const propTemp = data.initialTemperature ?? undefined;
+    if (propTemp !== localInitialTemperature) {
+      setLocalInitialTemperature(propTemp);
+    } else if (
+      data.initialTemperature === null &&
+      localInitialTemperature !== undefined
+    ) {
+      setLocalInitialTemperature(undefined);
+    }
+  }, [data.initialTemperature]);
+
+  useEffect(() => {
+    const propPressure = data.initialPressure ?? undefined;
+    if (propPressure !== localInitialPressure) {
+      setLocalInitialPressure(propPressure);
+    } else if (
+      data.initialPressure === null &&
+      localInitialPressure !== undefined
+    ) {
+      setLocalInitialPressure(undefined);
+    }
+  }, [data.initialPressure]);
+
+  useEffect(() => {
+    const propHeat = data.heatSetting ?? undefined;
+    if (propHeat !== localHeatSetting) {
+      setLocalHeatSetting(propHeat);
+    } else if (data.heatSetting === null && localHeatSetting !== undefined) {
+      setLocalHeatSetting(undefined);
+    }
+  }, [data.heatSetting]);
+
+  // Handlers for input changes
+  const handleSetupTimeChange = (date: Date | undefined) => {
+    setLocalSetupTime(date);
+    onChange({ setupTime: date ? date.toISOString() : undefined });
+  };
+
+  const handleSetupByChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setLocalSetupBy(newValue);
+    onChange({ setupBy: newValue });
+  };
+
+  const handleTemperatureChange = (values: number[]) => {
+    if (values.length > 0 && values[0] !== undefined) {
+      const newValue = values[0];
+      setLocalInitialTemperature(newValue);
+      onChange({ initialTemperature: newValue });
+    }
+  };
+
+  const handlePressureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valueStr = e.target.value;
+    const newValue = valueStr === "" ? undefined : Number(valueStr);
+    setLocalInitialPressure(newValue);
+    onChange({ initialPressure: newValue });
+  };
+
+  const handleHeatSettingChange = (values: number[]) => {
+    if (values.length > 0 && values[0] !== undefined) {
+      const newValue = values[0];
+      setLocalHeatSetting(newValue);
+      onChange({ heatSetting: newValue });
+    }
+  };
+
+  // Quick actions
   const handleSetCurrentTime = () => {
-    setSetupTime(new Date());
+    const now = new Date();
+    setLocalSetupTime(now);
+    onChange({ setupTime: now.toISOString() });
   };
 
   const handleSetStandardConditions = () => {
-    setInitialTemperature(20);
-    setInitialPressure(1013);
-    setHeatSetting(50);
+    setLocalInitialTemperature(20);
+    setLocalInitialPressure(1013);
+    setLocalHeatSetting(50);
+    onChange({
+      initialTemperature: 20,
+      initialPressure: 1013,
+      heatSetting: 50,
+    });
   };
 
-  // Check if setup is complete
   const isSetupComplete =
-    setupTime &&
-    setupBy &&
-    initialTemperature &&
-    initialPressure &&
-    heatSetting;
+    localSetupTime &&
+    localSetupBy && // Assuming empty string is not complete for setupBy
+    localInitialTemperature !== undefined &&
+    localInitialPressure !== undefined &&
+    localHeatSetting !== undefined;
 
   return (
     <div className="space-y-6">
@@ -101,14 +178,12 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
         )}
       </div>
 
-      {/* Setup section instruction text */}
       <p className="text-sm text-muted-foreground">
         Record the initial setup parameters before beginning the distillation
         process. All fields are required before starting the distillation.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Setup Time */}
         <div className="space-y-2">
           <Label htmlFor="setupTime">Setup Time</Label>
           <div className="flex gap-2">
@@ -119,13 +194,13 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
                   variant={"outline"}
                   className={cn(
                     "flex-1 justify-start text-left font-normal",
-                    !setupTime && "text-muted-foreground"
+                    !localSetupTime && "text-muted-foreground"
                   )}
                   disabled={disabled}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {setupTime ? (
-                    format(setupTime, "PPp")
+                  {localSetupTime ? (
+                    format(localSetupTime, "PPp") // Displays in local time
                   ) : (
                     <span>Select date and time</span>
                   )}
@@ -134,10 +209,11 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={setupTime}
-                  onSelect={setSetupTime}
+                  selected={localSetupTime}
+                  onSelect={handleSetupTimeChange} // Use new handler
                   initialFocus
                 />
+                {/* TODO: Add Time Picker here if needed, and restrict to 6 AM - 6 PM */}
               </PopoverContent>
             </Popover>
             <Button
@@ -152,7 +228,6 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
           </div>
         </div>
 
-        {/* Setup By (Operator) */}
         <div className="space-y-2">
           <Label htmlFor="setupBy">Setup By (Operator)</Label>
           <div className="relative">
@@ -160,8 +235,8 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
             <Input
               id="setupBy"
               placeholder="Operator name"
-              value={setupBy}
-              onChange={(e) => setSetupBy(e.target.value)}
+              value={localSetupBy}
+              onChange={handleSetupByChange} // Use new handler
               className="pl-8"
               disabled={disabled}
             />
@@ -170,22 +245,25 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Initial Temperature */}
         <div className="space-y-3">
           <Label htmlFor="initialTemperature">
-            Initial Temperature (°C): {initialTemperature}°C
+            Initial Temperature (°C):{" "}
+            {localInitialTemperature !== undefined
+              ? localInitialTemperature
+              : "-"}
+            °C
           </Label>
           <Slider
             id="initialTemperature"
             min={0}
             max={100}
             step={1}
-            value={[initialTemperature]}
-            onValueChange={(values) => {
-              if (values.length > 0 && values[0] !== undefined) {
-                setInitialTemperature(values[0]);
-              }
-            }}
+            value={
+              localInitialTemperature !== undefined
+                ? [localInitialTemperature]
+                : []
+            } // Pass empty array if undefined to let slider use its default
+            onValueChange={handleTemperatureChange} // Use new handler
             disabled={disabled}
             className="w-full"
           />
@@ -198,13 +276,14 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
         {/* Initial Pressure */}
         <div className="space-y-3">
           <Label htmlFor="initialPressure">
-            Initial Pressure (mbar): {initialPressure}
+            Initial Pressure (mbar):{" "}
+            {localInitialPressure !== undefined ? localInitialPressure : "-"}
           </Label>
           <Input
             id="initialPressure"
             type="number"
-            value={initialPressure}
-            onChange={(e) => setInitialPressure(Number(e.target.value))}
+            value={localInitialPressure ?? ""} // Input expects string or number for value
+            onChange={handlePressureChange} // Use new handler
             min={0}
             max={2000}
             step={1}
@@ -219,18 +298,17 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
 
       {/* Heat Setting */}
       <div className="space-y-3">
-        <Label htmlFor="heatSetting">Heat Setting (%): {heatSetting}%</Label>
+        <Label htmlFor="heatSetting">
+          Heat Setting (%):{" "}
+          {localHeatSetting !== undefined ? localHeatSetting : "-"}%
+        </Label>
         <Slider
           id="heatSetting"
           min={0}
           max={100}
           step={5}
-          value={[heatSetting]}
-          onValueChange={(values) => {
-            if (values.length > 0 && values[0] !== undefined) {
-              setHeatSetting(values[0]);
-            }
-          }}
+          value={localHeatSetting !== undefined ? [localHeatSetting] : []} // Pass empty array if undefined
+          onValueChange={handleHeatSettingChange} // Use new handler
           disabled={disabled}
           className="w-full"
         />

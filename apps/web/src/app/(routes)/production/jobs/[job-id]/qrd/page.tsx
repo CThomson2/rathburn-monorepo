@@ -56,6 +56,8 @@ export default async function QRDPage({ params }: PageProps) {
 
   const initialQRDData = await fetchQRDData(operationIdToUse);
 
+  console.log("Initial QRD Data:", initialQRDData);
+
   if (!initialQRDData) {
     console.error(
       `QRD data not found for operation ID: ${operationIdToUse} (Job ID: ${jobIdFromRoute})`
