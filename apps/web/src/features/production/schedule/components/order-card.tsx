@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { OrderDetail } from "./order-detail";
 import { ProgressIndicator } from "./progress-indicator";
-import { Order, OrderStatus } from "../types";
+import { Order, OrderStatus } from "@/features/production/types";
 
 import Link from "next/link";
 import { motion } from "framer-motion";

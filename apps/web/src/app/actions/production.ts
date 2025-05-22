@@ -147,6 +147,7 @@ export async function fetchProductionJobById(
           taskDetails = `Still: ${row.still_code}, Raw Vol: ${row.distillation_raw_volume}L, Max Cap: ${row.still_max_capacity ? row.still_max_capacity * 200 : 'N/A'}L`;
         }
         operationMap.set(row.op_id, {
+          op_id: row.op_id,
           name: row.op_type ? row.op_type.replace("_", " ") : 'Operation',
           completed: row.operation_status === "completed",
           details: taskDetails || undefined,

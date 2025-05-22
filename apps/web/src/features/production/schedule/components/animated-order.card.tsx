@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { OrderCard } from "./order-card";
-import { Order } from "../types";
+import { Order } from "../../types/";
 type AnimatedCardWrapperProps = {
   job: Order;
   index: number;

@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { OrderCard } from "@/features/production";
-import { ProductionModal } from "@/features/production/components/production-modal";
+import { OrderCard } from "@/features/production/schedule";
+import { ProductionModal } from "@/features/production/schedule/components/production-modal";
 import { useToast } from "@/components/ui/use-toast";
 import { fetchProductionJobs } from "@/app/actions/production";
 import type { Order as ProductionJobOrder } from "@/features/production/types";

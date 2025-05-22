@@ -2114,23 +2114,15 @@ export type Database = {
     }
     Functions: {
       create_distillation_job: {
-        Args:
-          | {
-              p_batch_id: string
-              p_planned_start: string
-              p_still_id: number
-              p_raw_volume: number
-              p_job_name?: string
-              p_priority?: number
-              p_job_status?: string
-            }
-          | {
-              p_batch_id: string
-              p_planned_start: string
-              p_still_id: number
-              p_raw_volume: number
-              p_priority?: number
-            }
+        Args: {
+          p_batch_id: string
+          p_planned_start: string
+          p_still_id: number
+          p_raw_volume: number
+          p_job_name?: string
+          p_priority?: number
+          p_job_status?: Database["production"]["Enums"]["job_status"]
+        }
         Returns: string
       }
       create_transport_task: {
@@ -2888,19 +2880,24 @@ export type Database = {
       }
       v_distillation_schedule: {
         Row: {
+          batch_code: string | null
           batch_id: string | null
           batch_total_volume: number | null
+          ended_at: string | null
           expected_yield: number | null
           item_name: string | null
           job_id: string | null
+          job_name: string | null
           job_status: Database["production"]["Enums"]["job_status"] | null
           op_id: string | null
-          operation_status: Database["production"]["Enums"]["op_status"] | null
+          op_status: Database["production"]["Enums"]["op_status"] | null
           raw_volume: number | null
           scheduled_start: string | null
+          started_at: string | null
           still_capacity: number | null
           still_code: string | null
           still_id: number | null
+          supplier_name: string | null
         }
         Relationships: [
           {

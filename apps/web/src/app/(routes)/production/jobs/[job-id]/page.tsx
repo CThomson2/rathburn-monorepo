@@ -31,7 +31,7 @@ import {
   FileText, // For notes or generic info
   FileEdit, // For Edit button/mode
   CheckSquare, // For Confirm Schedule
-  Loader2, // For loading states
+  Loader2,
 } from "lucide-react";
 import {
   Order as JobDetailsType,
@@ -41,8 +41,9 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatDateTime } from "@/utils/format-date";
 import { cn } from "@/lib/utils";
-import { JobEditForm } from "@/features/production/components/job-edit-form"; // Import the new form
+import { JobEditForm } from "@/features/production/schedule/components/job-edit-form"; // Import the new form
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 interface JobDetailsPageProps {
   params: {
@@ -297,9 +298,13 @@ export default function ProductionJobDetailsPage({
               <Separator />
               <div>
                 <h3 className="text-lg font-medium text-foreground mb-3 flex items-center">
-                  <Clock className="mr-2 h-5 w-5" /> Event Timeline
+                  <Clock className="mr-2 h-5 w-5" /> Documents
                 </h3>
-                {/* ... timeline rendering ... */}
+                <Link href={`/production/jobs/${jobId}/qrd`}>
+                  <Button variant="outline">
+                    <FileText className="mr-2 h-5 w-5" /> QRD
+                  </Button>
+                </Link>
               </div>
             </>
           )}

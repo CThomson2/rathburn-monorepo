@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Edit, CheckCircle, AlertTriangle, Loader } from "lucide-react";
-import { Order, OrderStatus } from "../types";
+import { Order, OrderStatus } from "../../types/";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 // import { toast } from "@/hooks/use-toast";

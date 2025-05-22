@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { OrderModal } from "../../features/orders/components/order-modal";
-import { ProductionModal } from "../../features/production/components/production-modal";
+import { ProductionModal } from "../../features/production/schedule/components/production-modal";
 import { SidebarItemAction } from "@/types/sidebar";
 
 interface OrderModalTriggerProps {

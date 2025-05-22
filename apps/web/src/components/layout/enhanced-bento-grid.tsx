@@ -391,13 +391,17 @@ export function EnhancedBentoGrid({
             </p>
             <a
               href="https://github.com/CThomson2/rathburn-monorepo/"
-              className="pointer-events-auto relative z-20 text-primary dark:text-cyan-400 rounded-lg border border-primary/30 dark:border-slate-600 px-2 py-1 h-8 flex items-center group w-fit hover:w-auto transition-all duration-300"
+              className="pointer-events-auto relative z-20 text-primary dark:text-cyan-400 rounded-lg border border-primary/30 dark:border-slate-600 px-2 py-1 h-8 flex items-center group w-fit hover:bg-slate-300 hover:dark:bg-slate-800 transition-all ease-in-out duration-300"
               onClick={(e) => e.stopPropagation()}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <GithubIcon className="h-4 w-4 mr-2" />
-              <strong>Github</strong>
-              <span className="opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-xs ml-2 text-xs text-muted-foreground dark:text-slate-400 transition-all duration-300">
-                | CThomson2/rathburn-monorepo
+              <strong className="group-hover:text-black dark:group-hover:text-white">
+                Github
+              </strong>
+              <span className="opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-xs group-hover:text-slate-700 dark:group-hover:text-slate-100 ml-2 text-xs text-muted-foreground dark:text-slate-400 transition-all ease-in-out duration-300">
+                | CThomson2/rathburn
               </span>
             </a>
           </div>

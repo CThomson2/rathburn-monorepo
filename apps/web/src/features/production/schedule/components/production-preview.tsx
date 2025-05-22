@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/utils/format-date";
-import type { Order, OrderStatus } from "@/features/production/types";
+import type { Order, OrderStatus } from "@/features/production/types/";
 
 interface ProductionPreviewProps {
   onCreateJob: () => void;
