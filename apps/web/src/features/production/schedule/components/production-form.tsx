@@ -38,6 +38,9 @@ import {
 } from "@/app/actions/production"; // Corrected path
 import { fetchMaterials } from "@/app/actions/orders"; // Assuming this action will be created
 import { fetchItemsByMaterialId } from "@/app/actions/batches";
+import { ProductionJobData } from "@/features/production/types";
+
+import { useAuth } from "@/hooks/use-auth";
 
 interface Material {
   id: string;
@@ -79,6 +82,18 @@ export function ProductionForm({
   onCancel,
 }: ProductionFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  if (!user) {
+    toast.error("User not found. Please log in.");
+    return (
+      <div className="flex flex-col items-center justify-center text-destructive p-8">
+        <AlertTriangle className="w-12 h-12 mb-4" />
+        <p className="text-lg">Error loading scheduling data.</p>
+        <p>Please try closing and reopening the dialog.</p>
+      </div>
+    );
+  }
 
   console.log("ProductionForm: Component rendering/re-rendering");
 
@@ -252,7 +267,7 @@ export function ProductionForm({
     );
     setSubmitting(true);
 
-    const jobData = {
+    const jobData: ProductionJobData = {
       batchId: selectedBatch!.batch_id,
       plannedDate: plannedDate!.toISOString(),
       stillId: selectedStill!.still_id,
@@ -260,9 +275,10 @@ export function ProductionForm({
       priority: priority,
       jobName: jobName || undefined,
       jobStatus: status,
+      createdBy: user.id,
     };
 
-    const result = await createProductionJob(jobData as any);
+    const result = await createProductionJob(jobData);
 
     onJobCreated({ ...result, jobName, jobStatus: status });
 

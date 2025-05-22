@@ -9,6 +9,7 @@ import {
   getPriorityFromJob,
   JobStatus,
   OperationStatus,
+  ProductionJobData,
 } from "@/features/production/types";
 
 /***************************
@@ -291,16 +292,6 @@ export async function fetchAvailableBatchesByMaterial(materialId: string): Promi
  * WRITE ACTIONS
  ***************************/
 
-interface ProductionJobData { // New interface for the job data object
-  batchId: string;
-  plannedDate: string; // ISO string
-  stillId: number;
-  rawVolume: number;
-  priority?: number;
-  jobName?: string; // Optional
-  jobStatus: "drafted" | "scheduled"; // Status
-}
-
 /**
  * Parse formData sent from ProductionForm (client component)
  */
@@ -323,14 +314,15 @@ export async function createProductionJob(jobData: ProductionJobData): Promise<{
   //   return { success: false, message: "Missing or invalid form fields" };
   // }
 
-  const { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus } = jobData;
+  const { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus, createdBy } = jobData;
   console.log("[createProductionJob] Parsed data for RPC:", { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus });
 
   return executeServerDbOperation(async (supabase) => {
     console.log("[createProductionJob] Calling database function create_distillation_job");
     const { data, error } = await supabase
       .schema("production")
-      .rpc("create_distillation_job", {
+      .rpc("create_production_job", {
+        p_user_id: createdBy,
         p_batch_id: batchId,
         p_planned_start: plannedDate,
         p_still_id: stillId,

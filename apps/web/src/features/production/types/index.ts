@@ -133,3 +133,15 @@ export interface DistillationScheduleDay {
   formattedDate: string; // e.g., "Mon, Jan 1"
   schedules: DistillationScheduleItem[];
 }
+
+
+export interface ProductionJobData {
+  batchId: string;
+  plannedDate: string; // ISO string
+  stillId: number;
+  rawVolume: number;
+  priority?: number;
+  jobName?: string; // Optional
+  jobStatus: "drafted" | "scheduled"; // Status
+  createdBy: string;
+}
