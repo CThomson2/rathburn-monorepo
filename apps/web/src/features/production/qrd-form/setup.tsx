@@ -51,6 +51,18 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
     data.heatSetting ?? undefined
   );
 
+  useEffect(() => {
+    console.log("Slider state: Temperature", localInitialTemperature);
+  }, [localInitialTemperature]);
+
+  useEffect(() => {
+    console.log("Slider state: Pressure", localInitialPressure);
+  }, [localInitialPressure]);
+
+  useEffect(() => {
+    console.log("Slider state: Heat Setting", localHeatSetting);
+  }, [localHeatSetting]);
+
   // Sync local state with incoming specific props when they change
   useEffect(() => {
     if (data.setupTime) {

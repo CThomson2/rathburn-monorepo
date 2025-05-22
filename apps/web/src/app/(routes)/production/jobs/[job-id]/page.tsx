@@ -32,6 +32,7 @@ import {
   FileEdit, // For Edit button/mode
   CheckSquare, // For Confirm Schedule
   Loader2,
+  Edit,
 } from "lucide-react";
 import {
   Order as JobDetailsType,
@@ -216,6 +217,19 @@ export default function ProductionJobDetailsPage({
               </CardDescription>
             </div>
             <div className="flex flex-col items-end gap-2">
+              <Button variant="outline">
+                {!isEditing ? (
+                  <Edit
+                    className="mr-2 h-4 w-4"
+                    onClick={() => setIsEditing(true)}
+                  />
+                ) : (
+                  <CheckSquare
+                    className="mr-2 h-4 w-4"
+                    onClick={() => setIsEditing(false)}
+                  />
+                )}
+              </Button>
               <Badge
                 variant={getJobStatusBadgeVariant(status)}
                 className="text-sm px-3 py-1 self-start sm:self-center"
