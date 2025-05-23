@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Thermometer } from "@/components/core/patterns/input/thermometer";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -50,6 +51,18 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
   const [localHeatSetting, setLocalHeatSetting] = useState<number | undefined>(
     data.heatSetting ?? undefined
   );
+
+  useEffect(() => {
+    console.log("Slider state: Temperature", localInitialTemperature);
+  }, [localInitialTemperature]);
+
+  useEffect(() => {
+    console.log("Slider state: Pressure", localInitialPressure);
+  }, [localInitialPressure]);
+
+  useEffect(() => {
+    console.log("Slider state: Heat Setting", localHeatSetting);
+  }, [localHeatSetting]);
 
   // Sync local state with incoming specific props when they change
   useEffect(() => {
@@ -151,7 +164,8 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
   const handleSetStandardConditions = () => {
     setLocalInitialTemperature(20);
     setLocalInitialPressure(1013);
-    setLocalHeatSetting(50);
+    handleTemperatureChange([20]);
+    handleHeatSettingChange([50]);
     onChange({
       initialTemperature: 20,
       initialPressure: 1013,
@@ -253,15 +267,15 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
               : "-"}
             °C
           </Label>
-          <Slider
+          <Thermometer
             id="initialTemperature"
             min={0}
-            max={100}
+            max={150}
             step={1}
             value={
               localInitialTemperature !== undefined
                 ? [localInitialTemperature]
-                : []
+                : undefined
             } // Pass empty array if undefined to let slider use its default
             onValueChange={handleTemperatureChange} // Use new handler
             disabled={disabled}
@@ -269,7 +283,8 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>0°C</span>
-            <span>100°C</span>
+            <span>75˚C</span>
+            <span>150°C</span>
           </div>
         </div>
 
@@ -306,7 +321,7 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
           id="heatSetting"
           min={0}
           max={100}
-          step={5}
+          step={1}
           value={localHeatSetting !== undefined ? [localHeatSetting] : []} // Pass empty array if undefined
           onValueChange={handleHeatSettingChange} // Use new handler
           disabled={disabled}
@@ -314,7 +329,9 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
         />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>0%</span>
+          <span>25%</span>
           <span>50%</span>
+          <span>75%</span>
           <span>100%</span>
         </div>
       </div>

@@ -1,27 +1,53 @@
 import { cn } from "@/lib/utils";
 import { CheckCircle, AlertTriangle } from "lucide-react";
-import { OrderStatus } from "../../types/";
+import { JobDisplayStatus } from "../../types/";
 
 type ProgressIndicatorProps = {
-  status: OrderStatus;
+  status: JobDisplayStatus;
   progress: number;
 };
+
+// The visual steps on the indicator UI
+const UI_STEPS = [
+  { name: "Preparation", SPhases: ["drafted", "scheduled", "confirmed"] },
+  { name: "Distillation", SPhases: ["in_progress"] },
+  { name: "QC", SPhases: ["qc"] },
+  { name: "Complete", SPhases: ["complete"] },
+];
 
 export const ProgressIndicator = ({
   status,
   progress,
 }: ProgressIndicatorProps) => {
-  const steps = [
-    { name: "Preparation", value: "preparing" },
-    { name: "Distillation", value: "distillation" },
-    { name: "QC", value: "qc" },
-    { name: "Complete", value: "complete" },
-  ];
-
-  const currentStepIndex = steps.findIndex((step) => step.value === status);
-
-  // If error, we'll show a different style
   const isError = status === "error";
+
+  // Determine which UI step is currently active or has been passed
+  let currentUiStepIndex = -1;
+  if (status === "complete") {
+    currentUiStepIndex = 3;
+  } else if (status === "qc") {
+    currentUiStepIndex = 2;
+  } else if (status === "in_progress") {
+    currentUiStepIndex = 1;
+  } else if (
+    status === "confirmed" ||
+    status === "scheduled" ||
+    status === "drafted"
+  ) {
+    currentUiStepIndex = 0;
+  }
+  // 'paused' status will reflect the progress up to the point it was paused.
+  // The currentUiStepIndex for 'paused' should be the step it was in before pausing.
+  // For simplicity, if status is 'paused', we can assume it was at least 'in_progress' or 'qc'.
+  // This part might need more sophisticated logic if we store pre-pause status.
+  if (status === "paused") {
+    // If progress suggests QC was active or passed
+    if (progress >= 75)
+      currentUiStepIndex = 2; // Assume it was in QC or beyond and got paused
+    else if (progress >= 50)
+      currentUiStepIndex = 1; // Assume it was in Distillation and got paused
+    else currentUiStepIndex = 0; // Assume it was in Preparation and got paused
+  }
 
   return (
     <div className="relative">
@@ -33,42 +59,53 @@ export const ProgressIndicator = ({
           <div
             className={cn(
               "h-full transition-all duration-500 ease-in-out",
-              status === "preparing" ? "bg-status-preparing" : "",
-              status === "distillation" ? "bg-status-distillation" : "",
-              status === "qc" ? "bg-status-qc" : "",
-              status === "complete" ? "bg-status-complete" : ""
+              // Apply color based on the actual JobDisplayStatus
+              status === "drafted" && "bg-status-drafted",
+              status === "scheduled" && "bg-status-scheduled",
+              status === "confirmed" && "bg-status-confirmed",
+              status === "in_progress" && "bg-status-in_progress",
+              status === "paused" && "bg-status-paused",
+              status === "qc" && "bg-status-qc",
+              status === "complete" && "bg-status-complete"
             )}
-            style={{ width: `${progress}%` }}
+            style={{ width: `${progress}%` }} // Width is driven by overall progress
           ></div>
         )}
       </div>
 
       {/* Step indicators */}
       <div className="flex justify-between mt-1">
-        {steps.map((step, idx) => {
-          const isActive = idx <= currentStepIndex && !isError;
-          const isCompleted = idx < currentStepIndex && !isError;
+        {UI_STEPS.map((step, idx) => {
+          // An indicator step is active if the current UI step index is at or beyond it.
+          const isActiveOrPassed = idx <= currentUiStepIndex && !isError;
+          // An indicator step is fully completed if it's before the current UI step index.
+          const isFullyCompleted = idx < currentUiStepIndex && !isError;
 
           return (
-            <div key={step.value} className="flex flex-col items-center">
+            <div
+              key={step.name}
+              className="flex flex-col items-center w-1/4 px-1 text-center"
+            >
               <div
                 className={cn(
-                  "w-4 h-4 rounded-full flex items-center justify-center",
-                  isActive ? "bg-brand-blue" : "bg-gray-300 dark:bg-gray-600",
-                  isError && "bg-status-error"
+                  "w-4 h-4 rounded-full flex items-center justify-center mb-0.5",
+                  isActiveOrPassed
+                    ? "bg-brand-blue"
+                    : "bg-gray-300 dark:bg-gray-600",
+                  isError && "bg-status-error" // Override with error color if job status is error
                 )}
               >
-                {isCompleted && (
+                {isFullyCompleted && (
                   <CheckCircle size={12} className="text-white" />
                 )}
               </div>
               <span
                 className={cn(
                   "text-xs mt-1",
-                  isActive
-                    ? "text-gray-900 dark:text-gray-100"
+                  isActiveOrPassed
+                    ? "text-gray-900 dark:text-gray-100 font-medium"
                     : "text-gray-500 dark:text-gray-400",
-                  isError && "text-status-error"
+                  isError && "text-status-error" // Override text color if job status is error
                 )}
               >
                 {step.name}

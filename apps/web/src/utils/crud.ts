@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Database, Tables } from "@/types/models/supabase";
+import { Database, Tables } from "@rathburn/types";
 
 /**
  * Response type for CRUD operations

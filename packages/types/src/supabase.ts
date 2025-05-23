@@ -1776,25 +1776,37 @@ export type Database = {
       }
       distillation_details: {
         Row: {
+          created_at: string | null
+          created_by: string | null
           details: Json | null
           expected_yield: number | null
           op_id: string
           raw_volume: number
           still_id: number
+          udpated_at: string | null
+          updated_by: string | null
         }
         Insert: {
+          created_at?: string | null
+          created_by?: string | null
           details?: Json | null
           expected_yield?: number | null
           op_id: string
           raw_volume: number
           still_id: number
+          udpated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
+          created_at?: string | null
+          created_by?: string | null
           details?: Json | null
           expected_yield?: number | null
           op_id?: string
           raw_volume?: number
           still_id?: number
+          udpated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1858,6 +1870,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_input_batch_id_fkey"
+            columns: ["input_batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["batch_id"]
+          },
           {
             foreignKeyName: "jobs_item_id_fkey"
             columns: ["item_id"]
@@ -2073,10 +2092,12 @@ export type Database = {
       v_operation_schedule: {
         Row: {
           batch_code: string | null
+          batch_id: string | null
           drum_current_volume: number | null
           drum_id: string | null
           drum_serial_number: string | null
           ended_at: string | null
+          expected_yield: number | null
           input_batch_id: string | null
           item_id: string | null
           item_name: string | null
@@ -2109,12 +2130,20 @@ export type Database = {
             referencedRelation: "stills"
             referencedColumns: ["still_id"]
           },
+          {
+            foreignKeyName: "jobs_input_batch_id_fkey"
+            columns: ["input_batch_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["batch_id"]
+          },
         ]
       }
     }
     Functions: {
-      create_distillation_job: {
+      create_production_job: {
         Args: {
+          p_user_id: string
           p_batch_id: string
           p_planned_start: string
           p_still_id: number
@@ -2131,6 +2160,13 @@ export type Database = {
           job_id: string
           op_id: string
         }[]
+      }
+      update_job_status_rpc: {
+        Args: {
+          p_job_id: string
+          p_new_status?: Database["production"]["Enums"]["job_status"]
+        }
+        Returns: boolean
       }
     }
     Enums: {
@@ -3386,6 +3422,13 @@ export type Database = {
       test_service_role_permissions: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      update_job_status: {
+        Args: {
+          p_job_id: string
+          p_new_status?: Database["production"]["Enums"]["job_status"]
+        }
+        Returns: boolean
       }
       validate_passcode: {
         Args: { p_user_name: string; p_passcode: string }

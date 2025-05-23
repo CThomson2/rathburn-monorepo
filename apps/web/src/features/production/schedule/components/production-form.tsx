@@ -37,7 +37,9 @@ import {
   fetchAvailableBatchesByMaterial,
 } from "@/app/actions/production"; // Corrected path
 import { fetchMaterials } from "@/app/actions/orders"; // Assuming this action will be created
-import { fetchItemsByMaterialId } from "@/app/actions/batches";
+// import { fetchItemsByMaterialId } from "@/app/actions/batches";
+import { ProductionJobData } from "@/features/production/types";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Material {
   id: string;
@@ -74,15 +76,22 @@ interface ProductionFormProps {
   onCancel: () => void;
 }
 
+/**
+ * @description Form component for creating a new production job.
+ * @param {Object} props
+ * @prop {function} onJobCreated - Callback function to call when a job is created.
+ * @prop {function} onCancel - Callback function to call when the user cancels the form.
+ * @returns A form component with controls for selecting an item, batch, still, planned date, and volume.
+ */
 export function ProductionForm({
   onJobCreated,
   onCancel,
 }: ProductionFormProps) {
+  // --- ALL HOOKS AT THE TOP ---
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
-  console.log("ProductionForm: Component rendering/re-rendering");
-
-  // Form State
+  // Form State Hooks
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
   );
@@ -92,69 +101,39 @@ export function ProductionForm({
   const [rawVolume, setRawVolume] = useState<number | string>("");
   const [priority, setPriority] = useState<number>(10);
   const [jobName, setJobName] = useState<string>("");
-
-  console.log("ProductionForm: Current State", {
-    selectedMaterial,
-    selectedBatch,
-    plannedDate: plannedDate?.toISOString(),
-    selectedStill,
-    rawVolume,
-    priority,
-    jobName,
-  });
-
-  // UI State for Popovers/Commands
   const [materialSearch, setMaterialSearch] = useState("");
   const [openMaterialPopover, setOpenMaterialPopover] = useState(false);
   const [openStillPopover, setOpenStillPopover] = useState(false);
-
   const [submitting, setSubmitting] = useState(false);
 
-  // SWR Data Fetching
-  const { data: items, error: itemsError } = useSWR<Material[]>(
-    "allMaterials", // Changed: Fetch all items initially
-    () => {
-      console.log("ProductionForm: Fetching all materials");
-      return fetchMaterials(); // Changed: Use new action
-    }
+  // SWR Data Fetching Hooks
+  const { data: materials, error: materialsError } = useSWR<Material[]>(
+    "allMaterials",
+    fetchMaterials
   );
-
-  const { data: batches, error: batchesError } = useSWR<Batch[]>(
-    selectedMaterial ? `batchesByMaterial-${selectedMaterial.id}` : null,
-    () => {
-      console.log(
-        "ProductionForm: Fetching batches for material:",
-        selectedMaterial?.id
-      );
-      return fetchAvailableBatchesByMaterial(selectedMaterial!.id);
-    }
+  const { data: batches, error: batchesError } = useSWR<Batch[] | undefined>(
+    selectedMaterial?.id ? `batchesByMaterial-${selectedMaterial.id}` : null,
+    () => fetchAvailableBatchesByMaterial(selectedMaterial!.id!)
   );
   const { data: stills, error: stillsError } = useSWR<Still[]>(
     "allStills",
-    () => {
-      console.log("ProductionForm: Fetching stills");
-      return fetchStills();
-    }
+    fetchStills
   );
 
-  // Reset dependent fields when a higher-level selection changes
+  // Effect Hooks
   useEffect(() => {
-    // const item = fetchItemByMaterialId(selectedMaterial?.id || "");
-    // console.log("ProductionForm: item:", item);
-    // setSelectedMaterial(item);
-    console.log(
-      "ProductionForm: useEffect for selectedItem changed. Current item:",
-      selectedMaterial
-    );
-    setSelectedBatch(null);
-    setRawVolume(""); // Reset volume when item/batch context changes
+    if (selectedMaterial) {
+      console.log(
+        "ProductionForm: useEffect for selectedMaterial changed. Current item:",
+        selectedMaterial
+      );
+      setSelectedBatch(null);
+      setRawVolume(""); // Reset volume when item/batch context changes
+    }
   }, [selectedMaterial]);
 
-  const filteredItems = items?.filter((i) =>
-    i.name.toLowerCase().includes(materialSearch.toLowerCase())
-  );
-
-  const handleBatchSelect = (batch: Batch) => {
+  // Callback Hooks
+  const handleBatchSelect = useCallback((batch: Batch) => {
     console.log("ProductionForm: handleBatchSelect called with batch:", batch);
     setSelectedBatch(batch);
     const newRawVolume = batch.drums_in_stock * 200;
@@ -163,9 +142,9 @@ export function ProductionForm({
       "ProductionForm: selectedBatch set, rawVolume set to:",
       newRawVolume
     );
-  };
+  }, []); // Add dependencies if needed - setSelectedBatch, setRawVolume (though setters are stable)
 
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     console.log("ProductionForm: validateForm called. Current form values:", {
       selectedMaterial,
       selectedBatch,
@@ -176,115 +155,213 @@ export function ProductionForm({
       jobName,
     });
     if (!selectedMaterial) {
-      toast.error("Material item is required.");
-      console.log(
-        "ProductionForm: Validation failed - Material item is required."
-      );
+      // toast({
+      //   variant: "destructive",
+      //   title: "Validation Error",
+      //   description: "Material item is required.",
+      // });
+      console.log("ProductionForm: validateForm - Material item is required.");
       return false;
     }
     if (!selectedBatch) {
-      toast.error("Input batch is required.");
-      console.log(
-        "ProductionForm: Validation failed - Input batch is required."
-      );
+      // toast({
+      //   variant: "destructive",
+      //   title: "Validation Error",
+      //   description: "Input batch is required.",
+      // });
+      console.log("ProductionForm: validateForm - Input batch is required.");
       return false;
     }
     if (!plannedDate) {
-      toast.error("Planned date is required.");
-      console.log(
-        "ProductionForm: Validation failed - Planned date is required."
-      );
+      // toast({
+      //   variant: "destructive",
+      //   title: "Validation Error",
+      //   description: "Planned date is required.",
+      // });
+      console.log("Planned date is required.");
       return false;
     }
     if (!selectedStill) {
-      toast.error("Distillation still is required.");
-      console.log(
-        "ProductionForm: Validation failed - Distillation still is required."
-      );
+      // toast({
+      //   variant: "destructive",
+      //   title: "Validation Error",
+      //   description: "Distillation still is required.",
+      // });
+      console.log("Distillation still is required.");
       return false;
     }
     if (!rawVolume || isNaN(Number(rawVolume)) || Number(rawVolume) <= 0) {
-      toast.error("Valid raw material volume is required.");
-      console.log(
-        "ProductionForm: Validation failed - Valid raw material volume is required. Raw volume:",
-        rawVolume
-      );
+      // toast({
+      //   variant: "destructive",
+      //   title: "Validation Error",
+      //   description: "Valid raw material volume is required.",
+      // });
+      console.log();
       return false;
     }
     if (
       selectedBatch &&
       Number(rawVolume) > selectedBatch.drums_in_stock * 200
     ) {
-      toast.error(
-        `Volume exceeds available stock in batch (${
-          selectedBatch.drums_in_stock * 200
-        }L).`
-      );
+      // toast({
+      //   variant: "destructive",
+      //   title: "Validation Error",
+      //   description: `Volume exceeds available stock in batch (${selectedBatch.drums_in_stock * 200}L).`,
+      // });
       console.log(
-        "ProductionForm: Validation failed - Volume exceeds available stock in batch."
+        `Volume exceeds available stock in batch (${selectedBatch.drums_in_stock * 200}L).`
       );
       return false;
     }
     if (selectedStill && Number(rawVolume) > selectedStill.max_capacity * 200) {
-      toast.error(
-        `Volume exceeds still capacity (${selectedStill.max_capacity * 200}L).`
-      );
+      // toast({
+      //   variant: "destructive",
+      //   title: "Validation Error",
+      //   description: `Volume exceeds still capacity (${selectedStill.max_capacity * 200}L).`,
+      // });
       console.log(
-        "ProductionForm: Validation failed - Volume exceeds still capacity."
+        `Volume exceeds still capacity (${selectedStill.max_capacity * 200}L).`
       );
       return false;
     }
-    console.log("ProductionForm: Validation successful.");
     return true;
-  };
+  }, [
+    selectedMaterial,
+    selectedBatch,
+    plannedDate,
+    selectedStill,
+    rawVolume,
+    priority,
+    jobName,
+    toast,
+  ]);
 
-  const handleSubmit = async (status: "drafted" | "scheduled") => {
-    console.log(`ProductionForm: handleSubmit called with status: ${status}`);
-    if (!validateForm()) {
+  const handleSubmit = useCallback(
+    async (status: "drafted" | "scheduled") => {
+      if (!user) {
+        // toast({
+        //   variant: "destructive",
+        //   title: "Authentication Error",
+        //   description: "User session expired. Please log in again.",
+        // });
+        console.log(
+          "ProductionForm: handleSubmit - User session expired. Please log in again."
+        );
+        setSubmitting(false);
+        return;
+      }
+      console.log(`ProductionForm: handleSubmit called with status: ${status}`);
+      if (!validateForm()) {
+        console.log(
+          "ProductionForm: handleSubmit - validation failed, aborting submission."
+        );
+        return;
+      }
+
       console.log(
-        "ProductionForm: handleSubmit - validation failed, aborting submission."
+        "ProductionForm: handleSubmit - validation passed, proceeding with submission."
       );
-      return;
-    }
+      setSubmitting(true);
 
-    console.log(
-      "ProductionForm: handleSubmit - validation passed, proceeding with submission."
+      const jobData: ProductionJobData = {
+        batchId: selectedBatch!.batch_id,
+        plannedDate: plannedDate!.toISOString(),
+        stillId: selectedStill!.still_id,
+        rawVolume: Number(rawVolume),
+        priority: priority,
+        jobName: jobName || undefined,
+        jobStatus: status,
+        createdBy: user.id,
+      };
+
+      const result = await createProductionJob(jobData);
+      onJobCreated({ ...result, jobName, jobStatus: status });
+
+      if (result.success) {
+        // toast({
+        //   title: "Success",
+        //   description: `Production job ${jobName ? `'${jobName}' ` : ""}(${result.jobId?.slice(0, 8)}) ${status} successfully!`,
+        // });
+        console.log(
+          `Production job ${jobName ? `'${jobName}' ` : ""}(${result.jobId?.slice(0, 8)}) ${status} successfully!`
+        );
+      } else {
+        // toast({
+        //   variant: "destructive",
+        //   title: "Error",
+        //   description: result.message || `Failed to ${status} job.`,
+        // });
+        console.log(result.message || `Failed to ${status} job.`);
+      }
+      setSubmitting(false);
+    },
+    [
+      user,
+      selectedBatch,
+      plannedDate,
+      selectedStill,
+      rawVolume,
+      priority,
+      jobName,
+      validateForm,
+      onJobCreated,
+      toast,
+    ]
+  );
+
+  // --- CONDITIONAL RENDERING AFTER ALL HOOKS ---
+  if (authLoading) {
+    console.log("ProductionForm: authLoading is true");
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-2 text-muted-foreground">Loading authentication...</p>
+      </div>
     );
-    setSubmitting(true);
+  }
 
-    const jobData = {
-      batchId: selectedBatch!.batch_id,
-      plannedDate: plannedDate!.toISOString(),
-      stillId: selectedStill!.still_id,
-      rawVolume: Number(rawVolume),
-      priority: priority,
-      jobName: jobName || undefined,
-      jobStatus: status,
-    };
+  if (!user) {
+    console.log("ProductionForm: User not authenticated, showing login prompt");
+    return (
+      <div className="flex flex-col items-center justify-center text-destructive p-8">
+        <AlertTriangle className="w-12 h-12 mb-4" />
+        <p className="text-lg">Authentication Required</p>
+        <p>You must be logged in to create a production job.</p>
+      </div>
+    );
+  }
 
-    const result = await createProductionJob(jobData as any);
-
-    onJobCreated({ ...result, jobName, jobStatus: status });
-
-    if (result.success) {
-      toast.success(
-        `Production job ${jobName ? `'${jobName}' ` : ""}(${result.jobId?.slice(0, 8)}) ${status} successfully!`
-      );
-    } else {
-      toast.error(result.message || `Failed to ${status} job.`);
-    }
-    setSubmitting(false);
-  };
-
-  if (itemsError || batchesError || stillsError) {
+  if (materialsError || batchesError || stillsError) {
     return (
       <div className="flex flex-col items-center justify-center text-destructive p-8">
         <AlertTriangle className="w-12 h-12 mb-4" />
         <p className="text-lg">Error loading scheduling data.</p>
-        <p>Please try closing and reopening the dialog.</p>
+        <p>
+          Please try closing and reopening the dialog, or contact support if the
+          issue persists.
+        </p>
+        {materialsError && (
+          <p className="text-xs">Materials Error: {materialsError.message}</p>
+        )}
+        {batchesError && (
+          <p className="text-xs">Batches Error: {batchesError.message}</p>
+        )}
+        {stillsError && (
+          <p className="text-xs">Stills Error: {stillsError.message}</p>
+        )}
       </div>
     );
   }
+
+  // Main form rendering
+  console.log(
+    "ProductionForm: Component rendering/re-rendering with user:",
+    user.id
+  );
+
+  const filteredMaterials = materials?.filter((m) =>
+    m.name.toLowerCase().includes(materialSearch.toLowerCase())
+  );
 
   return (
     <form
@@ -322,11 +399,10 @@ export function ProductionForm({
                 role="combobox"
                 aria-expanded={openMaterialPopover}
                 className="w-full justify-between"
-                // disabled={!selectedSupplier || !items} // REMOVED supplier dependency
-                disabled={!items} // Item selection is now independent
+                disabled={!materials}
               >
                 {selectedMaterial?.name ??
-                  (items ? ( // Simplified logic
+                  (materials ? (
                     "Select item..."
                   ) : (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -342,29 +418,26 @@ export function ProductionForm({
                   onValueChange={setMaterialSearch}
                 />
                 <CommandList>
-                  <CommandEmpty>
-                    {/* No items found for this supplier.  REMOVED supplier context */}
-                    No items found.
-                  </CommandEmpty>
+                  <CommandEmpty>No items found.</CommandEmpty>
                   <CommandGroup>
-                    {filteredItems?.map((i) => (
+                    {filteredMaterials?.map((m) => (
                       <CommandItem
-                        key={i.id}
-                        value={i.name}
+                        key={m.id}
+                        value={m.name}
                         onSelect={() => {
-                          setSelectedMaterial(i);
+                          setSelectedMaterial(m);
                           setOpenMaterialPopover(false);
                         }}
                       >
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            selectedMaterial?.id === i.id
+                            selectedMaterial?.id === m.id
                               ? "opacity-100"
                               : "opacity-0"
                           )}
                         />
-                        {i.name}
+                        {m.name}
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -375,72 +448,13 @@ export function ProductionForm({
         </div>
       </div>
 
-      {/* REMOVED Supplier Popover Section */}
-      {/* <div className="space-y-2">
-        <Label htmlFor="supplier">Supplier</Label>
-        <Popover
-          open={openSupplierPopover}
-          onOpenChange={setOpenSupplierPopover}
-        >
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={openSupplierPopover}
-              className="w-full justify-between"
-              disabled={!suppliers}
-            >
-              {selectedSupplier?.name ??
-                (suppliers ? (
-                  "Select supplier..."
-                ) : (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ))}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-            <Command>
-              <CommandInput
-                placeholder="Search suppliers..."
-                value={supplierSearch}
-                onValueChange={setSupplierSearch}
-              />
-              <CommandList>
-                <CommandEmpty>No suppliers found.</CommandEmpty>
-                <CommandGroup>
-                  {filteredSuppliers?.map((s) => (
-                    <CommandItem
-                      key={s.id}
-                      value={s.name}
-                      onSelect={() => {
-                        setSelectedSupplier(s);
-                        setOpenSupplierPopover(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedSupplier?.id === s.id
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {s.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div> */}
-
       {/* Row 2: Batch Selection (conditionally rendered) */}
       {selectedMaterial && (
         <div className="space-y-2 pt-4">
           <Label>Select Input Batch for: {selectedMaterial.name}</Label>
-          {!batches && <Loader2 className="h-5 w-5 animate-spin my-4" />}
+          {!batches && !batchesError && (
+            <Loader2 className="h-5 w-5 animate-spin my-4" />
+          )}
           {batchesError && (
             <p className="text-destructive text-sm">Error loading batches.</p>
           )}
@@ -468,8 +482,7 @@ export function ProductionForm({
                       Batch Code: {batch.batch_code || "N/A"}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      Supplier: {batch.supplier_name || "N/A"}{" "}
-                      {/* ADDED supplier display */}
+                      Supplier: {batch.supplier_name || "N/A"}
                     </span>
                     <span className="text-sm text-muted-foreground">
                       Drums in Stock: {batch.drums_in_stock}
@@ -513,9 +526,9 @@ export function ProductionForm({
                 selected={plannedDate}
                 onSelect={setPlannedDate}
                 initialFocus
-                disabled={(date) =>
-                  date < new Date(new Date().setHours(0, 0, 0, 0))
-                } // Disable past dates
+                // disabled={(date) =>
+                //   date < new Date(new Date().setHours(0, 0, 0, 0))
+                // }
               />
             </PopoverContent>
           </Popover>
@@ -589,7 +602,7 @@ export function ProductionForm({
             type="number"
             value={rawVolume}
             onChange={(e) => setRawVolume(e.target.value)}
-            placeholder={`E.g., ${selectedBatch ? selectedBatch.drums_in_stock * 200 : 200}`}
+            placeholder={`E.g., ${selectedBatch ? selectedBatch.drums_in_stock * 200 : 200}L`}
             min={1}
             disabled={!selectedBatch || !selectedStill}
           />
@@ -613,7 +626,7 @@ export function ProductionForm({
             id="priority"
             type="number"
             value={priority}
-            onChange={(e) => setPriority(parseInt(e.target.value, 10) || 10)}
+            onChange={(e) => setPriority(parseInt(e.target.value, 10) || 5)}
             min={1}
             max={10}
           />
@@ -622,7 +635,12 @@ export function ProductionForm({
 
       {/* Actions */}
       <div className="flex justify-end gap-4 pt-6">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </Button>
         <Button

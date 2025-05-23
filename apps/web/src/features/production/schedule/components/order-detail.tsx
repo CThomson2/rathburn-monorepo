@@ -1,27 +1,92 @@
 import { useState } from "react";
 import { Edit, CheckCircle, AlertTriangle, Loader } from "lucide-react";
-import { Order, OrderStatus } from "../../types/";
+import { ProductionJobViewData, JobDisplayStatus } from "../../types/";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-// import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 type OrderDetailProps = {
-  order: Order;
+  order: ProductionJobViewData;
+};
+
+const getStatusText = (status: JobDisplayStatus): string => {
+  switch (status) {
+    case "drafted":
+      return "Draft";
+    case "scheduled":
+      return "Scheduled";
+    case "confirmed":
+      return "Confirmed";
+    case "in_progress":
+      return "In Progress";
+    case "paused":
+      return "Paused";
+    case "qc":
+      return "QC In Progress";
+    case "complete":
+      return "Complete";
+    case "error":
+      return "Error";
+    default:
+      const _exhaustiveCheck: never = status;
+      return "Unknown";
+  }
+};
+
+const getStatusBadgeColorClass = (status: JobDisplayStatus): string => {
+  switch (status) {
+    case "drafted":
+      return "bg-status-drafted";
+    case "scheduled":
+      return "bg-status-scheduled";
+    case "confirmed":
+      return "bg-status-confirmed";
+    case "in_progress":
+      return "bg-status-in_progress";
+    case "paused":
+      return "bg-status-paused";
+    case "qc":
+      return "bg-status-qc";
+    case "complete":
+      return "bg-status-complete";
+    case "error":
+      return "bg-status-error";
+    default:
+      const _exhaustiveCheck: never = status;
+      return "bg-gray-400";
+  }
 };
 
 export const OrderDetail = ({ order }: OrderDetailProps) => {
   const [editMode, setEditMode] = useState(false);
-  const [editedOrder, setEditedOrder] = useState<Order>(order);
+  const [editedOrder, setEditedOrder] = useState<ProductionJobViewData>(order);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return "Invalid Date";
+    }
   };
+
+  const jobDisplayStatusOptions: { value: JobDisplayStatus; label: string }[] =
+    [
+      { value: "drafted", label: "Draft" },
+      { value: "scheduled", label: "Scheduled" },
+      { value: "confirmed", label: "Confirmed" },
+      { value: "in_progress", label: "In Progress" },
+      { value: "paused", label: "Paused" },
+      { value: "qc", label: "QC In Progress" },
+      { value: "complete", label: "Complete" },
+      { value: "error", label: "Error" },
+    ];
 
   return (
     <div className="p-6">
@@ -29,30 +94,23 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-            Order {order.id.slice(0, 8).toUpperCase()}
+            Order {order.jobName || order.id.slice(0, 8).toUpperCase()}
             <span
-              className={`ml-3 px-3 py-1 text-xs font-medium rounded-full text-white
-              ${order.status === "preparing" ? "bg-status-preparing" : ""}
-              ${order.status === "distillation" ? "bg-status-distillation" : ""}
-              ${order.status === "qc" ? "bg-status-qc" : ""}
-              ${order.status === "complete" ? "bg-status-complete" : ""}
-              ${order.status === "error" ? "bg-status-error" : ""}
-            `}
+              className={cn(
+                "ml-3 px-3 py-1 text-xs font-medium rounded-full text-white",
+                getStatusBadgeColorClass(order.status)
+              )}
             >
-              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+              {getStatusText(order.status)}
             </span>
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Last updated: {formatDate(new Date().toISOString())}
+            Last updated:{" "}
+            {formatDate(
+              (editedOrder as any).updated_at || new Date().toISOString()
+            )}
           </p>
         </div>
-        {/* <button
-          title="Edit Order"
-          onClick={() => setEditMode(!editMode)}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        >
-          <Edit size={18} />
-        </button> */}
       </div>
 
       {/* Tabs */}
@@ -136,7 +194,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                     onChange={(e) =>
                       setEditedOrder({
                         ...editedOrder,
-                        quantity: parseInt(e.target.value),
+                        quantity: parseInt(e.target.value) || 0,
                       })
                     }
                     className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 
@@ -159,10 +217,14 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                   <input
                     title="Edit Scheduled Date"
                     type="datetime-local"
-                    value={format(
-                      new Date(editedOrder.scheduledDate),
-                      "yyyy-MM-dd'T'HH:mm"
-                    )}
+                    value={
+                      editedOrder.scheduledDate
+                        ? format(
+                            new Date(editedOrder.scheduledDate),
+                            "yyyy-MM-dd'T'HH:mm"
+                          )
+                        : ""
+                    }
                     onChange={(e) =>
                       setEditedOrder({
                         ...editedOrder,
@@ -202,11 +264,15 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                   </select>
                 ) : (
                   <p
-                    className={`mt-1 capitalize
-                    ${order.priority === "high" ? "text-red-600 dark:text-red-400" : ""}
-                    ${order.priority === "medium" ? "text-amber-600 dark:text-amber-400" : ""}
-                    ${order.priority === "low" ? "text-green-600 dark:text-green-400" : ""}
-                  `}
+                    className={cn(
+                      `mt-1 capitalize`,
+                      order.priority === "high" &&
+                        "text-red-600 dark:text-red-400",
+                      order.priority === "medium" &&
+                        "text-amber-600 dark:text-amber-400",
+                      order.priority === "low" &&
+                        "text-green-600 dark:text-green-400"
+                    )}
                   >
                     {order.priority}
                   </p>
@@ -224,17 +290,17 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                     onChange={(e) =>
                       setEditedOrder({
                         ...editedOrder,
-                        status: e.target.value as OrderStatus,
+                        status: e.target.value as JobDisplayStatus,
                       })
                     }
                     className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 
                       shadow-sm p-2 bg-white dark:bg-gray-800"
                   >
-                    <option value="preparing">Preparing</option>
-                    <option value="distillation">Distillation</option>
-                    <option value="qc">QC</option>
-                    <option value="complete">Complete</option>
-                    <option value="error">Error</option>
+                    {jobDisplayStatusOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 ) : (
                   <p className="mt-1 flex items-center">
@@ -250,36 +316,35 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                         className="text-status-error mr-1"
                       />
                     )}
-                    {order.status !== "complete" &&
-                      order.status !== "error" && (
-                        <Loader
-                          size={16}
-                          className="text-status-preparing mr-1 animate-spin"
-                        />
-                      )}
-                    <span className="capitalize">{order.status}</span>
+                    {(order.status === "in_progress" ||
+                      order.status === "scheduled" ||
+                      order.status === "confirmed" ||
+                      order.status === "drafted" ||
+                      order.status === "paused" ||
+                      order.status === "qc") && (
+                      <Loader
+                        size={16}
+                        className={cn(
+                          "mr-1 animate-spin",
+                          order.status === "in_progress" &&
+                            "text-status-in_progress",
+                          order.status === "qc" && "text-status-qc",
+                          order.status === "paused" && "text-status-paused",
+                          (order.status === "scheduled" ||
+                            order.status === "confirmed" ||
+                            order.status === "drafted") &&
+                            "text-status-scheduled"
+                        )}
+                      />
+                    )}
+                    <span className="capitalize">
+                      {getStatusText(order.status)}
+                    </span>
                   </p>
                 )}
               </div>
             </div>
           </div>
-
-          {/* {editMode && (
-            <div className="flex justify-end space-x-4 mt-6">
-              <button
-                onClick={() => setEditMode(false)}
-                className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveChanges}
-                className="px-4 py-1.5 text-sm bg-brand-blue text-slate-800 dark:text-white hover:text-white rounded-md hover:bg-blue-600 transition-colors"
-              >
-                Save Changes
-              </button>
-            </div>
-          )} */}
         </TabsContent>
 
         {/* Tasks & Logs Tab */}
@@ -291,27 +356,38 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
           <div className="space-y-3">
             {order.tasks?.map((task, index) => (
               <div
-                key={index}
+                key={task.op_id || index}
                 className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
               >
                 <div className="flex items-center">
                   <input
-                    title="Complete Task"
+                    title={`Task ${task.name} completed status`}
                     type="checkbox"
                     checked={task.completed}
-                    className="h-4 w-4 text-brand-blue border-gray-300 rounded"
+                    className="h-4 w-4 text-brand-blue border-gray-300 rounded focus:ring-brand-blue"
                     readOnly
                   />
                   <span
-                    className={`ml-3 ${task.completed ? "line-through text-gray-500" : "text-gray-900 dark:text-white"}`}
+                    className={cn(
+                      "ml-3",
+                      task.completed
+                        ? "line-through text-gray-500"
+                        : "text-gray-900 dark:text-white"
+                    )}
                   >
                     {task.name}
+                    {task.op_type && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({task.op_type})
+                      </span>
+                    )}
                   </span>
                 </div>
-
-                <button className="px-3 py-1 text-xs bg-brand-blue text-white rounded hover:bg-blue-600 transition-colors">
-                  Perform Scan
-                </button>
+                <div>
+                  <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground mr-2">
+                    {task.status}
+                  </span>
+                </div>
               </div>
             ))}
 
@@ -329,9 +405,6 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
               Assigned Drums
             </h3>
-            <button className="px-3 py-1.5 text-sm bg-brand-blue text-white rounded hover:bg-blue-600 transition-colors">
-              Assign New Drum
-            </button>
           </div>
 
           <div className="border rounded-lg overflow-hidden">
@@ -355,12 +428,6 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >
                     Location
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                  >
-                    Actions
                   </th>
                 </tr>
               </thead>
