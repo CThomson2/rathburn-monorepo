@@ -5,7 +5,7 @@ import { fetchQRDData } from "@/app/actions/qrd";
 import { emptyQRDData } from "@/features/production/types/qrd";
 import { fetchProductionJobById } from "@/app/actions/production";
 // Assuming Order type from here has tasks with op_id and name/type.
-import type { Order as JobDetailsType } from "@/features/production/types";
+import type { ProductionJobViewData as JobDetailsType } from "@/features/production/types";
 
 interface PageProps {
   params: {

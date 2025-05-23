@@ -9,11 +9,17 @@ type ProgressIndicatorProps = {
 
 // The visual steps on the indicator UI
 const UI_STEPS = [
-  { name: "Preparation", SPhases: ["drafted", "scheduled", "confirmed"] },
+  { name: "Scheduling", SPhases: ["drafted", "scheduled", "confirmed"] },
   { name: "Distillation", SPhases: ["in_progress"] },
   { name: "QC", SPhases: ["qc"] },
   { name: "Complete", SPhases: ["complete"] },
 ];
+
+const progressBarGradient = (progress: number) => {
+  console.log("Gradient bar progress:", progress);
+  // return `bg-gradient-to-r from-blue-500 0% to-blue-500 ${progress}% to-bg-gray-200 dark:to-bg-gray-700 100%`;
+  return `bg-gradient-to-r from-blue-500 0% to-blue-500 ${progress}% to-bg-gray-200 dark:to-bg-gray-700 100%`; // debugging
+};
 
 export const ProgressIndicator = ({
   status,
@@ -52,7 +58,12 @@ export const ProgressIndicator = ({
   return (
     <div className="relative">
       {/* Progress bar background */}
-      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div
+        className="h-2 rounded-full overflow-hidden"
+        style={{
+          background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${progress}%, #e5e7eb ${progress + 15}%, #e5e7eb 100%)`,
+        }}
+      >
         {isError ? (
           <div className="h-full bg-status-error w-full animate-pulse"></div>
         ) : (
@@ -90,7 +101,7 @@ export const ProgressIndicator = ({
                 className={cn(
                   "w-4 h-4 rounded-full flex items-center justify-center mb-0.5",
                   isActiveOrPassed
-                    ? "bg-brand-blue"
+                    ? "bg-blue-500"
                     : "bg-gray-300 dark:bg-gray-600",
                   isError && "bg-status-error" // Override with error color if job status is error
                 )}

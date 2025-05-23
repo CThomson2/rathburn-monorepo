@@ -1,60 +1,17 @@
 import { useState } from "react";
 import { Edit, CheckCircle, AlertTriangle, Loader } from "lucide-react";
-import { ProductionJobViewData, JobDisplayStatus } from "../../types/";
+import {
+  ProductionJobViewData,
+  JobDisplayStatus,
+  getStatusText,
+  getStatusBadgeColorClass,
+} from "@/features/production/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 type OrderDetailProps = {
   order: ProductionJobViewData;
-};
-
-const getStatusText = (status: JobDisplayStatus): string => {
-  switch (status) {
-    case "drafted":
-      return "Draft";
-    case "scheduled":
-      return "Scheduled";
-    case "confirmed":
-      return "Confirmed";
-    case "in_progress":
-      return "In Progress";
-    case "paused":
-      return "Paused";
-    case "qc":
-      return "QC In Progress";
-    case "complete":
-      return "Complete";
-    case "error":
-      return "Error";
-    default:
-      const _exhaustiveCheck: never = status;
-      return "Unknown";
-  }
-};
-
-const getStatusBadgeColorClass = (status: JobDisplayStatus): string => {
-  switch (status) {
-    case "drafted":
-      return "bg-status-drafted";
-    case "scheduled":
-      return "bg-status-scheduled";
-    case "confirmed":
-      return "bg-status-confirmed";
-    case "in_progress":
-      return "bg-status-in_progress";
-    case "paused":
-      return "bg-status-paused";
-    case "qc":
-      return "bg-status-qc";
-    case "complete":
-      return "bg-status-complete";
-    case "error":
-      return "bg-status-error";
-    default:
-      const _exhaustiveCheck: never = status;
-      return "bg-gray-400";
-  }
 };
 
 export const OrderDetail = ({ order }: OrderDetailProps) => {

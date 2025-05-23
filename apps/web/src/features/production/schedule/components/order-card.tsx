@@ -5,6 +5,7 @@ import {
   Loader,
   ChevronDown,
   ChevronUp,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrderDetail } from "./order-detail";
@@ -12,38 +13,16 @@ import { ProgressIndicator } from "./progress-indicator";
 import {
   ProductionJobViewData,
   JobDisplayStatus,
+  getStatusText,
 } from "@/features/production/types";
 
 import { motion } from "framer-motion";
+import { TestTube2 } from "lucide-react";
 
 type OrderCardProps = {
   order: ProductionJobViewData;
   handleViewUpdate: () => void;
   index: number;
-};
-
-const getStatusText = (status: JobDisplayStatus): string => {
-  switch (status) {
-    case "drafted":
-      return "Draft";
-    case "scheduled":
-      return "Scheduled";
-    case "confirmed":
-      return "Confirmed";
-    case "in_progress":
-      return "In Progress";
-    case "paused":
-      return "Paused";
-    case "qc":
-      return "QC In Progress";
-    case "complete":
-      return "Complete";
-    case "error":
-      return "Error";
-    default:
-      const _exhaustiveCheck: never = status;
-      return "Unknown";
-  }
 };
 
 export const OrderCard = ({
@@ -61,13 +40,31 @@ export const OrderCard = ({
       case "error":
         return <AlertTriangle className="text-status-error" size={18} />;
       case "drafted":
+        return (
+          <Pencil className="text-status-drafted animate-pulse" size={18} />
+        );
       case "scheduled":
       case "confirmed":
+        return (
+          <CheckCircle
+            className="text-status-drafted animate-pulse"
+            size={18}
+          />
+        );
       case "in_progress":
       case "paused":
+        return (
+          <AlertTriangle
+            className="text-status-in_progress animate-pulse"
+            size={18}
+          />
+        );
       case "qc":
         return (
-          <Loader className="text-status-in_progress animate-spin" size={18} />
+          <TestTube2
+            className="text-status-in_progress animate-spin"
+            size={18}
+          />
         );
       default:
         const _exhaustiveCheck: never = status;
@@ -167,7 +164,7 @@ export const OrderCard = ({
             </div>
             <div className="flex items-center">
               <div className="text-right mr-4">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-md text-gray-900 font-bold dark:text-white">
                   {typeof order.quantity === "number"
                     ? order.quantity * 200
                     : "N/A"}{" "}
@@ -205,7 +202,7 @@ export const OrderCard = ({
 
             <button
               type="button"
-              className="px-4 py-1.5 text-sm bg-brand-blue text-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors"
+              className="px-4 py-1.5 text-sm bg-brand-blue text-primary hover:text-white hover:font-bold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 handleViewUpdate();

@@ -245,6 +245,7 @@ export function QRDFractions({
                 <Button
                   type="button"
                   variant="outline"
+                  className="hidden 2xl:block"
                   size="sm"
                   onClick={() => handleSetCurrentTime("startTime")}
                   disabled={disabled}
@@ -280,6 +281,7 @@ export function QRDFractions({
                 <Button
                   type="button"
                   variant="outline"
+                  className="hidden 2xl:block"
                   size="sm"
                   onClick={() => handleSetCurrentTime("endTime")}
                   disabled={disabled}
@@ -313,8 +315,8 @@ export function QRDFractions({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Temperature */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+            {/* Temperature
             <div className="space-y-2">
               <Label>Collection Temperature (°C)</Label>
               <Input
@@ -332,7 +334,7 @@ export function QRDFractions({
                 disabled={disabled}
                 placeholder="°C"
               />
-            </div>
+            </div> */}
 
             {/* Appearance */}
             <div className="space-y-2">
@@ -403,6 +405,29 @@ export function QRDFractions({
               registration={{} as any}
             />
           </div>
+
+          {/* This is just to demonstrate one way to save QC results from MSDOS system so that server knows where to find them */}
+          {/* Actually, we can just use the fraction number and batch code to find the file on the server */}
+          {/* Leaving comment here as we had discussed the most user-friendly way to do this */}
+          {/* <div className="space-y-2">
+            <Label>
+              Saved File Name{" "}
+              <span className="text-muted-foreground">(Optional)</span>
+            </Label>
+            <Textarea
+              value={newFraction.savedFileName || ""}
+              onChange={(e) =>
+                setNewFraction((prev) => ({
+                  ...prev,
+                  savedFileName: e.target.value,
+                }))
+              }
+              placeholder="C:\data\samples\[batch-code]\[fraction-number].csv"
+              disabled={disabled}
+              rows={2}
+              registration={{} as any}
+            />
+          </div> */}
 
           {/* Action Button */}
           <div className="flex justify-end">
