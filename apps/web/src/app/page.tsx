@@ -2,7 +2,7 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Lamp } from "@/components/layout/lamp-view";
 import { RealtimeFeedCentered } from "@/components/realtime/centered-feed";
-import { Database, Json } from "@/types/supabase";
+import { Database, Json } from "@rathburn/types";
 import { EnhancedBentoGrid } from "@/components/layout/enhanced-bento-grid";
 import { OrderModal } from "@/features/orders/components/order-modal";
 import { Tilt3DCardExample } from "@/components/examples/tilt-3d-card-example";

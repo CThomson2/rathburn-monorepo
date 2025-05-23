@@ -307,8 +307,25 @@ export function EnhancedBentoGrid({
 }: BentoGridProps) {
   const changelogEntries = [
     {
+      version: "v1.2.0",
+      date: "Fri 24 May",
+      title: "Enhanced Production Workflow & QRD Stability",
+      description:
+        "Major improvements to production job creation, status updates, and the foundational QRD flow. Includes critical bug fixes for UI stability and database permissions.",
+      items: [
+        "📋 Established functional QRD data flow (next step: reuse label generation code to create repro labels).",
+        "🛡️ Corrected database permissions for updating production job statuses using a stored procedure.",
+        "🔄 Refined data types (`ProductionJobViewData`) for better consistency.",
+        "🎨 Improved UI for job status display across production schedule views.",
+        "⚗️ Digital Setup Configuration - Replace manual parameter recording with intelligent forms that capture operator details, initial conditions, and equipment settings with validation.",
+        "📊 Real-time Process Monitoring - Transform paper-based temperature and pressure logging into automated digital readings with timestamp accuracy and trend analysis.",
+        "🧪 Fraction Collection Tracking - Eliminate handwritten fraction logs with structured digital capture of collection times, volumes, and quality observations for complete traceability.",
+        "🔑 Finalise QRD with QC signature and Supervisor approval to complete the production job and save into database.",
+      ],
+    },
+    {
       version: "v1.1.6",
-      date: "Tue 21 May",
+      date: "Wed 21 May",
       title: "Production Schedule - Full System Integration",
       description:
         "Boost your efficency and ensure best data recording practices with a fully integrated production scheduling system.",

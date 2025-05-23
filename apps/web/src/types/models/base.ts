@@ -4,7 +4,7 @@
  * to make the transition smoother.
  */
 
-import { Database, Tables } from "@/types/supabase";
+import { Database, Tables } from "@rathburn/types";
 
 // New Supabase-based types that should be used for new development
 // These provide a cleaner way to access table types

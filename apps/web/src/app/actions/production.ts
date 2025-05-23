@@ -3,13 +3,14 @@
 import { executeServerDbOperation } from "@/lib/database";
 import { SupabaseClient } from "@supabase/supabase-js";
 import {
-  Order as ProductionJobOrderType,
-  mapJobStatusToOrderStatus,
-  getProgressFromStatus,
   getPriorityFromJob,
   JobStatus,
   OperationStatus,
   ProductionJobData,
+  ProductionJobViewData,
+  mapJobStatusToDisplayStatus,
+  getProgressFromDbJobStatus,
+  OperationType,
 } from "@/features/production/types";
 
 /***************************
@@ -20,136 +21,135 @@ import {
  * Returns a list of upcoming / recent production jobs.
  * Joins helper tables to give the UI meaningful strings.
  */
-export async function fetchProductionJobs(): Promise<ProductionJobOrderType[]> {
+export async function fetchProductionJobs(): Promise<ProductionJobViewData[]> {
   return executeServerDbOperation(async (supabase: SupabaseClient) => {
     const { data: viewData, error } = await supabase
       .schema("production")
       .from("v_operation_schedule")
-      .select("*"); // Select all columns from the view
-    // The view already has an ORDER BY o.scheduled_start
-    // If you need to order by job's created_at, you can add it here,
-    // but ensure 'job_created_at' is selected from the view.
-    // .order("job_created_at", { ascending: false });
+      .select("*");
 
     if (error || !viewData) {
       console.error("[fetchProductionJobs]", error);
       return [];
     }
 
-    // Map the data from the view to your ProductionJobOrderType
-    // Adjust field names based on your view's aliases
-    return viewData.map((job: any) => ({
-      id: job.job_id,
-      jobName: job.job_name ?? job.job_id.slice(0, 8),
-      itemName: job.item_name ?? "Unknown Item", // From view
-      supplier: job.supplier_name ?? "Unknown Supplier", // From view
-      // Quantity might need recalculation if based on operation_drums,
-      // or you can add a COUNT/SUM to your view for this.
-      // For now, let's see if the view provides enough.
-      // This original quantity logic might not directly map if the view has one row per drum in an operation.
-      // The view as written will have one row per (job, op, drum) combination if using INNER JOIN on operation_drums,
-      // or one row per (job, op) if using LEFT JOIN and no drums are associated yet.
-      // Let's assume for now we want one entry per job_id, and the view might return multiple if a job has multiple ops/drums.
-      // This part might need refinement based on how ProductionPreviewProps expects the data.
-      // For an MVP, if the view is one row per scheduled operation, quantity might be based on dd.raw_volume / 200.
-      quantity: job.raw_volume ? job.raw_volume / 200 : 0, // Example: using raw_volume from distillation_details
-      scheduledDate: job.scheduled_start ?? job.job_created_at, // From view (scheduled_start from operations)
-      status: mapJobStatusToOrderStatus(job.job_status), // From view
-      progress: getProgressFromStatus(job.job_status), // Based on job_status
-      priority: job.priority, // From view
-      drums: job.drum_id
-        ? [
-            {
-              // Simplified: if a drum_id exists in the row
-              id: job.drum_id,
-              serial: job.drum_serial_number ?? "N/A",
-              volume: job.volume_transferred ?? job.drum_current_volume ?? 0,
-              location: "N/A", // Location not in current view, might need to add
-            },
-          ]
-        : [],
-      tasks: [
-        {
-          // Simplified: represents the main distillation operation
-          name: job.op_type.replace("_", " ") ?? "Distillation",
-          completed: job.op_status === "completed",
-          assignedTo: "", // Not in view
-          details: job.still_code
-            ? `Still: ${job.still_code}, Raw Vol: ${job.raw_volume}L, Max Cap: ${job.still_max_capacity * 200}L`
-            : "Details unavailable",
-          // Add more task details from view if needed (started_at, ended_at for this op)
-          status: job.op_status as OperationStatus,
-          started_at: job.started_at,
-          ended_at: job.ended_at,
-        },
-      ],
-      timeline: [], // Timeline construction might need to be re-evaluated based on view structure
-      // or fetched separately if too complex from this flattened view row.
-      // For simplicity, leaving it empty as the view focuses on current schedule.
-    }));
+    return viewData.map((job: any) => {
+      const dbJobStatus = job.job_status as JobStatus;
+      const displayStatus = mapJobStatusToDisplayStatus(dbJobStatus);
+      
+      const activeOpTypeFromView = job.active_operation_type as OperationType | undefined;
+
+      return {
+        id: job.job_id,
+        jobName: job.job_name ?? job.job_id.slice(0, 8),
+        itemName: job.item_name ?? "Unknown Item",
+        supplier: job.supplier_name ?? "Unknown Supplier",
+        quantity: typeof job.raw_volume === 'number' ? job.raw_volume / 200 : 0,
+        scheduledDate: job.scheduled_start ?? job.job_created_at,
+        status: mapJobStatusToDisplayStatus(dbJobStatus, activeOpTypeFromView),
+        progress: getProgressFromDbJobStatus(dbJobStatus),
+        priority: getPriorityFromJob({priority: job.priority}),
+        activeOperationType: activeOpTypeFromView,
+        drums: job.drum_id && job.drum_serial_number
+          ? [
+              {
+                id: job.drum_id,
+                serial: job.drum_serial_number,
+                volume: typeof job.volume_transferred === 'number' ? job.volume_transferred : (typeof job.drum_current_volume === 'number' ? job.drum_current_volume : 0),
+                location: job.drum_location ?? "N/A",
+              },
+            ]
+          : [],
+        tasks: job.op_id ? [
+          {
+            op_id: job.op_id,
+            name: job.op_type ? (job.op_type as string).replace(/_/g, " ") : "Operation",
+            op_type: job.op_type as OperationType,
+            completed: job.op_status === "completed",
+            details: job.still_code && typeof job.raw_volume === 'number'
+              ? `Still: ${job.still_code}, Raw Vol: ${job.raw_volume}L, Max Cap: ${job.still_max_capacity ? job.still_max_capacity * 200 : 'N/A'}L`
+              : undefined,
+            status: job.op_status as OperationStatus,
+            started_at: job.started_at,
+            ended_at: job.ended_at,
+          },
+        ] : [],
+        timeline: [],
+      };
+    });
   });
 }
 
 /** Fetches details for a single production job */
 export async function fetchProductionJobById(
   jobId: string
-): Promise<ProductionJobOrderType | null> {
+): Promise<ProductionJobViewData | null> {
   if (!jobId) return null;
 
   return executeServerDbOperation(async (supabase: SupabaseClient) => {
-    const { data: jobData, error } = await supabase
-      // .schema("production") // Querying from public schema now
-      .from("v_production_job_details") // Use the new view
-      .select(
-        `*
-        `
-      )
+    const { data: jobDataRows, error } = await supabase
+      .from("v_production_job_details")
+      .select("*")
       .eq("job_id", jobId);
-      // .single(); // The view might return multiple rows if a job has multiple operations/drums. We need to aggregate.
 
-    if (error || !jobData || jobData.length === 0) {
-      console.error(`[fetchProductionJobById: ${jobId}]`, error);
+    if (error || !jobDataRows || jobDataRows.length === 0) {
+      console.error(`[fetchProductionJobById: ${jobId}] Error fetching job details:`, error);
       return null;
     }
 
-    // Aggregate data since the view can return multiple rows per job_id
-    // (due to joins with operations, operation_drums)
-    const aggregatedJob: ProductionJobOrderType = {
-      id: jobData[0].job_id,
-      jobName: jobData[0].job_name ?? `${jobData[0].item_name} - (${jobData[0].batch_code})`,
-      itemName: jobData[0].item_name ?? "Unknown Item",
-      supplier: jobData[0].supplier_name ?? "Unknown Supplier",
+    let activeOperationType: OperationType | undefined = undefined;
+    for (const row of jobDataRows) {
+      if (row.operation_status === 'active' && row.op_type) {
+        activeOperationType = row.op_type as OperationType;
+        break;
+      }
+    }
+    
+    const firstRow = jobDataRows[0];
+    const dbJobStatus = firstRow.job_status as JobStatus;
+
+    const aggregatedJob: ProductionJobViewData = {
+      id: firstRow.job_id,
+      jobName: firstRow.job_name ?? `${firstRow.item_name} - (${firstRow.batch_code ?? 'N/A'})`,
+      batch_id: firstRow.input_batch_id,
+      batch_code: firstRow.batch_code,
+      item_id: firstRow.item_id,
+      material_id: firstRow.material_id,
+      itemName: firstRow.item_name ?? "Unknown Item",
+      supplier: firstRow.supplier_name ?? "Unknown Supplier",
       quantity: 0,
-      scheduledDate: jobData[0].job_planned_start ?? jobData[0].job_created_at,
-      status: mapJobStatusToOrderStatus(jobData[0].job_status as JobStatus),
-      progress: getProgressFromStatus(jobData[0].job_status as JobStatus),
-      priority: getPriorityFromJob({ priority: jobData[0].job_priority } as any),
+      scheduledDate: firstRow.job_planned_start ?? firstRow.job_created_at,
+      status: mapJobStatusToDisplayStatus(dbJobStatus, activeOperationType),
+      progress: getProgressFromDbJobStatus(dbJobStatus),
+      priority: getPriorityFromJob({ priority: firstRow.job_priority }),
+      activeOperationType: activeOperationType,
       drums: [],
       tasks: [],
       timeline: [],
     };
 
-    const operationMap = new Map<string, any>();
-    const drumMap = new Map<string, any>();
+    const operationMap = new Map<string, NonNullable<ProductionJobViewData['tasks']>[0]>();
+    const drumMap = new Map<string, NonNullable<ProductionJobViewData['drums']>[0]>();
 
-    for (const row of jobData) {
-      if (row.operation_drum_id && !drumMap.has(row.drum_serial_number)) {
+    for (const row of jobDataRows) {
+      if (row.drum_serial_number && !drumMap.has(row.drum_serial_number)) {
         drumMap.set(row.drum_serial_number, {
-          id: row.drum_serial_number,
-          serial: row.drum_serial_number ?? 'N/A',
+          id: row.drum_id ?? row.drum_serial_number,
+          serial: row.drum_serial_number,
           volume: row.operation_drum_volume_transferred ?? row.drum_current_volume ?? 0,
-          location: 'N/A',
+          location: row.drum_location ?? 'N/A',
         });
       }
 
       if (row.op_id && !operationMap.has(row.op_id)) {
         let taskDetails = "";
         if (row.op_type === 'distillation' && row.still_code) {
-          taskDetails = `Still: ${row.still_code}, Raw Vol: ${row.distillation_raw_volume}L, Max Cap: ${row.still_max_capacity ? row.still_max_capacity * 200 : 'N/A'}L`;
+          taskDetails = `Still: ${row.still_code}, Raw Vol: ${row.distillation_raw_volume ?? 'N/A'}L, Max Cap: ${row.still_max_capacity ? row.still_max_capacity * 200 : 'N/A'}L`;
         }
         operationMap.set(row.op_id, {
           op_id: row.op_id,
-          name: row.op_type ? row.op_type.replace("_", " ") : 'Operation',
+          name: row.op_type ? (row.op_type as string).replace(/_/g, " ") : 'Operation',
+          op_type: row.op_type as OperationType,
           completed: row.operation_status === "completed",
           details: taskDetails || undefined,
           status: row.operation_status as OperationStatus,
@@ -160,19 +160,25 @@ export async function fetchProductionJobById(
     }
 
     aggregatedJob.drums = Array.from(drumMap.values());
-    aggregatedJob.tasks = Array.from(operationMap.values());
+    aggregatedJob.tasks = Array.from(operationMap.values()).sort((a, b) => {
+        const order = ['preparation', 'distillation', 'qc', 'packaging', 'decanting', 'split', 'transport', 'goods_in'] as OperationType[];
+        const aIndex = a.op_type ? order.indexOf(a.op_type) : -1;
+        const bIndex = b.op_type ? order.indexOf(b.op_type) : -1;
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (a.started_at && b.started_at) return new Date(a.started_at).getTime() - new Date(b.started_at).getTime();
+        if (a.name && b.name) return a.name.localeCompare(b.name);
+        return 0;
+    });
     
-    // Calculate total quantity from drums
     aggregatedJob.quantity = aggregatedJob.drums.reduce((acc, drum) => acc + (drum.volume || 0), 0) / 200;
 
-    // Construct timeline from unique operations
-    const timelineEvents: any[] = [];
+    const timelineEvents: NonNullable<ProductionJobViewData['timeline']> = [];
     aggregatedJob.tasks.forEach(op => {
       if (op.started_at) {
         timelineEvents.push({
           event: `${op.name} started`,
           timestamp: op.started_at,
-          user: "system", // Or derive if user info is available
+          user: "system", 
         });
       }
       if (op.ended_at) {
@@ -187,7 +193,7 @@ export async function fetchProductionJobById(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
 
-    return aggregatedJob as ProductionJobOrderType;
+    return aggregatedJob;
   });
 }
 
@@ -207,11 +213,7 @@ export async function fetchStills(): Promise<
       console.error("[fetchStills]", error);
       return [];
     }
-    return data as Array<{
-      still_id: number;
-      code: string;
-      max_capacity: number;
-    }>;
+    return data;
   });
 }
 
@@ -226,65 +228,43 @@ export async function fetchAvailableBatchesByMaterial(materialId: string): Promi
     supplier_name: string | null;
   }>
 > {
-  console.log("[fetchAvailableBatchesByMaterial] Starting with materialId:", materialId);
   if (!materialId) {
-    console.log("[fetchAvailableBatchesByMaterial] No materialId provided, returning empty array");
     return [];
   }
   
   return executeServerDbOperation(async (supabase) => {
-    console.log("[fetchAvailableBatchesByMaterial] Executing database query for materialId:", materialId);
-    
-    // The original query used a view `v_batches_with_drums`.
-    // Since the view definition isn't readily available, and we need supplier_name,
-    // we'll construct a query joining batches, purchase_orders, and suppliers.
-    // The `drums_in_stock` logic from the original view is assumed to be handled
-    // by a field in `batches` or needs to be derived. For now, we'll assume
-    // a placeholder or a field that might exist on `batches` for `drums_in_stock`.
-    // This might need adjustment if `v_batches_with_drums` had complex aggregation.
-
     const { data: itemData, error: itemError } = await supabase
       .schema("inventory")
       .from("items")
       .select("item_id, name")
       .eq("material_id", materialId);
 
-    if (itemError) {
+    if (itemError || !itemData) {
       console.error("[fetchAvailableBatchesByMaterial: itemError]", itemError);
       return [];
     }
+    if (itemData.length === 0) {
+        console.log("[fetchAvailableBatchesByMaterial] No items found for materialId:", materialId);
+        return [];
+    }
 
-    console.log("[fetchAvailableBatchesByMaterial] Item count:", itemData?.length, "Item data:", itemData);
-
-    // First, let's get batches for the item and their associated POs.
     const { data: batchData, error: batchError } = await supabase
       .from("v_batches_with_drums")
       .select("batch_id, batch_code, drums_in_stock, supplier_name")
-      .in("item_id", itemData?.map((item: any) => item.item_id) || [])
-      .gt("drums_in_stock", 0); // Assuming qty_drums represents drums_in_stock
+      .in("item_id", itemData.map((item) => item.item_id))
+      .gt("drums_in_stock", 0);
 
     if (batchError) {
       console.error("[fetchAvailableBatchesByMaterial: batchError]", batchError);
       return [];
     }
 
-    console.log("[fetchAvailableBatchesByMaterial] Query results:", batchData);
-    console.log("[fetchAvailableBatchesByMaterial] Number of batches found:", batchData?.length || 0);
-
-    return batchData as Array<{
-      batch_id: string;
-      batch_code: string | null;
-      drums_in_stock: number;
-      supplier_name: string | null;
+    return batchData.filter(batch => batch.batch_id !== null) as Array<{
+      batch_id: string,
+      batch_code: string | null,
+      drums_in_stock: number,
+      supplier_name: string | null,
     }>;
-
-    // TODO: The `drums_in_stock` logic needs to be clarified.
-    // The original view `v_batches_with_drums` likely calculated this.
-    // For now, we'll use `qty_drums` from the `batches` table as a placeholder.
-    // This will need to be replaced with the correct logic for `drums_in_stock`.
-    // A common way is to count related records in a `drums` table, grouped by batch_id.
-    // For instance, if you have a `drums` table with `batch_id` and `status = 'in_stock'`,
-    // you would need a subquery or a separate query to count these.
   });
 }
 
@@ -307,18 +287,9 @@ export async function createProductionJob(jobData: ProductionJobData): Promise<{
   jobId?: string;
   message?: string;
 }> {
-  console.log("[createProductionJob] Starting job creation with data:", jobData);
-  // const parsed = parseProductionFormData(formData); // No longer parsing FormData here
-  // if (!parsed) { // Validation can be done directly on jobData if needed
-  //   console.log("[createProductionJob] Failed to parse form data");
-  //   return { success: false, message: "Missing or invalid form fields" };
-  // }
-
   const { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus, createdBy } = jobData;
-  console.log("[createProductionJob] Parsed data for RPC:", { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus });
 
   return executeServerDbOperation(async (supabase) => {
-    console.log("[createProductionJob] Calling database function create_production_job");
     const { data, error } = await supabase
       .schema("production")
       .rpc("create_production_job", {
@@ -327,49 +298,41 @@ export async function createProductionJob(jobData: ProductionJobData): Promise<{
         p_planned_start: plannedDate,
         p_still_id: stillId,
         p_raw_volume: rawVolume,
-        p_priority: priority ?? 10,
-        p_job_name: jobName, // ADDED - I will add this to the SQL function later
-        p_job_status: jobStatus, // ADDED - I will add this to the SQL function later
+        p_priority: priority ?? 5,
+        p_job_name: jobName,
+        p_job_status: jobStatus,
       });
 
     if (error) {
       console.error("[createProductionJob] Database error:", error);
       return { success: false, message: error.message };
     }
-
-    console.log("[createProductionJob] Job created successfully with ID:", data);
     return { success: true, jobId: data as string };
   });
 }
 
 /**
  * Server action - updates the status of a production job.
- * Typically from "drafted" to "scheduled".
  */
 export async function updateProductionJobStatus(
   jobId: string,
-  newStatus: "scheduled" // Restrict to only allowed transitions for now
+  newStatus: JobStatus
 ): Promise<{ success: boolean; message?: string }> {
   if (!jobId || !newStatus) {
     return { success: false, message: "Job ID and new status are required." };
   }
-  console.log(`[updateProductionJobStatus] Updating job ${jobId} to status ${newStatus}`);
   return executeServerDbOperation(async (supabase) => {
     const { error } = await supabase
       .schema("production")
-      .from("jobs")
-      .update({ status: newStatus })
-      .eq("job_id", jobId)
-      .eq("status", "drafted"); // IMPORTANT: Only allow update if current status is 'drafted'
+      .rpc("update_job_status_rpc", {
+        p_job_id: jobId,
+        p_new_status: newStatus,
+      });
 
     if (error) {
       console.error("[updateProductionJobStatus] Database error:", error);
       return { success: false, message: error.message };
     }
-    // Optionally, check if any row was actually updated if needed.
-    // const { count } = await ... (select count where updated)
-    // if (count === 0) return { success: false, message: "Job not found or not in 'drafted' state." };
-    console.log(`[updateProductionJobStatus] Job ${jobId} status updated to ${newStatus}`);
     return { success: true };
   });
 }
@@ -379,51 +342,47 @@ export async function updateProductionJobStatus(
  */
 export async function updateProductionJobDetails(
   jobId: string,
-  details: Partial<ProductionJobData> // Use the same type as create for consistency
+  details: Partial<Omit<ProductionJobData, 'jobStatus' | 'createdBy'> & { jobName?: string, priority?: number }>
 ): Promise<{ success: boolean; message?: string }> {
   if (!jobId) {
     return { success: false, message: "Job ID is required." };
   }
-  console.log(`[updateProductionJobDetails] Updating details for job ${jobId}:`, details);
 
   const { batchId, plannedDate, stillId, rawVolume, priority, jobName } = details;
+  const updatePayload: any = { updated_at: new Date().toISOString() };
 
-  // Construct the update object, only including fields that are provided in 'details'
-  const updateData: any = { updated_at: new Date().toISOString() };
-  if (batchId !== undefined) updateData.input_batch_id = batchId;
-  if (plannedDate !== undefined) updateData.planned_start = plannedDate;
-  // Note: stillId and rawVolume are usually part of distillation_details, not directly on jobs table.
-  // This update logic might need to target `production.distillation_details` for those.
-  // For now, assuming these might be denormalized or handled via a more complex update RPC.
-  // If they are on `jobs` table:
-  // if (stillId !== undefined) updateData.still_id_on_job_table = stillId; // Example, if such field existed
-  // if (rawVolume !== undefined) updateData.raw_volume_on_job_table = rawVolume; // Example
-  if (priority !== undefined) updateData.priority = priority;
-  if (jobName !== undefined) updateData.job_name = jobName;
-
-  // If stillId or rawVolume need to update related operation/distillation_details,
-  // a more specific RPC or multiple updates would be needed.
-  // For this example, we only update fields directly on the `jobs` table based on ProductionJobData.
-
-  if (Object.keys(updateData).length <= 1) { // Only updated_at
-    return { success: false, message: "No details provided to update." };
+  if (details.hasOwnProperty('batchId')) updatePayload.input_batch_id = batchId;
+  if (details.hasOwnProperty('plannedDate')) updatePayload.planned_start = plannedDate;
+  if (details.hasOwnProperty('priority')) updatePayload.priority = priority;
+  if (details.hasOwnProperty('jobName')) updatePayload.job_name = jobName;
+  
+  if (details.hasOwnProperty('stillId')) {
+    console.warn("[updateProductionJobDetails] stillId update needs to target operations or distillation_details, not implemented for direct job update yet.");
+  }
+  if (details.hasOwnProperty('rawVolume')) {
+    console.warn("[updateProductionJobDetails] rawVolume update needs to target operations or distillation_details, not implemented for direct job update yet.");
   }
 
-  console.log("[updateProductionJobDetails] updateData:", updateData);
+  if (Object.keys(updatePayload).length <= 1) {
+    return { success: true, message: "No updatable details provided." };
+  }
 
   return executeServerDbOperation(async (supabase) => {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .schema("production")
       .from("jobs")
-      .update(updateData)
+      .update(updatePayload)
       .eq("job_id", jobId)
-      .eq("status", "drafted"); // IMPORTANT: Only allow update if current status is 'drafted'
+      .eq("status", "drafted")
+      .select();
 
     if (error) {
       console.error("[updateProductionJobDetails] Database error:", error);
       return { success: false, message: error.message };
     }
-    console.log(`[updateProductionJobDetails] Job ${jobId} details updated.`);
+    if (count === 0) {
+        return { success: false, message: "Job not found in 'drafted' state or no changes made." };
+    }
     return { success: true };
   });
 }

@@ -1,4 +1,4 @@
-import { Database } from "@/types/models/supabase";
+import { Database } from "@rathburn/types";
 
 export type ValidTable =
   | keyof Database["public"]["Tables"]

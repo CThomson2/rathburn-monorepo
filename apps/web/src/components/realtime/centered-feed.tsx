@@ -11,7 +11,7 @@ import {
   createClient,
 } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
-import { Database, Json } from "@/types/supabase";
+import { Database, Json } from "@rathburn/types";
 
 // Updated interface to match public.session_scans
 interface SessionScanData {

@@ -33,10 +33,13 @@ import {
   CheckSquare, // For Confirm Schedule
   Loader2,
   Edit,
+  ArrowLeft,
 } from "lucide-react";
 import {
-  Order as JobDetailsType,
-  OrderStatus,
+  ProductionJobViewData,
+  JobDisplayStatus,
+  JobStatus as DbJobStatus,
+  OperationStatus, // Keep if getOperationStatusVariant is used for individual operations
 } from "@/features/production/types";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -52,40 +55,47 @@ interface JobDetailsPageProps {
   };
 }
 
-// Helper to get badge variant based on operation status (can be expanded)
-function getOperationStatusVariant(
-  status: string | undefined
+// Helper to get badge variant based on JobDisplayStatus for the overall job
+function getJobDisplayStatusBadgeVariant(
+  status: JobDisplayStatus | undefined
 ): "default" | "secondary" | "destructive" | "outline" {
-  switch (status?.toLowerCase()) {
-    case "completed":
+  switch (status) {
+    case "complete":
       return "default";
     case "in_progress":
-    case "active":
+    case "qc":
+    case "confirmed":
       return "outline";
-    case "pending":
+    case "drafted":
     case "scheduled":
+    case "paused":
       return "secondary";
     case "error":
-    case "failed":
       return "destructive";
     default:
       return "secondary";
   }
 }
 
-// Helper for overall job status badge
-function getJobStatusBadgeVariant(
-  status: OrderStatus | undefined
+// This helper is for individual operation items if displayed on this page, not for the main job badge.
+// It uses OperationStatus from the DB.
+function getOperationStatusVariant(
+  status: OperationStatus | string | undefined // Can be OperationStatus or a string from DB
 ): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "complete":
+  // Ensure status is treated as string for case comparison if it's an enum value
+  const lowerStatus = String(status).toLowerCase();
+  switch (lowerStatus) {
+    case "completed":
       return "default";
-    case "distillation": // Represents in_progress for the main job
-    case "qc": // QC is also an active phase
+    case "in_progress": // This is op_status 'in_progress'
+    case "active": // This is op_status 'active'
       return "outline";
-    case "preparing": // Represents scheduled/pending OR DRAFTED
+    case "pending": // op_status 'pending'
+      // case "scheduled": // op_status doesn't have 'scheduled', job_status does. Remove if not an op_status.
+      // If 'scheduled' can appear as an op_status string, map it.
       return "secondary";
     case "error":
+    case "failed": // 'failed' is a job_status, 'error' is an op_status. Keep if 'failed' can be an op string.
       return "destructive";
     default:
       return "secondary";
@@ -124,7 +134,7 @@ export default function ProductionJobDetailsPage({
   params,
 }: JobDetailsPageProps) {
   const jobId = params["job-id"];
-  const [job, setJob] = useState<JobDetailsType | null>(null);
+  const [job, setJob] = useState<ProductionJobViewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -133,17 +143,28 @@ export default function ProductionJobDetailsPage({
 
   const loadJob = useCallback(async () => {
     setLoading(true);
-    const fetchedJob = await fetchProductionJobById(jobId);
-    if (!fetchedJob) {
-      notFound();
-      return;
+    try {
+      const fetchedJob = await fetchProductionJobById(jobId);
+      if (!fetchedJob) {
+        notFound();
+        return;
+      }
+      setJob(fetchedJob);
+      // Automatically enter edit mode if the fetched job's DB status is 'drafted'
+      // This requires fetchProductionJobById to also return the raw DB JobStatus,
+      // or make another query. For now, we rely on the display status.
+      if (fetchedJob.status === "drafted") {
+        // Check against the display status
+        // setIsEditing(true); // TODO: Decide if this auto-edit is desired. User might want to view first.
+      }
+    } catch (error) {
+      console.error("Failed to load job:", error);
+      toast.error("Failed to load job details.");
+      // notFound(); // Or some other error display
+    } finally {
+      setLoading(false);
     }
-    setJob(fetchedJob);
-    // If job status from DB is 'drafted', set isEditing to true by default?
-    // For now, manual toggle.
-    // if (fetchedJob.job_status === 'drafted') setIsEditing(true);
-    setLoading(false);
-  }, [jobId]);
+  }, [jobId, toast]);
 
   useEffect(() => {
     loadJob();
@@ -151,21 +172,31 @@ export default function ProductionJobDetailsPage({
 
   const handleUpdateSuccess = () => {
     setIsEditing(false);
-    loadJob(); // Refresh job data
-    router.refresh(); // Refresh server components if any
+    loadJob();
+    router.refresh();
   };
 
   const handleConfirmSchedule = async () => {
     if (!job) return;
     setIsConfirming(true);
-    const result = await updateProductionJobStatus(job.id, "scheduled");
-    setIsConfirming(false);
-    if (result.success) {
-      toast.success("Job status updated to Scheduled!");
-      loadJob();
-      router.refresh();
-    } else {
-      toast.error(result.message || "Failed to update job status.");
+    try {
+      // updateProductionJobStatus now expects DbJobStatus type
+      const result = await updateProductionJobStatus(
+        job.id,
+        "scheduled" as DbJobStatus
+      );
+      if (result.success) {
+        toast.success("Job status updated to Scheduled!");
+        loadJob();
+        router.refresh();
+      } else {
+        toast.error(result.message || "Failed to update job status.");
+      }
+    } catch (error) {
+      console.error("Error confirming schedule:", error);
+      toast.error("An unexpected error occurred while confirming schedule.");
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -216,23 +247,10 @@ export default function ProductionJobDetailsPage({
                 Production job for: {itemName}
               </CardDescription>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <Button variant="outline">
-                {!isEditing ? (
-                  <Edit
-                    className="mr-2 h-4 w-4"
-                    onClick={() => setIsEditing(true)}
-                  />
-                ) : (
-                  <CheckSquare
-                    className="mr-2 h-4 w-4"
-                    onClick={() => setIsEditing(false)}
-                  />
-                )}
-              </Button>
+            <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
               <Badge
-                variant={getJobStatusBadgeVariant(status)}
-                className="text-sm px-3 py-1 self-start sm:self-center"
+                variant={getJobDisplayStatusBadgeVariant(status)}
+                className="text-sm px-3 py-1 self-start sm:self-center capitalize"
               >
                 {status}
                 {job.status === "drafted" && " (Draft)"}
@@ -244,6 +262,21 @@ export default function ProductionJobDetailsPage({
                   onClick={() => setIsEditing(true)}
                 >
                   <FileEdit className="mr-2 h-4 w-4" /> Edit Draft
+                </Button>
+              )}
+              {!isEditing && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="icon"
+                  className="self-start sm:self-center"
+                >
+                  <Link
+                    href="/production"
+                    aria-label="Back to production schedule"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
                 </Button>
               )}
             </div>
@@ -324,7 +357,7 @@ export default function ProductionJobDetailsPage({
           )}
 
           {job.status === "drafted" && !isEditing && (
-            <div className="mt-8 flex justify-end">
+            <div className="mt-8 px-2 flex justify-end">
               <Button
                 onClick={handleConfirmSchedule}
                 disabled={isConfirming}

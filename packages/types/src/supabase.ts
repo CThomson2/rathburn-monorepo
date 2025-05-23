@@ -2161,6 +2161,13 @@ export type Database = {
           op_id: string
         }[]
       }
+      update_job_status_rpc: {
+        Args: {
+          p_job_id: string
+          p_new_status?: Database["production"]["Enums"]["job_status"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       context_type: "distillation" | "warehouse"
@@ -3415,6 +3422,13 @@ export type Database = {
       test_service_role_permissions: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      update_job_status: {
+        Args: {
+          p_job_id: string
+          p_new_status?: Database["production"]["Enums"]["job_status"]
+        }
+        Returns: boolean
       }
       validate_passcode: {
         Args: { p_user_name: string; p_passcode: string }

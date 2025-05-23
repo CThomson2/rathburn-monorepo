@@ -109,24 +109,19 @@ export function JobEditForm({
   const [jobName, setJobName] = useState(job.jobName || "");
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     () => {
-      // Try to find initial material based on job's item/batch
-      // This is a bit tricky as we don't have direct material_id in job details easily
-      // This part might need refinement or a way to fetch material by item_name
-      return job.itemName
-        ? { id: "initial-material-placeholder", name: job.itemName }
+      // Use material_id from the job if available
+      return job.material_id && job.itemName
+        ? { id: job.material_id, name: job.itemName }
         : null;
     }
   );
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(() => {
-    const jobBatchCode = (job as any).batches?.batch_code;
-    if (jobBatchCode) {
+    // Use input_batch_id and batch_code from the job if available
+    if (job.batch_id && job.batch_code) {
       return {
-        batch_id: job.id, // This is wrong, job.id is job_id, not batch_id.
-        // We need the actual input_batch_id from the job data that created this job.
-        // The `v_production_job_details` should expose `input_batch_id` directly.
-        // For now, this will likely fail to match correctly.
-        batch_code: jobBatchCode,
-        drums_in_stock: job.quantity, // Approximate from total job quantity
+        batch_id: job.batch_id,
+        batch_code: job.batch_code,
+        drums_in_stock: job.quantity, // Still an approximation, ideally view provides actual drums_in_stock for the specific input_batch
         supplier_name: job.supplier,
       };
     }

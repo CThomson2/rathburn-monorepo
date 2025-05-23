@@ -7,7 +7,7 @@ import { OrderCard } from "@/features/production/schedule";
 import { ProductionModal } from "@/features/production/schedule/components/production-modal";
 import { useToast } from "@/components/ui/use-toast";
 import { fetchProductionJobs } from "@/app/actions/production";
-import type { Order as ProductionJobOrder } from "@/features/production/types";
+import type { ProductionJobViewData as ProductionJobOrder } from "@/features/production/types";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";

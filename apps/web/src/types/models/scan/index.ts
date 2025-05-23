@@ -1,4 +1,4 @@
-import { Database } from '@/types/models/supabase';
+import { Database } from '@rathburn/types';
 
 // Then use the enum like this:
 type ActionType = Database['inventory']['Enums']['action_type'];
