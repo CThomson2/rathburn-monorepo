@@ -376,11 +376,11 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                     )}
                   >
                     {task.name}
-                    {task.op_type && (
+                    {/* {task.op_type && (
                       <span className="text-xs text-muted-foreground ml-2">
                         ({task.op_type})
                       </span>
-                    )}
+                    )} */}
                   </span>
                 </div>
                 <div>

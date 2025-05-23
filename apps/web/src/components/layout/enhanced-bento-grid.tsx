@@ -308,7 +308,7 @@ export function EnhancedBentoGrid({
   const changelogEntries = [
     {
       version: "v1.2.0",
-      date: "Fri 24 May",
+      date: "Fri 23 May",
       title: "Enhanced Production Workflow & QRD Stability",
       description:
         "Major improvements to production job creation, status updates, and the foundational QRD flow. Includes critical bug fixes for UI stability and database permissions.",
@@ -379,10 +379,10 @@ export function EnhancedBentoGrid({
                 variant="outline"
                 className="text-xs border-primary/30 text-primary dark:text-slate-300 dark:border-slate-600"
               >
-                v1.1.6
+                v1.2.0
               </Badge>
               <span className="text-xs font-medium text-muted-foreground dark:text-slate-400">
-                Wednesday 21 May
+                Friday 23 May
               </span>
             </div>
             <p className="font-medium text-card-foreground dark:text-slate-200">
@@ -441,6 +441,35 @@ export function EnhancedBentoGrid({
           </div>
         </Tilt3DCard>
 
+        {/* Production Scheduling Card */}
+        <Tilt3DCard
+          icon={<WorkflowIcon className="h-8 w-8 text-primary" />}
+          name="Production Scheduling"
+          description="Manage your production workflow efficiently."
+          href="/production"
+          cta="View Production"
+          className="md:col-span-1 md:min-h-[340px]"
+          flippable={true}
+        >
+          <div className="mt-4 text-sm">
+            <p className="text-muted-foreground dark:text-slate-300 hidden sm:block">
+              Our latest feature enables end-to-end production scheduling,
+              syncing seamlessly between web and mobile applications.
+            </p>
+            <div className="mt-2">
+              <Badge className="mr-2 bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-700 dark:text-green-100 dark:hover:bg-green-600">
+                New
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-primary/30 text-primary dark:text-slate-300 dark:border-slate-600"
+              >
+                Time-saving
+              </Badge>
+            </div>
+          </div>
+        </Tilt3DCard>
+
         {/* Inventory Dashboard Card */}
         <Tilt3DCard
           icon={<PackageIcon className="h-8 w-8 text-primary" />}
@@ -448,10 +477,10 @@ export function EnhancedBentoGrid({
           description="Quick view of your inventory status."
           href="/inventory"
           cta="Go to Inventory"
-          className="md:col-span-1 md:min-h-[380px]"
+          className="md:col-span-2 md:min-h-[380px]"
           flippable={true}
         >
-          <div className="space-y-3 mt-4">
+          <div className="space-y-3 grid grid-cols-2 gap-4 mt-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">
                 Total Drums
@@ -487,42 +516,47 @@ export function EnhancedBentoGrid({
                 </p>
               )}
             </div>
-            <div className="mt-2 hidden sm:block">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">
+                Drums in Production
+              </p>
+              <p className="text-2xl font-bold text-card-foreground dark:text-slate-100">
+                10
+              </p>
+              <div className="inilne flex flex-col gap-1 mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-4 h-4 bg-orange-500 rounded-full text-white text-xs font-medium">
+                    3
+                  </div>
+                  <span className="text-xs text-muted-foreground dark:text-slate-400">
+                    Not started
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-4 h-4 bg-green-500 rounded-full text-white text-xs font-medium">
+                    7
+                  </div>
+                  <span className="text-xs text-muted-foreground dark:text-slate-400">
+                    In progress
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-4 h-4 bg-red-500 rounded-full text-white text-xs font-medium">
+                    0
+                  </div>
+                  <span className="text-xs text-muted-foreground dark:text-slate-400">
+                    Failed
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* <div className="mt-2 hidden sm:block">
               <Button variant="outline" size="sm" asChild>
                 <Link href="/inventory" className="flex items-center">
                   Go to Inventory <ArrowRightIcon className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-            </div>
-          </div>
-        </Tilt3DCard>
-
-        {/* Production Scheduling Card */}
-        <Tilt3DCard
-          icon={<WorkflowIcon className="h-8 w-8 text-primary" />}
-          name="Production Scheduling"
-          description="Manage your production workflow efficiently."
-          href="/production"
-          cta="View Production"
-          className="md:col-span-2 md:min-h-[340px]"
-          flippable={true}
-        >
-          <div className="mt-4 text-sm">
-            <p className="text-muted-foreground dark:text-slate-300 hidden sm:block">
-              Our latest feature enables end-to-end production scheduling,
-              syncing seamlessly between web and mobile applications.
-            </p>
-            <div className="mt-2">
-              <Badge className="mr-2 bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-700 dark:text-green-100 dark:hover:bg-green-600">
-                New
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-primary/30 text-primary dark:text-slate-300 dark:border-slate-600"
-              >
-                Time-saving
-              </Badge>
-            </div>
+            </div> */}
           </div>
         </Tilt3DCard>
       </div>

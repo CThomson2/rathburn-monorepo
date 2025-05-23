@@ -205,7 +205,7 @@ export const OrderCard = ({
 
             <button
               type="button"
-              className="px-4 py-1.5 text-sm bg-brand-blue text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors"
+              className="px-4 py-1.5 text-sm bg-brand-blue text-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 handleViewUpdate();
