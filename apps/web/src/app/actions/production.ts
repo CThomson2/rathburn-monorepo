@@ -226,14 +226,14 @@ export async function fetchAvailableBatchesByMaterial(materialId: string): Promi
     supplier_name: string | null;
   }>
 > {
-  console.log("[fetchAvailableBatchesByItem] Starting with materialId:", materialId);
+  console.log("[fetchAvailableBatchesByMaterial] Starting with materialId:", materialId);
   if (!materialId) {
-    console.log("[fetchAvailableBatchesByItem] No materialId provided, returning empty array");
+    console.log("[fetchAvailableBatchesByMaterial] No materialId provided, returning empty array");
     return [];
   }
   
   return executeServerDbOperation(async (supabase) => {
-    console.log("[fetchAvailableBatchesByItem] Executing database query for materialId:", materialId);
+    console.log("[fetchAvailableBatchesByMaterial] Executing database query for materialId:", materialId);
     
     // The original query used a view `v_batches_with_drums`.
     // Since the view definition isn't readily available, and we need supplier_name,
@@ -250,11 +250,11 @@ export async function fetchAvailableBatchesByMaterial(materialId: string): Promi
       .eq("material_id", materialId);
 
     if (itemError) {
-      console.error("[fetchAvailableBatchesByItem: itemError]", itemError);
+      console.error("[fetchAvailableBatchesByMaterial: itemError]", itemError);
       return [];
     }
 
-    console.log("[fetchAvailableBatchesByItem] Item count:", itemData?.length, "Item data:", itemData);
+    console.log("[fetchAvailableBatchesByMaterial] Item count:", itemData?.length, "Item data:", itemData);
 
     // First, let's get batches for the item and their associated POs.
     const { data: batchData, error: batchError } = await supabase
@@ -264,12 +264,12 @@ export async function fetchAvailableBatchesByMaterial(materialId: string): Promi
       .gt("drums_in_stock", 0); // Assuming qty_drums represents drums_in_stock
 
     if (batchError) {
-      console.error("[fetchAvailableBatchesByItem: batchError]", batchError);
+      console.error("[fetchAvailableBatchesByMaterial: batchError]", batchError);
       return [];
     }
 
-    console.log("[fetchAvailableBatchesByItem] Query results:", batchData);
-    console.log("[fetchAvailableBatchesByItem] Number of batches found:", batchData?.length || 0);
+    console.log("[fetchAvailableBatchesByMaterial] Query results:", batchData);
+    console.log("[fetchAvailableBatchesByMaterial] Number of batches found:", batchData?.length || 0);
 
     return batchData as Array<{
       batch_id: string;
@@ -318,7 +318,7 @@ export async function createProductionJob(jobData: ProductionJobData): Promise<{
   console.log("[createProductionJob] Parsed data for RPC:", { batchId, plannedDate, stillId, rawVolume, priority, jobName, jobStatus });
 
   return executeServerDbOperation(async (supabase) => {
-    console.log("[createProductionJob] Calling database function create_distillation_job");
+    console.log("[createProductionJob] Calling database function create_production_job");
     const { data, error } = await supabase
       .schema("production")
       .rpc("create_production_job", {
@@ -358,7 +358,7 @@ export async function updateProductionJobStatus(
     const { error } = await supabase
       .schema("production")
       .from("jobs")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update({ status: newStatus })
       .eq("job_id", jobId)
       .eq("status", "drafted"); // IMPORTANT: Only allow update if current status is 'drafted'
 
@@ -408,6 +408,8 @@ export async function updateProductionJobDetails(
   if (Object.keys(updateData).length <= 1) { // Only updated_at
     return { success: false, message: "No details provided to update." };
   }
+
+  console.log("[updateProductionJobDetails] updateData:", updateData);
 
   return executeServerDbOperation(async (supabase) => {
     const { error } = await supabase

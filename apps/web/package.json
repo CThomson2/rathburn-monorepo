@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3000 --hostname 0.0.0.0",
     "clean": "rm -rf .next",
     "build": "next build && node scripts/config-standalone.js",
     "start": "node server.js",

@@ -39,7 +39,6 @@ import {
 import { fetchMaterials } from "@/app/actions/orders"; // Assuming this action will be created
 import { fetchItemsByMaterialId } from "@/app/actions/batches";
 import { ProductionJobData } from "@/features/production/types";
-
 import { useAuth } from "@/hooks/use-auth";
 
 interface Material {
@@ -82,15 +81,23 @@ export function ProductionForm({
   onCancel,
 }: ProductionFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-2 text-muted-foreground">Loading authentication...</p>
+      </div>
+    );
+  }
 
   if (!user) {
-    toast.error("User not found. Please log in.");
     return (
       <div className="flex flex-col items-center justify-center text-destructive p-8">
         <AlertTriangle className="w-12 h-12 mb-4" />
-        <p className="text-lg">Error loading scheduling data.</p>
-        <p>Please try closing and reopening the dialog.</p>
+        <p className="text-lg">Authentication Required</p>
+        <p>You must be logged in to create a production job.</p>
       </div>
     );
   }
@@ -254,6 +261,11 @@ export function ProductionForm({
   };
 
   const handleSubmit = async (status: "drafted" | "scheduled") => {
+    if (!user) {
+      toast.error("User session expired. Please log in again.");
+      setSubmitting(false);
+      return;
+    }
     console.log(`ProductionForm: handleSubmit called with status: ${status}`);
     if (!validateForm()) {
       console.log(

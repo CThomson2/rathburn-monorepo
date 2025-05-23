@@ -164,7 +164,8 @@ export function QRDSetup({ data, onChange, disabled = false }: QRDSetupProps) {
   const handleSetStandardConditions = () => {
     setLocalInitialTemperature(20);
     setLocalInitialPressure(1013);
-    setLocalHeatSetting(50);
+    handleTemperatureChange([20]);
+    handleHeatSettingChange([50]);
     onChange({
       initialTemperature: 20,
       initialPressure: 1013,

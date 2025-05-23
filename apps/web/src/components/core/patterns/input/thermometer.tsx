@@ -66,7 +66,7 @@ export const Thermometer = React.forwardRef<
       max = 100,
       step = 1,
       value,
-      defaultValue = [0],
+      defaultValue = [20],
       onValueChange,
       ...props
     },
