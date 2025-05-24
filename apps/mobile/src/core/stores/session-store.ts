@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/core/lib/supabase/client';
-import { Database, Json } from '@/types/supabase';
+import { Database, Json } from '@rathburn/types';
 import { createClient } from "@/core/lib/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
 import { ScanStatus, ScanType } from '@/types/scanner';
@@ -1320,96 +1320,62 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         op_id_for_log: null,
         error: null,
       };
-      let opDataForLog: {op_id: string; op_type: string} | null = null;
 
       try {
-        const { data: drumInvData, error: drumInvError } = await supabase
+        // Use the new assign_drum_by_serial_number function that handles all validation and assignment
+        const { data: assignResult, error: assignError } = await supabase
+          .schema('production')
+          .rpc('assign_drum_by_serial_number', {
+            p_serial_number: barcode,
+            p_job_id: selectedProductionJobId,
+            p_created_by: user.id,
+          });
+
+        if (assignError || !assignResult || assignResult.length === 0) {
+          const msg = assignError ? assignError.message : 'Failed to assign drum to production job.';
+          scanResult = { ...scanResult, status: 'error', message: msg, error: assignError || new Error(msg) };
+          get().logCurrentState('processScan_production_assign_error');
+          throw scanResult.error;
+        }
+
+        const result = assignResult[0];
+        if (!result.success) {
+          scanResult = { ...scanResult, status: 'error', message: result.message, error: new Error(result.message) };
+          get().logCurrentState('processScan_production_assign_failed');
+          throw scanResult.error;
+        }
+
+        // Get drum details for display purposes
+        const { data: drumData, error: drumError } = await supabase
           .schema('inventory')
           .from('drums')
           .select(`
             drum_id, 
-            batch_id, 
             batches (
-              item_id,
               items ( name )
-            ),
-            status
+            )
           `)
-          .eq('serial_number', barcode)
+          .eq('drum_id', result.drum_id)
           .single();
 
-        if (drumInvError || !drumInvData) {
-          const msg = drumInvError ? 'DB error finding drum.' : `Drum ${barcode} not found in inventory.`;
-          scanResult = { ...scanResult, status: 'error', message: msg, error: drumInvError || new Error(msg) };
-          get().logCurrentState('processScan_production_drum_find_error');
-          throw scanResult.error;
-        }
-        
-        // Validation 2 – ensure drum is currently in stock
-        if (drumInvData.status !== 'in_stock') {
-          const msg = `Drum ${barcode} status ${drumInvData.status} – expected in_stock.`;
-          scanResult = { ...scanResult, status: 'error', message: msg, error: new Error(msg) };
-          get().logCurrentState('processScan_production_drum_not_in_stock');
-          throw scanResult.error;
-        }
-
-        // Validation 3 – ensure drum belongs to the input batch for this production job
-        const jobDetails = get().availableProductionTasks.find(j => j.job_id === selectedProductionJobId);
-        if (jobDetails && jobDetails.input_batch_id && drumInvData.batch_id !== jobDetails.input_batch_id) {
-          const msg = `Drum ${barcode} does not belong to batch required for this job.`;
-          scanResult = { ...scanResult, status: 'error', message: msg, error: new Error(msg) };
-          get().logCurrentState('processScan_production_drum_wrong_batch');
-          throw scanResult.error;
-        }
-
-        const drumId = drumInvData.drum_id;
-        const itemNameFromDrum = drumInvData.batches?.items?.name || 'Unknown Item';
-        scanResult.item_name = itemNameFromDrum; 
-
-        const { data: opData, error: opError } = await supabase
-          .schema('production')
-          .from('operations')
-          .select('op_id, op_type')
-          .eq('job_id', selectedProductionJobId)
-          .in('status', ['pending', 'active']) 
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .single();
-        
-        if (opError || !opData) {
-          const msg = opError ? 'DB error finding operation.' : `No suitable pending/active operation for job ${selectedProductionJobId.slice(0,8)}.`;
-          scanResult = { ...scanResult, status: 'error', message: msg, error: opError || new Error(msg) };
-          get().logCurrentState('processScan_production_op_find_error');
-          throw scanResult.error;
-        }
-        opDataForLog = opData; 
-        scanResult.op_id_for_log = opData.op_id;
-
-        const volumeToTransfer = 200; 
-        const { error: opDrumError } = await supabase
-          .schema('production')
-          .from('operation_drums')
-          .insert({
-            op_id: opData.op_id,
-            drum_id: drumId,
-            scan_id: -1, 
-            volume_transferred: volumeToTransfer 
-          });
-
-        if (opDrumError) {
-          scanResult = { ...scanResult, status: 'error', message: 'DB error assigning drum to operation.', error: opDrumError };
-          get().logCurrentState('processScan_production_op_drum_error');
-          throw opDrumError;
-        }
-        await supabase.schema('inventory').from('drums').update({ status: 'pre_production' }).eq('drum_id', drumId);
-
-        scanResult = { ...scanResult, status: 'success', message: `Drum ${barcode} assigned to operation ${opData.op_type} for job.`, drum_id: drumId };
+        const itemName = drumData?.batches?.items?.name || 'Unknown Item';
+        scanResult = { 
+          status: 'success', 
+          message: `Drum ${barcode} successfully assigned to production job.`, 
+          drum_id: result.drum_id,
+          item_name: itemName,
+          op_id_for_log: result.op_id 
+        };
         
         set(state => ({
           isScanning: false,
           lastScanStatus: 'success',
           lastScanMessage: scanResult.message,
-          activeProductionJobDrums: [...state.activeProductionJobDrums, { drum_id: drumId, serial_number: barcode, volume_transferred: volumeToTransfer }],
+          activeProductionJobDrums: [...state.activeProductionJobDrums, { 
+            drum_id: result.drum_id, 
+            serial_number: barcode, 
+            volume_transferred: 200 // Default volume
+          }],
         }));
         get().logCurrentState('processScan_production_success');
 
@@ -1420,35 +1386,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         }
         set({ isScanning: false, lastScanStatus: 'error', lastScanMessage: scanResult.message });
         get().logCurrentState('processScan_production_catch_error');
-      } finally {
-          try {
-              const logEntry = {
-                  session_id: currentSessionId,
-                  raw_barcode: barcode,
-                  scan_status: scanResult.status,
-                  scan_action: 'production_input' as ScanType, 
-                  error_message: scanResult.status === 'error' ? scanResult.message : null,
-                  user_id: user.id, 
-                  device_id: getDeviceId(),
-                  pol_id: null, 
-                  pod_id: null, 
-                  item_name: scanResult.item_name, 
-                  job_id: selectedProductionJobId, 
-                  op_id: scanResult.op_id_for_log, 
-                  drum_id: scanResult.drum_id || null, 
-              };
-              const { error: logError } = await supabase.from('session_scans').insert(logEntry);
-              if (logError) {
-                  console.error("[SessionStore] CRITICAL: Failed to log production scan result to public.session_scans:", logError, logEntry);
-              } else {
-                   console.log("[SessionStore] Production scan result logged to public.session_scans:", logEntry);
-              }
-          } catch (logCatchError) {
-               console.error("[SessionStore] CRITICAL: Exception during production scan logging:", logCatchError);
-          }
-          if (get().isScanning) {
-            set({ isScanning: false });
-          }
       }
     }
   },
