@@ -44,7 +44,7 @@ function getEnv(key: string, defaultValue?: string): string {
       return defaultValue;
     }
     
-    logger.error(`Required environment variable ${key} not set`, { key });
+    logger.error(`Required environment variable ${key} not set`);
     throw new Error(`Required environment variable ${key} not set`);
   }
   

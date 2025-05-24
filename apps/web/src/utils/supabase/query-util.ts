@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { Database, Tables } from "@/types/models/supabase";
+import type { Database, Tables } from "@rathburn/types";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 // Type that extracts valid table names from the public schema

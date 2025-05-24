@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FilterCondition, SortSpec, TableDataOptions } from "../types";
-import type { Database } from "@/types/models/supabase";
+import type { Database } from "@rathburn/types";
 
 type TableNames = keyof (Database["public"]["Tables"] &
   Database["public"]["Views"]);

@@ -37,7 +37,7 @@ import {
 } from "@/app/actions/production";
 import { fetchMaterials } from "@/app/actions/orders";
 import type {
-  Order as JobDetails,
+  ProductionJobViewData as JobDetails,
   OperationStatus as TaskStatusType,
 } from "@/features/production/types";
 

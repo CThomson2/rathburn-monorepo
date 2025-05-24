@@ -13,7 +13,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/utils/format-date";
-import type { Order, OrderStatus } from "@/features/production/types/";
+import type {
+  ProductionJobViewData as Order,
+  JobDisplayStatus,
+} from "@/features/production/types/";
 
 interface ProductionPreviewProps {
   onCreateJob: () => void;
@@ -94,7 +97,9 @@ export function ProductionPreview({ onCreateJob }: ProductionPreviewProps) {
                 <TableCell>{formatDate(job.scheduledDate)}</TableCell>
                 <TableCell>
                   <span
-                    className={getStatusBadgeClass(job.status as OrderStatus)}
+                    className={getStatusBadgeClass(
+                      job.status as JobDisplayStatus
+                    )}
                   >
                     {job.status}
                   </span>
@@ -110,21 +115,25 @@ export function ProductionPreview({ onCreateJob }: ProductionPreviewProps) {
 }
 
 // Helper function to determine badge class based on status (similar to orders)
-function getStatusBadgeClass(status: OrderStatus): string {
+function getStatusBadgeClass(status: JobDisplayStatus): string {
   const baseClasses =
     "px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap";
 
   switch (status) {
-    case "preparing":
+    case "drafted":
       return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200`;
-    case "distillation":
+    case "scheduled":
+    case "confirmed":
       return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`;
+    case "in_progress":
     case "qc":
       return `${baseClasses} bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200`;
     case "complete":
       return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200`;
     case "error":
       return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`;
+    case "paused":
+      return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200`;
     default:
       // Fallback for any unexpected status, or if a new status is added and not handled here
       const exhaustiveCheck: never = status;

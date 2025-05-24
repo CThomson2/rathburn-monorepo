@@ -47,7 +47,7 @@ import {
 import { FilterCondition, SortSpec } from "../types";
 import { availableTables, buildQuery } from "../constants/tables";
 import { useColumns } from "../hooks/use-columns";
-import type { Database } from "@/types/models/supabase";
+import type { Database } from "@rathburn/types";
 
 type TableName = (typeof availableTables)[number]["name"];
 type TableRecord<T extends TableName> = Database["public"]["Tables"][T]["Row"];

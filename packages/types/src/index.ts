@@ -1,4 +1,6 @@
 export * from "./supabase";
+export * from "./drum-scan";
+
 /**
  * Common types and interfaces for the Rathburn monorepo
  */

@@ -2,9 +2,9 @@
 // Supabase client and database operations
 
 import { createClient } from '@supabase/supabase-js';
-import { BarcodeData, StoredScanData } from '@/lib/types';
 import { config } from '@/lib/api/config';
 import { createLogger } from '@/lib/api/utils/logger';
+import { DrumScan } from '@rathburn/types';
 
 const logger = createLogger('db');
 
@@ -27,11 +27,11 @@ export const DB_TABLES = {
  * @param scanData - The validated scan data to insert
  * @returns The inserted record or null if error
  */
-export async function insertBarcodeScan(scanData: BarcodeData): Promise<StoredScanData | null> {
+export async function insertBarcodeScan(scanData: DrumScan): Promise<DrumScan | null> {
   // Prepare the data for insertion with defaults if needed
-  const dataToInsert: BarcodeData = {
+  const dataToInsert = {
     ...scanData,
-    scan_timestamp: scanData.scan_timestamp || new Date().toISOString(),
+    scanned_at: scanData.scanned_at || new Date().toISOString(),
   };
 
   const { data, error } = await supabase
@@ -49,7 +49,7 @@ export async function insertBarcodeScan(scanData: BarcodeData): Promise<StoredSc
     throw new Error(`Database error: ${error.message}`);
   }
 
-  return data as StoredScanData;
+  return data as DrumScan;
 }
 
 /**
@@ -76,7 +76,7 @@ export async function checkScanIdExists(scanId: string): Promise<boolean> {
  * @param scanId - The scan_id to retrieve
  * @returns The scan data or null if not found
  */
-export async function getScanById(scanId: string): Promise<StoredScanData | null> {
+export async function getScanById(scanId: string): Promise<DrumScan | null> {
   const { data, error } = await supabase
     .from(DB_TABLES.LOG_DRUM_SCAN)
     .select('*')
@@ -87,5 +87,5 @@ export async function getScanById(scanId: string): Promise<StoredScanData | null
     throw new Error(`Database error retrieving scan: ${error.message}`);
   }
 
-  return data as StoredScanData | null;
+  return data as DrumScan | null;
 }

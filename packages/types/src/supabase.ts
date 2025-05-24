@@ -1162,6 +1162,20 @@ export type Database = {
             referencedRelation: "drums"
             referencedColumns: ["drum_id"]
           },
+          {
+            foreignKeyName: "drum_fills_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_pending_repro_drums"
+            referencedColumns: ["drum_id"]
+          },
+          {
+            foreignKeyName: "drum_fills_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_repro_drums_pending"
+            referencedColumns: ["drum_id"]
+          },
         ]
       }
       drums: {
@@ -1387,6 +1401,20 @@ export type Database = {
             referencedColumns: ["drum_id"]
           },
           {
+            foreignKeyName: "purchase_order_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_pending_repro_drums"
+            referencedColumns: ["drum_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_drums_drum_id_fkey"
+            columns: ["drum_id"]
+            isOneToOne: false
+            referencedRelation: "v_repro_drums_pending"
+            referencedColumns: ["drum_id"]
+          },
+          {
             foreignKeyName: "purchase_order_drums_pol_id_fkey"
             columns: ["pol_id"]
             isOneToOne: false
@@ -1528,11 +1556,71 @@ export type Database = {
         }
         Relationships: []
       }
+      v_pending_repro_drums: {
+        Row: {
+          batch_id: string | null
+          created_at: string | null
+          current_location: string | null
+          current_volume: number | null
+          drum_id: string | null
+          serial_number: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drums_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "drums_current_location_fkey"
+            columns: ["current_location"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      v_repro_drums_pending: {
+        Row: {
+          batch_id: string | null
+          created_at: string | null
+          current_location: string | null
+          current_volume: number | null
+          drum_id: string | null
+          serial_number: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drums_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "drums_current_location_fkey"
+            columns: ["current_location"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
     }
     Functions: {
       count_materials_below_threshold: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      fn_next_repro_serial: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_batch_id_from_pol_id: {
         Args: { p_pol_id: string }
@@ -1783,7 +1871,7 @@ export type Database = {
           op_id: string
           raw_volume: number
           still_id: number
-          udpated_at: string | null
+          updated_at: string | null
           updated_by: string | null
         }
         Insert: {
@@ -1794,7 +1882,7 @@ export type Database = {
           op_id: string
           raw_volume: number
           still_id: number
-          udpated_at?: string | null
+          updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
@@ -1805,7 +1893,7 @@ export type Database = {
           op_id?: string
           raw_volume?: number
           still_id?: number
-          udpated_at?: string | null
+          updated_at?: string | null
           updated_by?: string | null
         }
         Relationships: [
@@ -2087,6 +2175,48 @@ export type Database = {
         }
         Relationships: []
       }
+      volume_transfer: {
+        Row: {
+          created_at: string
+          drum_id: string
+          op_id: string
+          transfer_id: string
+          transfer_type: Database["production"]["Enums"]["transfer_type"]
+          volume: number
+        }
+        Insert: {
+          created_at?: string
+          drum_id: string
+          op_id: string
+          transfer_id?: string
+          transfer_type?: Database["production"]["Enums"]["transfer_type"]
+          volume: number
+        }
+        Update: {
+          created_at?: string
+          drum_id?: string
+          op_id?: string
+          transfer_id?: string
+          transfer_type?: Database["production"]["Enums"]["transfer_type"]
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volume_transfer_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["op_id"]
+          },
+          {
+            foreignKeyName: "volume_transfer_op_id_fkey"
+            columns: ["op_id"]
+            isOneToOne: false
+            referencedRelation: "v_operation_schedule"
+            referencedColumns: ["op_id"]
+          },
+        ]
+      }
     }
     Views: {
       v_operation_schedule: {
@@ -2141,6 +2271,33 @@ export type Database = {
       }
     }
     Functions: {
+      assign_drum_by_serial_number: {
+        Args: {
+          p_serial_number: string
+          p_job_id?: string
+          p_created_by?: string
+        }
+        Returns: {
+          job_id: string
+          op_id: string
+          drum_id: string
+          success: boolean
+          message: string
+        }[]
+      }
+      assign_drum_to_production_job: {
+        Args: {
+          p_drum_id: string
+          p_job_id?: string | null
+          p_created_by?: string | null
+        }
+        Returns: {
+          job_id: string
+          op_id: string
+          success: boolean
+          message: string
+        }[]
+      }
       create_production_job: {
         Args: {
           p_user_id: string
@@ -2189,13 +2346,8 @@ export type Database = {
         | "packaging"
         | "goods_in"
         | "transport"
-      qc_grade:
-        | "HPLC"
-        | "LCMS"
-        | "GlassDist"
-        | "HPLC S"
-        | "PeptideSynth"
-        | "FailedSpec"
+      qc_grade: "HPLC" | "LCMS" | "GD" | "HPLC S" | "Peptide" | "FailedSpec"
+      transfer_type: "failed_to_repro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3639,14 +3791,8 @@ export const Constants = {
         "goods_in",
         "transport",
       ],
-      qc_grade: [
-        "HPLC",
-        "LCMS",
-        "GlassDist",
-        "HPLC S",
-        "PeptideSynth",
-        "FailedSpec",
-      ],
+      qc_grade: ["HPLC", "LCMS", "GD", "HPLC S", "Peptide", "FailedSpec"],
+      transfer_type: ["failed_to_repro"],
     },
   },
   public: {

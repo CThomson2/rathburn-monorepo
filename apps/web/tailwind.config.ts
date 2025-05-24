@@ -521,7 +521,7 @@ const config = {
   			},
   			dots: {
   				'0%': {
-  					content: '
+  					content: ''
   				},
   				'33%': {
   					content: '.'
@@ -530,7 +530,7 @@ const config = {
   					content: '..'
   				},
   				'100%': {
-                        ...
+  					content: '...'
   				}
   			},
   			spotlight: {

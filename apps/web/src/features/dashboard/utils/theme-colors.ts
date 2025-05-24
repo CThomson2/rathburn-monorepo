@@ -109,12 +109,12 @@ export const colorScheme: ThemeColorScheme = {
       gradient: "from-red-500 to-red-700",
     },
     // Default fallback
-    default: {
-      base: "hsl(var(--slate-9))",
-      light: "hsl(var(--slate-7))",
-      dark: "hsl(var(--slate-11))",
-      gradient: "from-slate-500 to-slate-700",
-    },
+    // default: {
+    //   base: "hsl(var(--slate-9))",
+    //   light: "hsl(var(--slate-7))",
+    //   dark: "hsl(var(--slate-11))",
+    //   gradient: "from-slate-500 to-slate-700",
+    // },
   },
 
   // Chart colors
@@ -159,7 +159,7 @@ export function getCategoryColor(
 ): string {
   const normalizedCategory = category || "default";
   const categoryColors = colorScheme.categories[normalizedCategory] ?? 
-                         colorScheme.categories.default;
+                         colorScheme.categories["Gen Solvents"];
   
   return categoryColors[variant];
 }
@@ -170,7 +170,7 @@ export function getCategoryColor(
 export function getCategoryGradient(category: Category): string {
   const normalizedCategory = category || "default";
   return colorScheme.categories[normalizedCategory]?.gradient || 
-         colorScheme.categories.default.gradient;
+         colorScheme.categories["Gen Solvents"].gradient;
 }
 
 /**

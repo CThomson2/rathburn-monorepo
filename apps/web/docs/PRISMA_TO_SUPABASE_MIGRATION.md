@@ -49,7 +49,7 @@ For custom tables, use the `TableType` helper:
 
 ```typescript
 import { TableType } from "@/types/models/base";
-import { Database } from "@/types/models/supabase"
+import { Database } from "@rathburn/types";
 
 // Get type for any table
 type User = TableType<"users">;

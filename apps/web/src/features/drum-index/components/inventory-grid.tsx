@@ -18,6 +18,7 @@ import {
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { useToast } from "@/hooks/use-toast";
 
 // Manually define the type based on the view structure
 interface DrumDetailView {
@@ -78,6 +79,7 @@ const DrumInventoryGrid: React.FC = () => {
   >(null);
   const [isAssigning, setIsAssigning] = useState(false);
   const supabase = createClient();
+  const { toast } = useToast();
 
   const fetchDrums = useCallback(
     async (currentPage = page, currentFilters = filters) => {
@@ -192,19 +194,19 @@ const DrumInventoryGrid: React.FC = () => {
       status.toLowerCase() // Add toLowerCase for case-insensitivity
     ) {
       case "pending":
-        return "bg-gray-300 opacity-50";
+        return "text-gray-300 opacity-50";
       case "in_stock":
-        return "bg-blue-400";
+        return "text-blue-400";
       case "pre_production":
-        return "bg-green-400";
+        return "text-green-400";
       case "in_production":
-        return "bg-yellow-400";
+        return "text-yellow-400";
       case "decommissioning":
-        return "bg-red-400";
+        return "text-red-400";
       case "empty":
-        return "bg-gray-200";
+        return "text-gray-200";
       default:
-        return "bg-gray-200";
+        return "text-gray-200";
     }
   };
 
@@ -249,7 +251,7 @@ const DrumInventoryGrid: React.FC = () => {
 
   const handleAssignToProductionRun = async () => {
     if (!selectedDrum) {
-      alert("No drum selected.");
+      toast.info("No drum selected.");
       return;
     }
     setIsAssigning(true);
@@ -259,48 +261,67 @@ const DrumInventoryGrid: React.FC = () => {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        alert("You must be logged in to assign a drum to production.");
+        toast.warning("You must be logged in to assign a drum to production.");
         console.error("User error:", userError);
         setIsAssigning(false);
         return;
       }
 
+      // Use the new assign_drum_to_production_job function that assigns drums to existing scheduled jobs
       const { data, error } = await supabase
         .schema("production")
-        .rpc("create_transport_task", {
+        .rpc("assign_drum_to_production_job", {
           p_drum_id: selectedDrum.drum_id,
+          p_job_id: null, // Let the function find the appropriate job for this drum's batch
           p_created_by: user.id,
         });
 
       if (error) {
-        console.error("Error assigning drum to production run:", error);
-        alert(`Failed to assign drum: ${error.message}`);
-      } else {
-        alert(
-          `Drum ${selectedDrum.serial_number || selectedDrum.drum_id} assigned to production run. Job ID: ${data[0]?.job_id}, Op ID: ${data[0]?.op_id}`
+        console.error("Error assigning drum to production:", error);
+        toast.error(
+          `Assignment Failed: Failed to assign drum: ${error.message}`
         );
-        // Optionally, you might want to update the UI or close the drawer
-        // For now, just log and alert
-        console.log("Assignment successful:", data);
+      } else if (data && data.length > 0) {
+        const result = data[0];
+        if (result && result.success) {
+          toast.success(
+            `Drum ${selectedDrum.serial_number || selectedDrum.drum_id} assigned to production job ${result.job_id?.toString().slice(0, 8)}`
+          );
+          // Refresh the drum data to show updated status
+          fetchDrums();
+          // Optionally close the drawer
+          setIsDrawerOpen(false);
+        } else {
+          toast.error(
+            `Assignment Failed: ${result?.message || "Failed to assign drum to production"}`
+          );
+        }
+      } else {
+        toast.error(
+          "Assignment Failed: No response received from assignment function"
+        );
       }
     } catch (rpcError) {
       console.error("RPC error:", rpcError);
-      alert("An unexpected error occurred while assigning the drum.");
+      toast.error(
+        "Assignment Error: An unexpected error occurred while assigning the drum."
+      );
     } finally {
       setIsAssigning(false);
     }
   };
 
-  const handleDownloadLabel = async (polId: string | null) => {
-    if (!polId) {
-      alert("Cannot download label: Purchase Order Line ID is missing.");
+  const handleDownloadLabel = async (drumId: string) => {
+    if (!drumId) {
+      toast.warning("Cannot download label: Drum ID is missing.");
       return;
     }
     try {
-      window.open(`/api/barcodes/drum-labels/${polId}`, "_blank");
+      window.open(`/api/barcodes/single-drum-label/${drumId}`, "_blank");
+      toast.success("Label download initiated.");
     } catch (error) {
       console.error("Error initiating label download:", error);
-      alert(
+      toast.error(
         `Error downloading label: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
@@ -389,6 +410,7 @@ const DrumInventoryGrid: React.FC = () => {
         </Button>
       </div>
 
+      {/* Drum Details Drawer */}
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
         <DrawerContent className="w-full max-w-md ml-auto h-full">
           {selectedDrum && (
@@ -488,8 +510,8 @@ const DrumInventoryGrid: React.FC = () => {
                   </Button>
                   <Button
                     className="w-full"
-                    onClick={() => handleDownloadLabel(selectedDrum.pol_id)}
-                    disabled={!selectedDrum.pol_id}
+                    onClick={() => handleDownloadLabel(selectedDrum.drum_id)}
+                    disabled={!selectedDrum.drum_id}
                   >
                     Download Label
                   </Button>
